@@ -7,6 +7,7 @@
     disko.inputs.nixpkgs.follows = "nixpkgs";
     nixos-facter-modules.url = "github:numtide/nixos-facter-modules";
     kubenixconfig.url = "github:bmw-adam/kubenix";
+    sops-nix.url = "github:Mic92/sops-nix";
   };
 
   outputs =
@@ -15,6 +16,7 @@
       disko,
       nixos-facter-modules,
       kubenixconfig,
+      sops-nix,
       ...
     }:
     {
@@ -22,15 +24,15 @@
         system = "x86_64-linux";
         specialArgs = {
           inherit kubenixconfig;
-          defaultPassword = builtins.getEnv "DEF_PASS";
-          k3stoken = builtins.getEnv "TOKEN";
-          pub_key = builtins.getEnv "SSH_PUB";
         };
 
         modules = [
           disko.nixosModules.disko
           ./src/configuration/configuration.nix
           ./servers/server1.nix
+
+          ./src/configuration/secrets.nix
+          sops-nix.nixosModules.sops
         ];
       };
       # nixosConfigurations.hetzner-cloud = nixpkgs.lib.nixosSystem {

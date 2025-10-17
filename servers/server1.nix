@@ -1,15 +1,17 @@
-{ kubenixconfig, k3stoken, ... }:
+{ kubenixconfig, config, ... }:
+let
+  kubeTokenPath = config.sops.secrets."kubernetes/token".path;
+in
 {
   imports = [ ./base-server.nix ];
   networking.hostName = "server1";
 
   time.timeZone = "Europe/Berlin";
 
-
   services.k3s = {
     enable = true;
     role = "server";
-    token = k3stoken;
+    tokenFile = kubeTokenPath;
     clusterInit = true;
     extraFlags = toString [
       "--https-listen-port=6444"
