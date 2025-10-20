@@ -8,7 +8,8 @@
     nixos-facter-modules.url = "github:numtide/nixos-facter-modules";
     kubenixconfig.url = "github:bmw-adam/kubenix";
     sops-nix.url = "github:Mic92/sops-nix";
-  };
+    tpvsel.url = "github:bmw-adam/TpvSelect";
+};
 
   outputs =
     {
@@ -17,13 +18,14 @@
       nixos-facter-modules,
       kubenixconfig,
       sops-nix,
+      tpvsel,
       ...
     }:
     {
       nixosConfigurations.server1 = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = {
-          inherit kubenixconfig;
+          inherit kubenixconfig tpvsel;
         };
 
         modules = [

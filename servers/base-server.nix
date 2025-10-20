@@ -1,4 +1,4 @@
-{ kubenixconfig, pkgs, ... }:
+{ kubenixconfig, pkgs, tpvsel, ... }:
 let
   kubenixScript = pkgs.writeShellScriptBin "kubenixScript" ''
     #!${pkgs.runtimeShell}
@@ -97,7 +97,12 @@ in
     pkgs.iproute2
     pkgs.kubectl
     kubenixconfig.defaultPackage.${pkgs.system}
+    tpvsel.packages.${pkgs.system}.default
   ];
 
-  networking.firewall.allowedTCPPorts = [ 6445 ];
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 80 443 ];
+    allowPing = true;
+  };
 }
