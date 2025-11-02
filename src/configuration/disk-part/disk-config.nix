@@ -33,6 +33,15 @@
         };
       };
     };
+    disk.disk2 = {
+      device = lib.mkDefault "/dev/sdb";
+      type = "disk";
+      content = {
+        type = "lvm_pv";
+        vg = "db";
+      };
+    };
+
     lvm_vg = {
       pool = {
         type = "lvm_vg";
@@ -43,6 +52,22 @@
               type = "filesystem";
               format = "ext4";
               mountpoint = "/";
+              mountOptions = [
+                "defaults"
+              ];
+            };
+          };
+        };
+      };
+      db = {
+        type = "lvm_vg";
+        lvs = {
+          db_0 = {
+            size = "100%FREE";
+            content = {
+              type = "filesystem";
+              format = "ext4";
+              mountpoint = "/db";
               mountOptions = [
                 "defaults"
               ];

@@ -98,11 +98,12 @@ in
     pkgs.kubectl
     kubenixconfig.defaultPackage.${pkgs.system}
     tpvsel.packages.${pkgs.system}.default
+    # pkgs.docker
   ];
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 80 443 ];
+    allowedTCPPorts = [ 80 443 1235 31890 31891 31892 31893 31894 ];
     allowPing = true;
   };
 }
