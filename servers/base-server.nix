@@ -103,7 +103,7 @@ in
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 80 443 1235 31890 31891 31892 31893 31894 ];
+    allowedTCPPorts = [ 80 443 1235 31890 31891 31892 31893 31894 31895 ];
     allowPing = true;
   };
 }

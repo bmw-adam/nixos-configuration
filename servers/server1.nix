@@ -13,13 +13,14 @@ in
   time.timeZone = "Europe/Berlin";
 
   environment.variables.DIST_DIR_PATH = "${tpvsel.packages.${pkgs.system}.default}/bin/dist";
+  environment.variables.TPVSEL_PATH = "${tpvsel.packages.${pkgs.system}.default}/bin/backend";
     #   DEFAULT_PASSWORD_PATH = defaultPasswordPath;
     # KUBE_TOKEN_PATH = kubeTokenPath;
     # TLS_KEY = kubeTokenPath;
     # TLS_CRT = tlsCrtPath;
 
   systemd.services.tpvsel = {
-    enable = true;
+    enable = false;
     description = "Tpv sel service";
 
     after = [ "network-online.target" "k3s.service" "ensure-default-sa.service" ];
@@ -45,19 +46,18 @@ in
     images = [
       (pkgs.dockerTools.buildLayeredImage {
         name = "tpvsel";
-        contents = [ pkgs.nginx ];
+        contents = [ tpvsel.packages.${pkgs.system}.default pkgs.bash pkgs.findutils pkgs.coreutils pkgs.gnugrep ];
         tag = "latest";
         
-        extraCommands = ''
-          mkdir -p etc
-          chmod u+w etc
-          echo "nginx:x:1000:1000::/:" > etc/passwd
-          echo "nginx:x:1000:nginx" > etc/group
-        '';
+        # extraCommands = ''
+        #   find / | grep tpvsel
+        # '';
         config = {
-          Cmd = [ "nginx" "-c" "/etc/nginx/nginx.conf" ];
+          Cmd = [ "$TPVSEL_PATH" ];
+
           ExposedPorts = {
-            # "80/tcp" = { };
+            "1234/tcp" = { };
+            "1235/tcp" = { };
           };
         };
       })

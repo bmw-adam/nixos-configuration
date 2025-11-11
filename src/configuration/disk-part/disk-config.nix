@@ -22,6 +22,19 @@
               mountpoint = "/boot";
             };
           };
+          k3sdata = {
+            name = "k3sdata";
+            size = "2G";
+            type = "8300";
+            content = {
+              type = "filesystem";
+              format = "ext4";
+              mountpoint = "/k3sdata";
+              mountOptions = [
+                "defaults"
+              ];
+            };
+          };
           root = {
             name = "root";
             size = "100%";
@@ -76,5 +89,10 @@
         };
       };
     };
+  };
+
+  fileSystems."/k3sdata/secrets" = {
+    device = "/run/secrets";
+    options = [ "bind" ];
   };
 }

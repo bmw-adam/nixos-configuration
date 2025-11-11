@@ -4,6 +4,7 @@ let
   kubeTokenPath = config.sops.secrets."kubernetes/token".path;
   tlsKeyPath = config.sops.secrets.tlsKey.path;
   tlsCrtPath = config.sops.secrets.tlsCrt.path;
+  oauthClientPath = config.sops.secrets.oauthClient.path;
 in
 {
   sops = {
@@ -15,6 +16,7 @@ in
       "kubernetes/token"  = {};
       tlsCrt = {};
       tlsKey = {};
+      oauthClient = {};
     };
   };
 
@@ -23,5 +25,6 @@ in
     KUBE_TOKEN_PATH = kubeTokenPath;
     TLS_KEY = kubeTokenPath;
     TLS_CRT = tlsCrtPath;
+    OAUTH_CLIENT = oauthClientPath;
   };
 }
