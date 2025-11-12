@@ -98,6 +98,8 @@ in
     pkgs.kubectl
     kubenixconfig.defaultPackage.${pkgs.system}
     tpvsel.packages.${pkgs.system}.default
+    pkgs.kubernetes-helm
+    pkgs.bash
     # pkgs.docker
   ];
 

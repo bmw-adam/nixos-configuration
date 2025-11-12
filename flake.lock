@@ -119,11 +119,11 @@
         "tpvsel": "tpvsel"
       },
       "locked": {
-        "lastModified": 1762878359,
-        "narHash": "sha256-4tLiaWPxRCtmpByMO3yOgALF/a2t8z8pIY9tXlxYNwo=",
+        "lastModified": 1762972503,
+        "narHash": "sha256-vk4E0bMONLlviSX3is7mFD7zm8n2BFtc0U3mPXgR7wc=",
         "owner": "bmw-adam",
         "repo": "kubenix",
-        "rev": "7226535cdf937f3a39fe663535caea40b643a954",
+        "rev": "f737554c8ba5a332fd405a7d9be2de5299620333",
         "type": "github"
       },
       "original": {
