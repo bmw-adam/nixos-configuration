@@ -41,10 +41,11 @@ in
                 ];
 
                 env = [
-                  { name = "TLS_KEY"; value = "/k3sdata/secrets/tlsKey"; }
-                  { name = "TLS_CRT"; value = "/k3sdata/secrets/tlsCrt"; }
-                  { name = "DIST_DIR_PATH"; value = "${tpvsel.packages.${pkgs.system}.default}/bin/dist"; }
+                  # { name = "TLS_KEY"; value = "/k3sdata/secrets/tlsKey"; }
+                  # { name = "TLS_CRT"; value = "/k3sdata/secrets/tlsCrt"; }
+                  # { name = "DIST_DIR_PATH"; value = "${tpvsel.packages.${pkgs.system}.default}/bin/dist"; }
                   { name = "OAUTH_CLIENT"; value = "/k3sdata/secrets/oauthClient"; }
+                  # { name = "GRAFANA_TOKEN"; value = "/k3sdata/secrets/grafanaToken"; }
                   { name = "OTEL_EXPORTER_OTLP_ENDPOINT"; value = "https://otlp-gateway-prod-eu-west-2.grafana.net/otlp"; }
                   { name = "GRAFANA_OTEL_HEADERS_PATH"; value = "/k3sdata/secrets/grafanaOtelHeaders"; }
                   { name = "ASPNETCORE_ENVIRONMENT"; value = "Development"; }

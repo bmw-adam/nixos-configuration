@@ -1,4 +1,4 @@
-{ kubenixconfig, pkgs, tpvsel, ... }:
+{ kubenixconfig, pkgs, tpvsel, config, ... }:
 let
   kubenixScript = pkgs.writeShellScriptBin "kubenixScript" ''
     #!${pkgs.runtimeShell}
@@ -59,6 +59,39 @@ let
     $KUBECTL --kubeconfig=$CONFIG get serviceaccount default -n default >/dev/null 2>&1 || \
       $KUBECTL --kubeconfig=$CONFIG create serviceaccount default -n default
   '';
+
+  grafanaHelmValuesScript = pkgs.writeShellScriptBin "grafanaHelmValuesScript" ''
+    echo "Initializing Grafana Helm values Secret creation script..."
+    set -e
+    echo "Starting Grafana Helm values Secret creation script..."
+    
+    # This is the path you specified
+    SECRET_NAME="grafana-helm-values"
+    # This MUST match the 'targetNamespace' in your HelmChart spec
+    NAMESPACE="kube-system" 
+
+    echo "Using template file at: ${config.sops.templates."grafana-cloud-metrics.yaml".path}"
+
+    echo "Waiting for ${config.sops.templates."grafana-cloud-metrics.yaml".path}..."
+
+    echo "Using template file at: ${config.sops.templates."grafana-cloud-metrics.yaml".path}"
+    cat ${config.sops.templates."grafana-cloud-metrics.yaml".path}
+    # Loop until the file exists
+    while [ ! -f "${config.sops.templates."grafana-cloud-metrics.yaml".path}" ]; do
+      sleep 2
+    done
+    echo "File found. Creating/updating secret $SECRET_NAME in $NAMESPACE..."
+
+    # This command creates a secret 'from' that file.
+    # We use 'create --dry-run' and pipe to 'apply' to make this
+    # command idempotent: it will create *or* update the secret.
+    ${pkgs.kubectl}/bin/kubectl --kubeconfig=/var/lib/rancher/k3s/server/cred/admin.kubeconfig create secret generic "$SECRET_NAME" \
+      --namespace="$NAMESPACE" \
+      --from-file=values.yaml="${config.sops.templates."grafana-cloud-metrics.yaml".path}" \
+      --dry-run=client -o yaml | ${pkgs.kubectl}/bin/kubectl --kubeconfig=/var/lib/rancher/k3s/server/cred/admin.kubeconfig apply -f -
+
+    echo "Secret $SECRET_NAME applied successfully."
+  '';
 in
 {
   systemd.services.ensure-default-sa = {
@@ -88,6 +121,29 @@ in
       ExecStart = "${kubenixScript}/bin/kubenixScript";
     };
   };
+
+  systemd.services.create-grafana-helm-values = {
+    enable = true;
+    description = "Create Grafana Helm values Secret from runtime file";
+    
+    # We need the network and the k3s server to be running.
+    # IMPORTANT: You must also add the service that *generates* your template file here!
+    # For example: After = [ "my-template-generator.service" "k3s.service" ];
+    after = [ "network-online.target" "k3s.service" "ensure-default-sa.service" ];
+    wants = [ "network-online.target" "k3s.service" ];
+    requires = [ "k3s.service" "ensure-default-sa.service" ];
+    wantedBy = [ "multi-user.target" ];
+    
+    # Make kubectl available to our script
+    path = [ pkgs.kubectl ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${grafanaHelmValuesScript}/bin/grafanaHelmValuesScript";
+    };
+  };
+
 
   environment.systemPackages = [
     pkgs.curl

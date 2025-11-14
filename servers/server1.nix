@@ -36,7 +36,7 @@ in
       kind = "HelmChart";
       metadata = {
         name = "grafana-cloud-metrics";
-        namespace = "default";
+        namespace = "kube-system";
       };
 
       externalServices = {
@@ -52,112 +52,22 @@ in
         repo = "https://grafana.github.io/helm-charts";
         chart = "k8s-monitoring";
         version = "3.5.5";
-        valuesContent =''
-cluster:
-  name: TpvSelCluster
-destinations:
-  - name: grafana-cloud-metrics
-    type: prometheus
-    url: https://prometheus-prod-65-prod-eu-west-2.grafana.net./api/prom/push
-    auth:
-      type: basic
-      username: "2793474"
-      password: "${config.sops.placeholder.grafanaToken}"
-  - name: grafana-cloud-logs
-    type: loki
-    url: https://logs-prod-012.grafana.net./loki/api/v1/push
-    auth:
-      type: basic
-      username: "1392415"
-      password: "${config.sops.placeholder.grafanaToken}"
-  - name: gc-otlp-endpoint
-    type: otlp
-    url: https://otlp-gateway-prod-eu-west-2.grafana.net./otlp
-    protocol: http
-    auth:
-      type: basic
-      username: "1434621"
-      password: "${config.sops.placeholder.grafanaToken}"
-    metrics:
-      enabled: true
-    logs:
-      enabled: true
-    traces:
-      enabled: true
-clusterMetrics:
-  enabled: true
-  opencost:
-    enabled: true
-    metricsSource: grafana-cloud-metrics
-    opencost:
-      exporter:
-        defaultClusterId: TpvSelCluster
-      prometheus:
-        existingSecretName: grafana-cloud-metrics-grafana-cloud-metrics-k8s-monitoring
-        external:
-          url: https://prometheus-prod-65-prod-eu-west-2.grafana.net./api/prom
-  kepler:
-    enabled: true
-clusterEvents:
-  enabled: true
-podLogs:
-  enabled: true
-applicationObservability:
-  enabled: true
-  receivers:
-    otlp:
-      grpc:
-        enabled: true
-        port: 4317
-      http:
-        enabled: true
-        port: 4318
-    zipkin:
-      enabled: true
-      port: 9411
-integrations:
-  alloy:
-    instances:
-      - name: alloy
-        labelSelectors:
-          app.kubernetes.io/name:
-            - alloy-metrics
-            - alloy-singleton
-            - alloy-logs
-            - alloy-receiver
-alloy-metrics:
-  enabled: true
-alloy-singleton:
-  enabled: true
-alloy-logs:
-  enabled: true
-alloy-receiver:
-  enabled: true
-  alloy:
-    extraPorts:
-      - name: otlp-grpc
-        port: 4317
-        targetPort: 4317
-        protocol: TCP
-      - name: otlp-http
-        port: 4318
-        targetPort: 4318
-        protocol: TCP
-      - name: zipkin
-        port: 9411
-        targetPort: 9411
-        protocol: TCP
-        '';
+        valuesSecrets = [
+          {
+            # The name of the Secret to read from
+            name = "grafana-helm-values";
+            
+            # The 'keys' in the Secret to use as values files.
+            # Our systemd service will create a key named 'values.yaml'.
+            keys = [ "values.yaml" ];
+            
+            # This defaults to false, which is what we want.
+            # It ensures that if the Secret changes, the chart will be updated.
+            # ignoreUpdates = false; 
+          }
+        ];
       };
     };
-
-    # Enable Helm controller (optional if you just want Helm CLI)
-    # extraConfig = ''
-    #   write-kubeconfig-mode 644
-    # '';
-
-    # Optional: install helm plugin or CLI in the system
-    # packages = [ pkgs.helm ];
 
     images = [
       (pkgs.dockerTools.buildLayeredImage {

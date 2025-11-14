@@ -79,8 +79,8 @@
             size = "100%FREE";
             content = {
               type = "filesystem";
-              format = "ext4";
               mountpoint = "/db";
+              # format = "ext4";
               mountOptions = [
                 "defaults"
               ];
