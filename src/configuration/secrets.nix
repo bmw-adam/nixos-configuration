@@ -7,11 +7,13 @@ let
   oauthClientPath = config.sops.secrets.oauthClient.path;
   grafanaTokenPath = config.sops.secrets.grafanaToken.path;
   grafanaOtelHeadersPath = config.sops.secrets.grafanaOtelHeaders.path;
+  pfxKeyPath = config.sops.secrets.pfxKey.path;
+  pfxFilePath = config.sops.secrets.pfxFile.path;
 in
 {
   sops = {
     age.keyFile = "/etc/sops/age/cetus.txt";
-    defaultSopsFile = ../../secrets.enc.yaml;
+    defaultSopsFile = ../../secrets/default.yaml;
 
     secrets = {
       password = { neededForUsers = true; };
@@ -21,6 +23,11 @@ in
       oauthClient = {};
       grafanaToken = {};
       grafanaOtelHeaders = {};
+      pfxKey = {};
+      pfxFile = {
+        format = "binary";
+        sopsFile = ../../secrets/pfxCrt.yaml;
+      };
     };
 
     templates.metricsSetup = {
@@ -132,5 +139,7 @@ alloy-receiver:
     OAUTH_CLIENT = oauthClientPath;
     GRAFANA_TOKEN_PATH = grafanaTokenPath;
     GRAFANA_OTEL_HEADERS_PATH = grafanaOtelHeadersPath;
+    PFX_KEY = pfxKeyPath;
+    PFX_FILE = pfxFilePath;
   };
 }

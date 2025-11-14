@@ -6,10 +6,19 @@
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
     nixos-facter-modules.url = "github:numtide/nixos-facter-modules";
-    kubenixconfig.url = "github:bmw-adam/kubenix";
     sops-nix.url = "github:Mic92/sops-nix";
-    tpvsel.url = "github:bmw-adam/TpvSelect";
-};
+
+    kubenixconfig = {
+      url = "path:./kubenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      flake = true;
+    };
+    tpvsel = {
+      url = "path:./TpvVyber";
+      inputs.nixpkgs.follows = "nixpkgs";
+      flake = true;
+    };
+  };
 
   outputs =
     {

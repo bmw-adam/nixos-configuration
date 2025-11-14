@@ -6,4 +6,6 @@ result-*
 .direnv
 
 # Ignore my private configuration file
-.env
+**/.env
+**/.nuget-packages
+**/obj
