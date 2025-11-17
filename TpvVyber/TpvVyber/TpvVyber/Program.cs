@@ -1,120 +1,77 @@
-using MudBlazor.Services;
-using TpvVyber.Client.Pages;
-using TpvVyber.Components;
+using System.Text;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using MudBlazor.Services;
+using NETCore.Keycloak.Client.Authentication;
+using OpenTelemetry.Extensions.Hosting;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using OpenTelemetry.Extensions.Hosting;
 using Serilog;
-using System.Text;
+using TpvVyber.Client.Classes.Client;
+using TpvVyber.Client.Pages;
+using TpvVyber.Components;
+using TpvVyber.Data;
+using TpvVyber.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-#region TLS
-builder.Services.AddDataProtection()
-    .UseEphemeralDataProtectionProvider();
+builder.ConfigureTls();
+builder.AddLoggingService();
+builder.AddDatabaseService();
 
-var pfxKey = builder.Configuration["TLS_PFX_KEY"];
-if (string.IsNullOrEmpty(pfxKey))
+#region Auth
+builder.Services.AddCors(policy =>
 {
-    throw new Exception("TLS_PFX_KEY is not set");
-}
-
-var pfxKeyPassword = System.IO.File.ReadAllText(pfxKey).Trim();
-if (string.IsNullOrEmpty(pfxKeyPassword))
-{
-    throw new Exception("TLS_PFX_KEY is empty");
-}
-
-var pfxFile = builder.Configuration["TLS_PFX_FILE"];
-if (string.IsNullOrEmpty(pfxFile))
-{
-    throw new Exception("TLS_PFX_FILE is not set");
-}
-
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenAnyIP(1235, listenOptions =>
-    {
-        listenOptions.UseHttps(pfxFile, pfxKeyPassword);
-    });
-});
-#endregion
-
-#region Logging
-var otelEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-if (string.IsNullOrEmpty(otelEndpoint))
-{
-    throw new Exception("OTEL_EXPORTER_OTLP_ENDPOINT is not set");
-}
-
-var grafanaHeadersPath = builder.Configuration["GRAFANA_OTEL_HEADERS_PATH"];
-if (string.IsNullOrEmpty(grafanaHeadersPath))
-{
-    throw new Exception("GRAFANA_OTEL_HEADERS_PATH is not set");
-}
-var grafanaHeaders = System.IO.File.ReadAllText(grafanaHeadersPath).Trim();
-if (string.IsNullOrEmpty(grafanaHeaders))
-{
-    throw new Exception("GRAFANA_OTEL_HEADERS_PATH is empty");
-}
-
-// --- 3. Configure Serilog ---
-builder.Host.UseSerilog((context, config) =>
-{
-    // Read base config from appsettings.json (for Console, MinimumLevel)
-    config.ReadFrom.Configuration(context.Configuration);
-    
-    // If we have auth, add the OpenTelemetry sink
-    // This sends Serilog logs to the OpenTelemetry SDK
-    if (grafanaHeaders != null)
-    {
-        config.WriteTo.OpenTelemetry(opts =>
-        {
-            // We configure the *real* exporter in the main OTEL setup
-        });
-    }
+    policy.AddPolicy("CorsPolicy", opt => opt.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 });
 
-// --- 4. Configure OpenTelemetry SDK ---
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(builder => builder.AddService(serviceName: "TpvVyber-dev"))
-    .WithTracing(tracing =>
-    {
-        tracing.AddAspNetCoreInstrumentation(); // Auto-instrument ASP.NET Core
-        tracing.AddHttpClientInstrumentation(); // Auto-instrument HttpClients
-
-        if (grafanaHeaders != null)
-        {
-            // Add the OTLP exporter for Traces
-            tracing.AddOtlpExporter(opts =>
-            {
-                opts.Endpoint = new Uri(otelEndpoint!);
-                opts.Headers = $"{grafanaHeaders}";
-            });
-        }
-    });
-    // Note: We don't configure .WithLogging() here because Serilog is our logging provider.
-    // The Serilog.Sinks.OpenTelemetry bridge handles sending logs to the SDK.
-    // The SDK then picks up the exporter configuration from the Tracing setup.
-    // To be explicit, you can also configure the OTLP exporter for logs:
-
-builder.Logging.AddOpenTelemetry(logging =>
+var clientPath = builder.Configuration["OAUTH_CLIENT"];
+if (string.IsNullOrEmpty(clientPath))
 {
-    logging.IncludeFormattedMessage = true;
-    logging.IncludeScopes = true;
+    throw new Exception("OAUTH_CLIENT is not set");
+}
+var client = System.IO.File.ReadAllText(clientPath).Trim();
+if (string.IsNullOrEmpty(client))
+{
+    throw new Exception("OAUTH_CLIENT is empty");
+}
 
-    if (grafanaHeaders != null)
-    {
-        // Add the OTLP exporter for Logs
-        logging.AddOtlpExporter(opts =>
-        {
-            opts.Endpoint = new Uri(otelEndpoint!);
-            opts.Headers = $"{grafanaHeaders}";
-        });
-    }
-});
+Client? decodedClient = null;
+
+try
+{
+    decodedClient = JsonSerializer.Deserialize<Client>(client);
+}
+catch (Exception ex)
+{
+    throw new Exception("OAUTH_CLIENT is not valid", ex);
+}
+
+if (
+    decodedClient == null
+    || string.IsNullOrEmpty(decodedClient.ClientId)
+    || string.IsNullOrEmpty(decodedClient.Secret)
+)
+{
+    throw new Exception("OAUTH_CLIENT is missing required fields");
+}
+
+// builder.Services.AddKeycloakAuthentication(
+//     JwtBearerDefaults.AuthenticationScheme,
+//     options =>
+//     {
+//         options.Url = decodedClient.BaseUrl;
+//         options.RealmAdminCredentials = new KcClientCredentials
+//         {
+//             ClientId = decodedClient.ClientId,
+//             ClientSecret = decodedClient.Secret,
+//         };
+//     }
+// );
 
 #endregion
 
@@ -122,7 +79,8 @@ builder.Logging.AddOpenTelemetry(logging =>
 builder.Services.AddMudServices();
 
 // Add services to the container.
-builder.Services.AddRazorComponents()
+builder
+    .Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
@@ -156,5 +114,46 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(TpvVyber.Client._Imports).Assembly);
+
+// Wait for the database to be ready and apply migrations
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<TpvVyberContext>();
+    var maxWaitTime = TimeSpan.FromMinutes(5); // maximum total wait
+    var delay = TimeSpan.FromSeconds(15); // wait between retries
+    var startTime = DateTime.UtcNow;
+    var migrationApplied = false;
+
+    while (!migrationApplied && DateTime.UtcNow - startTime < maxWaitTime)
+    {
+        try
+        {
+            db.Database.EnsureCreated();
+            await db.SaveChangesAsync();
+            db.Database.Migrate();
+            await db.SaveChangesAsync();
+
+            migrationApplied = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Database not ready yet: {ex.Message}. Retrying in {delay.TotalSeconds}s..."
+            );
+            Thread.Sleep(delay);
+        }
+    }
+
+    if (!migrationApplied)
+    {
+        throw new Exception(
+            "Failed to connect to the database and apply migrations within the timeout."
+        );
+    }
+    else
+    {
+        Console.WriteLine("Database migrations applied successfully.");
+    }
+}
 
 app.Run();

@@ -5,92 +5,37 @@
   ];
 
   kubernetes.resources = {
-    # Pod definition
-    deployments.yugabyte = {
-      metadata = {
-        name = "yugabyte";
-        labels.app = "yugabyte";
-      };
-
-      spec = {
-        replicas = 1;
-
-        selector = {
-          matchLabels.app = "yugabyte";
-        };
-
-        template = {
-          metadata = {
-            labels.app = "yugabyte";
-          };
-
-          spec = {
-            hostname = "yugabyte01";
-
-            containers = [
-              {
-                name = "yugabyte";
-                image = "yugabytedb/yugabyte:2.25.2.0-b359";
-                imagePullPolicy = "IfNotPresent";
-
-                command = [
-                  "bin/yugabyted"
-                  "start"
-                  "--background=false"
-                  "--base_dir=/db"
-                ];
-
-                ports = [
-                  { name = "master-ui"; containerPort = 7000; protocol = "TCP"; }
-                  { name = "yb-ui"; containerPort = 9000; protocol = "TCP"; }
-                  { name = "ysql"; containerPort = 5433; protocol = "TCP"; }
-                  { name = "ysql-web"; containerPort = 15433; protocol = "TCP"; }
-                  { name = "ycql"; containerPort = 9042; protocol = "TCP"; }
-                ];
-
-                volumeMounts = [
-                  { name = "ybdata"; mountPath = "/db"; }
-                ];
-
-                resources = {
-                  limits.memory = "2Gi";
-                  requests.memory = "512Mi";
-                };
-              }
-            ];
-
-            volumes = [
-              {
-                name = "ybdata";
-                persistentVolumeClaim.claimName = "ybdata-pvc";
-              }
-            ];
-          };
-        };
-      };
-    };
-
-    # Persistent Volume Claim
-    persistentVolumeClaims.ybdata-pvc = {
-      metadata.name = "ybdata-pvc";
-      spec = {
-        accessModes = [ "ReadWriteOnce" ];
-        resources.requests.storage = "3Gi";
-      };
-    };
-
     # Service to expose YugabyteDB ports
-    services.yugabyte = {
-      metadata.labels.app = "yugabyte";
+    services.yb-master-custom = {
+      metadata.labels.app = "yb-master-custom";
       spec = {
-        selector.app = "yugabyte";
+        selector.app = "yb-master";
         type = "NodePort";
         ports = [
-          { name = "master-ui"; port = 7000; nodePort = 31890; protocol = "TCP"; }
-          { name = "yb-ui"; port = 9000; nodePort = 31891; protocol = "TCP"; }
-          { name = "ysql"; port = 5433; nodePort = 31892; protocol = "TCP"; }
-          { name = "ysql-web"; port = 15433; nodePort = 31893; protocol = "TCP"; }
-          { name = "ycql"; port = 9042; nodePort = 31894; protocol = "TCP"; }
+          { name = "http-ui"; port = 7000; nodePort = 31721; protocol = "TCP"; }
+          { name = "tcp-rpc-port"; port = 7100; nodePort = 31722; protocol = "TCP"; }
+          { name = "yugabyted-ui"; port = 15433; nodePort = 31723; protocol = "TCP"; }
+        ];
+      };
+    };
+
+    services.yb-tserver-custom = {
+      metadata.labels.app = "yb-tserver-custom";
+      spec = {
+        selector.app = "yb-tserver";
+        type = "NodePort";
+        ports = [
+          { name = "http-ui"; port = 9000; nodePort = 31701; protocol = "TCP"; }
+          { name = "http-ycql-met"; port = 12000; nodePort = 31702; protocol = "TCP"; }
+          { name = "http-yedis-met"; port = 11000; nodePort = 31703; protocol = "TCP"; }
+          { name = "http-ysql-met"; port = 13000; nodePort = 31704; protocol = "TCP"; }
+
+          { name = "tcp-rpc-port"; port = 9100; nodePort = 31705; protocol = "TCP"; }
+          { name = "tcp-yedis-port"; port = 6379; nodePort = 31706; protocol = "TCP"; }
+          { name = "tcp-yql-port"; port = 9042; nodePort = 31707; protocol = "TCP"; }
+          { name = "tcp-ysql-port"; port = 5433; nodePort = 31708; protocol = "TCP"; }
+
+          { name = "yugabyted-ui"; port = 15433; nodePort = 31709; protocol = "TCP"; }
         ];
       };
     };

@@ -60,12 +60,106 @@ in
             # The 'keys' in the Secret to use as values files.
             # Our systemd service will create a key named 'values.yaml'.
             keys = [ "values.yaml" ];
-            
-            # This defaults to false, which is what we want.
-            # It ensures that if the Secret changes, the chart will be updated.
-            # ignoreUpdates = false; 
           }
         ];
+      };
+    };
+
+    manifests.yugabyte-tls-auth-enabled.content = {
+      apiVersion = "helm.cattle.io/v1";
+      kind = "HelmChart";
+      metadata = {
+        name = "yugabytedb";
+        namespace = "default";
+      };
+
+      spec = {
+        targetNamespace = "default";
+        createNamespace = true;
+        repo = "https://charts.yugabyte.com";
+        chart = "yugabyte";
+        version = "2025.1.1";
+
+        valuesContent = ''
+          replication:
+            factor: 1
+          replicas:
+            master: 1
+            tserver: 1
+
+          storage:
+            master:
+              count: 1
+              size: "10Gi"
+              storageClass: "local-path"
+              mountPath: "/db"
+            tserver:
+              count: 1
+              size: "10Gi"
+              storageClass: "local-path"
+              mountPath: "/db"
+
+          gflags:
+            tserver:
+              ysql_enable_auth: true
+              ysql_server_cert_file: "/k3sdata/secrets/yugabyteServerCrt"
+              ysql_server_key_file: "/k3sdata/secrets/yugabyteServerKey"
+              ysql_ca_cert_file: "/k3sdata/secrets/yugabyteClientCrt"
+              ysql_bind_address: "0.0.0.0:5433"
+              start_pgsql_proxy: true
+
+          extraVolumes:
+            master:
+              - name: "k3s-secrets"
+                hostPath:
+                  path: "/k3sdata/secrets"
+                  type: "Directory"
+            tserver:
+              - name: "k3s-secrets"
+                hostPath:
+                  path: "/k3sdata/secrets"
+                  type: "Directory"
+
+          extraVolumeMounts:
+            master:
+              - name: "k3s-secrets"
+                mountPath: "/k3sdata/secrets"
+                readOnly: true
+            tserver:
+              - name: "k3s-secrets"
+                mountPath: "/k3sdata/secrets"
+                readOnly: true
+
+          resource:
+            master:
+              requests:
+                cpu: "0.5"
+                memory: "0.5Gi"
+            tserver:
+              requests:
+                cpu: "0.5"
+                memory: "0.5Gi"
+
+          enableLoadBalancer: false
+
+          extraEnvVars:
+            master:
+              - name: "YSQL_PASSWORD"
+                valueFrom:
+                  secretKeyRef:
+                    name: "yb-auth-secret"
+                    key: "YSQL_PASSWORD"
+              - name: "YSQL_USERNAME"
+                value: "ysql"
+            tserver:
+              - name: "YSQL_PASSWORD"
+                valueFrom:
+                  secretKeyRef:
+                    name: "yb-auth-secret"
+                    key: "YSQL_PASSWORD"
+              - name: "YSQL_USERNAME"
+                value: "ysql"
+        '';
       };
     };
 

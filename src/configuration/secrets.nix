@@ -2,14 +2,16 @@
 let
   defaultPasswordPath = config.sops.secrets.password.path;
   kubeTokenPath = config.sops.secrets."kubernetes/token".path;
-  tlsKeyPath = config.sops.secrets.tlsKey.path;
-  tlsCrtPath = config.sops.secrets.tlsCrt.path;
   oauthClientPath = config.sops.secrets.oauthClient.path;
   grafanaTokenPath = config.sops.secrets.grafanaToken.path;
   grafanaOtelHeadersPath = config.sops.secrets.grafanaOtelHeaders.path;
   pfxKeyPath = config.sops.secrets.pfxKey.path;
   pfxFilePath = config.sops.secrets.pfxFile.path;
   grafanaCloudMetricsPath = config.sops.templates."grafana-cloud-metrics.yaml".path;
+  ysqlPasswordPath = config.sops.secrets.ysqlPassword.path;
+  yugabyteServerCrtPath = config.sops.secrets.yugabyteServerCrt.path;
+  yugabyteServerKeyPath = config.sops.secrets.yugabyteServerKey.path;
+  yugabyteClientCrtPath = config.sops.secrets.yugabyteClientCrt.path;
 in
 {
   sops = {
@@ -19,8 +21,6 @@ in
     secrets = {
       password = { neededForUsers = true; };
       "kubernetes/token"  = {};
-      tlsCrt = {};
-      tlsKey = {};
       oauthClient = {};
       grafanaToken = {};
       grafanaOtelHeaders = {};
@@ -29,6 +29,10 @@ in
         format = "binary";
         sopsFile = ../../secrets/pfxCrt.yaml;
       };
+      ysqlPassword = {};
+      yugabyteServerCrt = {};
+      yugabyteServerKey = {};
+      yugabyteClientCrt = {};
     };
 
     templates = {
@@ -130,6 +134,33 @@ in
                   protocol: TCP
         '';
       };
+      "yugabyte-init-script-cm.sql" = {
+        content = ''
+          -- 1. Create the database
+          CREATE DATABASE tpvvyberdb;
+
+          -- 2. Create the application user
+          CREATE USER tpv WITH PASSWORD '${config.sops.placeholder.ysqlPassword}';
+
+          -- 3. Grant privileges on the database
+          GRANT ALL PRIVILEGES ON DATABASE tpvvyberdb TO tpv;
+
+          -- 4. Disable the built-in 'yugabyte' user (optional)
+          ALTER USER yugabyte WITH NOLOGIN;
+
+          -- 5. Connect to the new database to create the schema
+          \c tpvvyberdb postgres  -- or whichever superuser you’re connected as
+
+          -- 6. Create a dedicated schema for your application
+          CREATE SCHEMA tpv_schema;
+
+          -- 7. Grant privileges to your user on the schema
+          GRANT USAGE, CREATE ON SCHEMA tpv_schema TO tpv;
+
+          -- 8. (Optional) Set default privileges so future tables are automatically accessible
+          ALTER DEFAULT PRIVILEGES IN SCHEMA tpv_schema GRANT ALL ON TABLES TO tpv;
+        '';
+      };
     };
   };
 
@@ -137,13 +168,15 @@ in
   environment.variables = {
     DEFAULT_PASSWORD_PATH = defaultPasswordPath;
     KUBE_TOKEN_PATH = kubeTokenPath;
-    TLS_KEY = kubeTokenPath;
-    TLS_CRT = tlsCrtPath;
     OAUTH_CLIENT = oauthClientPath;
     GRAFANA_TOKEN_PATH = grafanaTokenPath;
     GRAFANA_OTEL_HEADERS_PATH = grafanaOtelHeadersPath;
     PFX_KEY = pfxKeyPath;
     PFX_FILE = pfxFilePath;
     GRAFANA_CLOUD_METRICS_TEMPLATE_PATH = grafanaCloudMetricsPath;
+    YSQL_PASSWORD = ysqlPasswordPath;
+    YUGABYTE_SERVER_CRT = yugabyteServerCrtPath;
+    YUGABYTE_SERVER_KEY = yugabyteServerKeyPath;
+    YUGABYTE_CLIENT_CRT = yugabyteClientCrtPath;
   };
 }

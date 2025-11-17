@@ -75,7 +75,6 @@ let
     echo "Waiting for ${config.sops.templates."grafana-cloud-metrics.yaml".path}..."
 
     echo "Using template file at: ${config.sops.templates."grafana-cloud-metrics.yaml".path}"
-    cat ${config.sops.templates."grafana-cloud-metrics.yaml".path}
     # Loop until the file exists
     while [ ! -f "${config.sops.templates."grafana-cloud-metrics.yaml".path}" ]; do
       sleep 2
@@ -92,6 +91,79 @@ let
 
     echo "Secret $SECRET_NAME applied successfully."
   '';
+
+  ybSecretGenerate = pkgs.writeShellScriptBin "ybSecretGenerate" ''
+    #!${pkgs.runtimeShell}
+    echo "Initializing ybSecretGenerate creation script..."
+    set -e
+    echo "Starting Grafana ybSecretGenerate creation script..."
+    
+    # This is the path you specified
+    SECRET_NAME="yb-auth-secret"
+    # This MUST match the 'targetNamespace' in your HelmChart spec
+    NAMESPACE="default" 
+
+    echo "Using password file at: ${config.sops.secrets.ysqlPassword.path}"
+
+    echo "Waiting for ${config.sops.secrets.ysqlPassword.path}..."
+
+    echo "Using template file at: ${config.sops.secrets.ysqlPassword.path}"
+    # Loop until the file exists
+    while [ ! -f "${config.sops.secrets.ysqlPassword.path}" ]; do
+      sleep 2
+    done
+    echo "File found. Creating/updating secret $SECRET_NAME in $NAMESPACE..."
+
+    # This command creates a secret 'from' that file.
+    # We use 'create --dry-run' and pipe to 'apply' to make this
+    # command idempotent: it will create *or* update the secret.
+    ${pkgs.kubectl}/bin/kubectl --kubeconfig=/var/lib/rancher/k3s/server/cred/admin.kubeconfig create secret generic "$SECRET_NAME" \
+      --namespace="$NAMESPACE" \
+      --from-file=YSQL_PASSWORD="${config.sops.secrets.ysqlPassword.path}" \
+      --dry-run=client -o yaml | ${pkgs.kubectl}/bin/kubectl --kubeconfig=/var/lib/rancher/k3s/server/cred/admin.kubeconfig apply -f -
+
+    echo "Secret $SECRET_NAME applied successfully."
+
+    # Wait until YSQL is accepting connections
+    echo "Waiting for YSQL to accept connections..."
+    MAX_ATTEMPTS=20
+    SLEEP_INTERVAL=15
+    attempt=1
+
+    KUBECONFIG_PATH="/var/lib/rancher/k3s/server/cred/admin.kubeconfig"
+    POD_NAME="yb-tserver-0"
+    NAMESPACE="default"
+    YSQL_HOST="yb-tserver-0.yb-tservers.default"
+    YSQL_USER="yugabyte"
+    YSQL_PORT=5433
+    YSQL_PASSWORD="yugabyte"
+
+    until kubectl --kubeconfig="$KUBECONFIG_PATH" exec -n "$NAMESPACE" -it "$POD_NAME" -- \
+        env PGPASSWORD="$YSQL_PASSWORD" \
+        ysqlsh -h "$YSQL_HOST" -p "$YSQL_PORT" -U "$YSQL_USER" -c '\q' 2>/dev/null; do
+
+        if [ $attempt -ge $MAX_ATTEMPTS ]; then
+            echo "Failed to connect to YSQL after $((MAX_ATTEMPTS * SLEEP_INTERVAL)) seconds."
+            exit 1
+        fi
+
+        echo "Attempt $attempt: YSQL not ready, retrying in $SLEEP_INTERVAL seconds..."
+        attempt=$((attempt + 1))
+        sleep $SLEEP_INTERVAL
+    done
+
+    echo "YSQL is ready to accept connections!"
+
+    echo "YSQL is up. Running SQL script..."
+    ${pkgs.kubectl}/bin/kubectl exec --kubeconfig=/var/lib/rancher/k3s/server/cred/admin.kubeconfig \
+      -n default -it yb-tserver-0 -- env PGPASSWORD="yugabyte" \
+      ysqlsh -h yb-tserver-0.yb-tservers.default \
+            --username=yugabyte \
+            --port=5433 \
+            -f - < "${config.sops.templates."yugabyte-init-script-cm.sql".path}"
+    echo "SQL script executed successfully."
+  '';
+
 in
 {
   systemd.services.ensure-default-sa = {
@@ -127,8 +199,6 @@ in
     description = "Create Grafana Helm values Secret from runtime file";
     
     # We need the network and the k3s server to be running.
-    # IMPORTANT: You must also add the service that *generates* your template file here!
-    # For example: After = [ "my-template-generator.service" "k3s.service" ];
     after = [ "network-online.target" "k3s.service" "ensure-default-sa.service" ];
     wants = [ "network-online.target" "k3s.service" ];
     requires = [ "k3s.service" "ensure-default-sa.service" ];
@@ -144,6 +214,26 @@ in
     };
   };
 
+  systemd.services.create-ysql-values = {
+    enable = true;
+    description = "Create ysql Secret from runtime file";
+    
+    # We need the network and the k3s server to be running.
+    after = [ "network-online.target" "k3s.service" "ensure-default-sa.service" ];
+    wants = [ "network-online.target" "k3s.service" ];
+    requires = [ "k3s.service" "ensure-default-sa.service" ];
+    wantedBy = [ "multi-user.target" ];
+    
+    # Make kubectl available to our script
+    path = [ pkgs.kubectl ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${ybSecretGenerate}/bin/ybSecretGenerate";
+    };
+  };
+
 
   environment.systemPackages = [
     pkgs.curl
@@ -156,12 +246,18 @@ in
     tpvsel.packages.${pkgs.system}.default
     pkgs.kubernetes-helm
     pkgs.bash
+    pkgs.postgresql
+
     # pkgs.docker
   ];
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 80 443 1235 31890 31891 31892 31893 31894 31895 ];
+    allowedTCPPortRanges= [
+      { from = 31721; to = 31723; }
+      { from = 31701; to = 31709; }
+    ];
+    allowedTCPPorts = [ 80 443 1235 31895 ];
     allowPing = true;
   };
 }

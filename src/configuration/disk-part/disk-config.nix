@@ -50,8 +50,22 @@
       device = lib.mkDefault "/dev/sdb";
       type = "disk";
       content = {
-        type = "lvm_pv";
-        vg = "db";
+        type = "gpt";
+        partitions = {
+          db = {
+            name = "db";
+            size = "100%";
+            type = "8300";
+            content = {
+              type = "filesystem";
+              mountpoint = "/db";
+              mountOptions = [
+                "defaults"
+              ];
+              format = "ext4";
+            };
+          };
+        };
       };
     };
 
@@ -65,22 +79,6 @@
               type = "filesystem";
               format = "ext4";
               mountpoint = "/";
-              mountOptions = [
-                "defaults"
-              ];
-            };
-          };
-        };
-      };
-      db = {
-        type = "lvm_vg";
-        lvs = {
-          db_0 = {
-            size = "100%FREE";
-            content = {
-              type = "filesystem";
-              mountpoint = "/db";
-              # format = "ext4";
               mountOptions = [
                 "defaults"
               ];
