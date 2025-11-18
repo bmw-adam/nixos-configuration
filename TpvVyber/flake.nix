@@ -12,6 +12,13 @@
           inherit system;
         };
 
+        keycloakNet = pkgs.fetchFromGitHub {
+          owner = "silentpartnersoftware";
+          repo = "Keycloak.Net";
+          rev = "7a93bae51bb8039822b7835036d5b7a375300fe9"; # the commit you want
+          sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # replace with real hash
+        };
+
         dotnet-sdk = pkgs.dotnetCorePackages.dotnet_8.sdk;
         dotnet-runtime = pkgs.dotnetCorePackages.aspnetcore_8_0-bin;
 
@@ -59,8 +66,12 @@
           doCheck = true;
 
           buildPhase = ''
+            mkdir -p ./Keycloak.Net
+            cp -r ${keycloakNet}/* ./Keycloak.Net/
             dotnet publish --configuration Release --no-restore --output $PWD/publish ./TpvVyber/TpvVyber.csproj
           '';
+
+
 
 
           installPhase = ''

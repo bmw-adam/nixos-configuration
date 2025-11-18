@@ -1,9 +1,9 @@
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+// using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+// using Microsoft.IdentityModel.Tokens;
 using MudBlazor.Services;
 using NETCore.Keycloak.Client.Authentication;
 using OpenTelemetry.Extensions.Hosting;
