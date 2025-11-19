@@ -1,17 +1,22 @@
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-// using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 // using Microsoft.IdentityModel.Tokens;
 using MudBlazor.Services;
-using NETCore.Keycloak.Client.Authentication;
+// using Keycloak.Net;
 using OpenTelemetry.Extensions.Hosting;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
 using TpvVyber.Client.Classes.Client;
+using TpvVyber.Client.Classes.Interfaces;
 using TpvVyber.Client.Pages;
 using TpvVyber.Components;
 using TpvVyber.Data;
@@ -24,6 +29,9 @@ builder.AddLoggingService();
 builder.AddDatabaseService();
 
 #region Auth
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddBlazoredLocalStorage();
+
 builder.Services.AddCors(policy =>
 {
     policy.AddPolicy("CorsPolicy", opt => opt.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
@@ -59,6 +67,31 @@ if (
 {
     throw new Exception("OAUTH_CLIENT is missing required fields");
 }
+
+// builder
+//     .Services.AddAuthentication(options =>
+//     {
+//         options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+//         options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+//     })
+//     .AddCookie()
+//     .AddOpenIdConnect(
+//         "Keycloak",
+//         options =>
+//         {
+//             options.Authority = "https://sso.gasos.cz/realms/ucs";
+//             options.ClientId = decodedClient.ClientId;
+//             options.ClientSecret = decodedClient.Secret;
+//             options.ResponseType = "code";
+//             options.SaveTokens = true;
+//         }
+//     );
+builder.Services.AddScoped<
+    AuthenticationStateProvider,
+    PersistingRevalidatingAuthenticationStateProvider
+>();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
+builder.Services.AddCascadingAuthenticationState();
 
 // builder.Services.AddKeycloakAuthentication(
 //     JwtBearerDefaults.AuthenticationScheme,
@@ -155,5 +188,9 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("Database migrations applied successfully.");
     }
 }
+
+// Use authentication & authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.Run();

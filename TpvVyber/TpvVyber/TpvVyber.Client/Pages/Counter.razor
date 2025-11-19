@@ -9,6 +9,12 @@
 
 <MudButton Color="Color.Primary" Variant="Variant.Filled" @onclick="IncrementCount">Click me</MudButton>
 
+<Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
+    <Authorized>
+        @context.User.Identity.Name
+    </Authorized>
+</Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
+
 @code {
     private int currentCount = 0;
 

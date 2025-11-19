@@ -9,3 +9,5 @@ result-*
 **/.env
 **/.nuget-packages
 **/obj
+**/temp
+**/TpvVyber.bak

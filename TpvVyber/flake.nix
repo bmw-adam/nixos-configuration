@@ -5,19 +5,19 @@
   };
 
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
-  
+
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
           inherit system;
         };
 
-        keycloakNet = pkgs.fetchFromGitHub {
-          owner = "silentpartnersoftware";
-          repo = "Keycloak.Net";
-          rev = "7a93bae51bb8039822b7835036d5b7a375300fe9"; # the commit you want
-          sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # replace with real hash
-        };
+        # keycloakNet = pkgs.fetchFromGitHub {
+        #   owner = "silentpartnersoftware";
+        #   repo = "Keycloak.Net";
+        #   rev = "7a93bae51bb8039822b7835036d5b7a375300fe9"; # the commit you want
+        #   sha256 = "sha256-pZ3ZCkSWYVyNxOrJzVpcW1mSNDKs+ahQMWVmrBuiXJw="; # replace with real hash
+        # };
 
         dotnet-sdk = pkgs.dotnetCorePackages.dotnet_8.sdk;
         dotnet-runtime = pkgs.dotnetCorePackages.aspnetcore_8_0-bin;
@@ -48,12 +48,29 @@
           rm -rf ./.nuget-packages
           echo "Cleaned up temporary NuGet packages."
         '';
+
+
       in {
         packages.default = pkgs.buildDotnetModule {
           inherit dotnet-sdk dotnet-runtime;
+          dotnetRollForward = "major";
           pname = "TpvVyber";
           version = "0.1.0";
+
+          # src = pkgs.runCommand "combined-src" { } ''
+          #   mkdir -p $out/
+          #   mkdir -p $out/Keycloak.Net
+          #   cp -r ${./TpvVyber}/* $out/
+          #   cp -r ${keycloakNet}/* $out/Keycloak.Net
+
+          #   if [ -f "$out/global.json" ]; then
+          #     echo "Removing conflicting global.json from combined source..."
+          #     rm $out/global.json
+          #   fi
+          # '';
+          
           src = ./TpvVyber;
+
           projectFile = "TpvVyber/TpvVyber.csproj";
 
           nugetDeps = ./TpvVyber/deps/deps.json;
@@ -66,13 +83,8 @@
           doCheck = true;
 
           buildPhase = ''
-            mkdir -p ./Keycloak.Net
-            cp -r ${keycloakNet}/* ./Keycloak.Net/
-            dotnet publish --configuration Release --no-restore --output $PWD/publish ./TpvVyber/TpvVyber.csproj
+            dotnet publish --configuration Release --no-restore --output $PWD/publish $PWD/TpvVyber/TpvVyber.csproj
           '';
-
-
-
 
           installPhase = ''
             mkdir -p $out/bin
