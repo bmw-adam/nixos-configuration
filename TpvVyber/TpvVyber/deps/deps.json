@@ -50,6 +50,11 @@
     "hash": "sha256-4QbHiswqmoO0FkCZZx4Qh8vGeegEn8VBBhcTcehBd5k="
   },
   {
+    "pname": "Microsoft.AspNetCore.Authentication.OAuth",
+    "version": "2.3.0",
+    "hash": "sha256-oXvHir+kKb7VAuEZ5Kj57foOni7kyWUBqVYgzL6cClo="
+  },
+  {
     "pname": "Microsoft.AspNetCore.Authorization",
     "version": "8.0.0",
     "hash": "sha256-a5l7Xkgct2eWGh10xe31oZYMPsUZKNnNh9ctrHlGwZk="
@@ -538,6 +543,11 @@
     "pname": "MudBlazor",
     "version": "8.14.0",
     "hash": "sha256-FTts4pl+QjxynauY191X6Rf0M7PaRCyU+DsWcUjnGFA="
+  },
+  {
+    "pname": "Newtonsoft.Json",
+    "version": "11.0.2",
+    "hash": "sha256-YhlAbGfwoxQzxb3Hef4iyV9eGdPQJJNd2GgSR0jsBJ0="
   },
   {
     "pname": "NpgsqlYB.EntityFrameworkCore.YugabyteDB",

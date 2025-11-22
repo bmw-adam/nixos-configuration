@@ -1,9 +1,13 @@
 using System.Net.Http.Headers;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.OAuth;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
@@ -86,25 +90,67 @@ if (
 //             options.SaveTokens = true;
 //         }
 //     );
-builder.Services.AddScoped<
-    AuthenticationStateProvider,
-    PersistingRevalidatingAuthenticationStateProvider
->();
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
+// builder.Services.AddScoped<
+//     AuthenticationStateProvider,
+//     PersistingRevalidatingAuthenticationStateProvider
+// >();
+// builder
+//     .Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+//     .AddCookie();
+
 builder.Services.AddCascadingAuthenticationState();
 
-// builder.Services.AddKeycloakAuthentication(
-//     JwtBearerDefaults.AuthenticationScheme,
-//     options =>
-//     {
-//         options.Url = decodedClient.BaseUrl;
-//         options.RealmAdminCredentials = new KcClientCredentials
-//         {
-//             ClientId = decodedClient.ClientId,
-//             ClientSecret = decodedClient.Secret,
-//         };
-//     }
-// );
+builder
+    .Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = "Keycloak";
+    })
+    .AddCookie()
+    .AddOAuth(
+        "Keycloak",
+        options =>
+        {
+            options.ClientId = decodedClient.ClientId;
+            options.ClientSecret = decodedClient.Secret;
+
+            options.CallbackPath = "/auth/callback";
+            options.AuthorizationEndpoint =
+                "https://sso.gasos.cz/realms/ucs/protocol/openid-connect/auth";
+            options.TokenEndpoint = "https://sso.gasos.cz/realms/ucs/protocol/openid-connect/token";
+            options.UserInformationEndpoint =
+                "https://sso.gasos.cz/realms/ucs/protocol/openid-connect/userinfo";
+
+            options.SaveTokens = true;
+
+            options.Scope.Clear();
+            options.Scope.Add("openid");
+            options.Scope.Add("profile");
+
+            options.ClaimActions.MapJsonKey(ClaimTypes.Name, "preferred_username");
+
+            options.Events.OnCreatingTicket = async ctx =>
+            {
+                var request = new HttpRequestMessage(
+                    HttpMethod.Get,
+                    ctx.Options.UserInformationEndpoint
+                );
+                request.Headers.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue(
+                        "Bearer",
+                        ctx.AccessToken
+                    );
+
+                var response = await ctx.Backchannel.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+
+                var json = await response.Content.ReadAsStringAsync();
+                var user = System.Text.Json.JsonDocument.Parse(json);
+
+                ctx.RunClaimActions(user.RootElement);
+            };
+        }
+    );
 
 #endregion
 
@@ -143,6 +189,7 @@ app.UseBlazorFrameworkFiles();
 app.UseRouting();
 
 app.UseAntiforgery();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
@@ -192,5 +239,25 @@ using (var scope = app.Services.CreateScope())
 // Use authentication & authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet(
+    "/signin-oauth",
+    async context =>
+    {
+        await context.ChallengeAsync(
+            "Keycloak",
+            new AuthenticationProperties { RedirectUri = "/counter" }
+        );
+    }
+);
+
+app.MapGet(
+    "/auth/logout",
+    async context =>
+    {
+        await context.SignOutAsync();
+        context.Response.Redirect("/");
+    }
+);
 
 app.Run();

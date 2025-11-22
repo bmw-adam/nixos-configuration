@@ -1,46 +1,9 @@
-@using Microsoft.AspNetCore.Authentication
-@using System.Security.Claims
-@using Microsoft.AspNetCore.Authentication.Cookies
-@using Microsoft.AspNetCore.Http;
-@using TpvVyber.Client.Classes
-@inject IHttpContextAccessor HttpContextAccessor
-
-<h3>Login</h3>
-
-<EditForm Enhance FormName="LoginFrom" OnValidSubmit=LoginTask Model="LoginReq">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <InputText @bind-Value=LoginReq.UserName></InputText>
-
-    <InputText @bind-Value=LoginReq.Password></InputText>
-
-    <button type="submit">Login</button>
-</EditForm>
-
+@page "/login"
+@inject NavigationManager nav
 
 @code {
-
-    [SupplyParameterFromForm]
-    public LoginModel LoginReq { get; set; } = new LoginModel();
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-
-    public async void LoginTask()
-    {     
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Name, LoginReq.UserName)
-        };
-
-        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-
-        HttpContext.Response.Redirect("/Counter");
-
+    protected override void OnInitialized()
+    {
+        nav.NavigateTo("signin-oauth");
     }
-
 }

@@ -10,6 +10,9 @@
 </head>
 
 <body>
+    <script>
+        window.isBlazorWasm = !!window.Blazor && !!Blazor._internal && !!Blazor._internal.dotNetRuntime;
+    </script>
     <Routes @rendermode="InteractiveAuto" />
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js?v=@(MudBlazor.Metadata.Version)"></script>

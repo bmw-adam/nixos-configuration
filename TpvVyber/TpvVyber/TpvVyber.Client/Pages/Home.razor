@@ -1,6 +1,11 @@
 ﻿@page "/"
+@using Microsoft.AspNetCore.Components.WebAssembly.Hosting
+@using Microsoft.AspNetCore.Components
 
 <PageTitle>Home</PageTitle>
+
+<MudText>Wasm?</MudText>
+@* <p>@RendererInfo.Name</p> *@
 
 <MudText Typo="Typo.h3" GutterBottom="true">Hello, world!</MudText>
 <MudText Class="mb-8">Welcome to your new app, powered by MudBlazor and the .NET 9 Template!</MudText>
@@ -57,3 +62,34 @@
         More details
     </MudLink>
 </MudText>
+
+
+@code {
+    /*
+    private string BlazorInfo => $"{GetBlazorEnvironment()} {GetPrerenderingStatus()}";
+
+    private string GetBlazorEnvironment()
+    {
+        // Simple check if running in browser (WASM) or server
+        if (OperatingSystem.IsBrowser())
+            return "Blazor WebAssembly";
+        else
+            return "Blazor Server";
+    }
+
+    private string GetPrerenderingStatus()
+    {
+        // In WASM, no prerendering exists
+        if (OperatingSystem.IsBrowser())
+            return "(interactive)";
+
+        // For Server, check if component is interactive
+        if (this is IHandleAfterRender afterRenderComponent)
+        {
+            return afterRenderComponent.HasRendered ? "(interactive)" : "(prerendering)";
+        }
+
+        return "";
+    }
+    */
+}
