@@ -61,23 +61,33 @@
         # --- Client Derivation (Defined here to be used by Server) ---
         clientDrv = pkgs.buildDotnetModule {
           inherit dotnet-runtime;
-          # Use specialized WASM SDK
+
+          # Use the WASM-aware SDK
           dotnet-sdk = pkgs.dotnet-sdk-wasm;
-          
+
           pname = "TpvVyber-Client-Assets";
           version = "0.1.0";
           src = ./TpvVyber/TpvVyber.Client;
           projectFile = "TpvVyber.Client.csproj";
-          nugetDeps = ./TpvVyber/TpvVyber.Client/deps.client.json; 
-          
+          nugetDeps = ./TpvVyber/TpvVyber.Client/deps.client.json;
+
           nativeBuildInputs = [ pkgs.wasm-tools ];
           buildInputs = [ pkgs.wasm-tools ];
+
+          # Disable the workload resolver so Nix's preinstalled workloads are used
+          dotnetBuildFlags = [
+            "/p:WasmEnableWorkloadResolver=false"
+            "/p:EnableWorkloadResolver=false"
+          ];
 
           configurePhase = ''
             runHook preConfigure
             echo "--- Executing Custom Configure Phase ---"
-            # Restore specifically for browser-wasm
-            dotnet restore "TpvVyber.Client.csproj" -r browser-wasm --no-cache
+            dotnet restore "TpvVyber.Client.csproj" \
+              -r browser-wasm \
+              --no-cache \
+              /p:WasmEnableWorkloadResolver=false \
+              /p:EnableWorkloadResolver=false
             runHook postConfigure
           '';
 
@@ -87,7 +97,9 @@
               --configuration Release \
               --no-restore \
               --output $PWD/publish \
-              /p:RuntimeIdentifier=browser-wasm
+              /p:RuntimeIdentifier=browser-wasm \
+              /p:WasmEnableWorkloadResolver=false \
+              /p:EnableWorkloadResolver=false
           '';
 
           installPhase = ''
@@ -95,7 +107,6 @@
             cp -r $PWD/publish/* $out/
           '';
         };
-
       in {
         # Expose the client package
         packages.client = clientDrv;
@@ -149,7 +160,7 @@
             # 3. Wrap the executable
             makeWrapper ${dotnet-runtime}/bin/dotnet $out/bin/TpvVyber \
               --add-flags "exec $out/bin/TpvVyber.dll" \
-              --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib pkgs.openssl ]}" \
+              --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib pkgs.openssl  pkgs.wasm-tools ]}" \
               --set ASPNETCORE_URLS "http://localhost:1234;https://localhost:1235"
           '';
         };
