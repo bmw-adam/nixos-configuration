@@ -4,9 +4,16 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
+  outputs =
+    inputs@{
+      self,
+      nixpkgs,
+      flake-utils,
+      ...
+    }:
 
-    flake-utils.lib.eachDefaultSystem (system:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         # --- Overlay Definition ---
         dotnetWasmOverlay = final: prev: {
@@ -53,7 +60,7 @@
 
           echo "Generating Client deps.json..."
           nuget-to-json ./.nuget-packages > ./TpvVyber/TpvVyber.Client/deps.client.json
-          
+
           rm -rf ./.nuget-packages
           echo "Done."
         '';
@@ -107,7 +114,8 @@
             cp -r $PWD/publish/* $out/
           '';
         };
-      in {
+      in
+      {
         # Expose the client package
         packages.client = clientDrv;
 
@@ -116,15 +124,15 @@
           inherit dotnet-sdk dotnet-runtime;
           pname = "TpvVyber";
           version = "0.1.0";
-          
+
           src = ./TpvVyber;
-          projectFile = "TpvVyber/TpvVyber.csproj"; 
-          nugetDeps = ./TpvVyber/TpvVyber/deps.server.json; 
-          
+          projectFile = "TpvVyber/TpvVyber.csproj";
+          nugetDeps = ./TpvVyber/TpvVyber/deps.server.json;
+
           selfContainedBuild = false;
-          # We still need the C# compilation to know about Client types (if any), 
+          # We still need the C# compilation to know about Client types (if any),
           # but we stop the WASM build process.
-          
+
           buildPhase = ''
             runHook preBuild
             echo "Publish - Custom"
@@ -146,29 +154,39 @@
 
           installPhase = ''
             mkdir -p $out/bin
-            
+
             # 1. Copy Server Artifacts
             ls -al
             cp -r $PWD/publish/* $out/bin/
-            
+
             # 2. Inject Pre-Built Client Assets (DLLs, _framework, wasm)
             # This puts the client artifacts exactly where the Server expects them to be served from.
             echo "--- Injecting Client Artifacts ---"
             mkdir -p $out/bin/wwwroot
             cp -r ${clientDrv}/wwwroot/* $out/bin/wwwroot/
 
-            # 3. Wrap the executable
+            # 3. Wrap the executable so it runs from $out/bin
             makeWrapper ${dotnet-runtime}/bin/dotnet $out/bin/TpvVyber \
-              --add-flags "exec $out/bin/TpvVyber.dll" \
-              --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib pkgs.openssl  pkgs.wasm-tools ]}" \
-              --set ASPNETCORE_URLS "http://localhost:1234;https://localhost:1235"
+              --run "cd $out/bin && exec  ${dotnet-runtime}/bin/dotnet $out/bin/TpvVyber.dll" \
+              --prefix LD_LIBRARY_PATH : "${
+                pkgs.lib.makeLibraryPath [
+                  pkgs.stdenv.cc.cc.lib
+                  pkgs.openssl
+                  pkgs.wasm-tools
+                ]
+              }" \
+              --set ASPNETCORE_URLS "http://localhost:1234;https://localhost:1235"          
           '';
         };
 
         packages.default = self.packages.${system}.server;
 
         devShells.default = pkgs.mkShell {
-          packages = [ pkgs.dotnet-sdk-wasm pkgs.nuget-to-json genDeps ];
+          packages = [
+            pkgs.dotnet-sdk-wasm
+            pkgs.nuget-to-json
+            genDeps
+          ];
           shellHook = ''
             export DOTNET_ROOT=${pkgs.dotnet-sdk-wasm}
             mkdir -p .nuget-packages

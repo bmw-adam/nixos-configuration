@@ -1,28 +1,62 @@
 ﻿@page "/counter"
 
-
 <PageTitle>Counter</PageTitle>
 
 <MudText Typo="Typo.h3" GutterBottom="true">Counter</MudText>
 
-<MudText Class="mb-4">Current count: @currentCount</MudText>
-
-<MudButton Color="Color.Primary" Variant="Variant.Filled" @onclick="IncrementCount">Click me</MudButton>
-
 <Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
     <Authorized>
-        @context.User.Identity.Name
+        @context.User.Identity?.Name
     </Authorized>
     <NotAuthorized>
         <MudText>Not logged in</MudText>
     </NotAuthorized>
 </Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
 
-@code {
-    private int currentCount = 0;
+<SortableList Id="dragHandles" Handle=".drag-tpv-handle" Items="items" OnUpdate="@SortList" Context="item">
+    <SortableItemTemplate>
+        <MudStack Row Style="height: 100%" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudIconButton Class="drag-tpv-handle" Icon="@Icons.Material.Filled.DragIndicator" />
+            <MudText Typo="Typo.h6">@item.Name</MudText>
+            <MudText Typo="Typo.h6">@item.Id</MudText>
+        </MudStack>
+    </SortableItemTemplate>
+</SortableList>
 
-    private void IncrementCount()
+<MudStack Row Spacing="5">
+    <MudButton Color="Color.Secondary" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Cancel">Zrušit</MudButton>
+    <MudButton Color="Color.Info" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save">Ok</MudButton>
+</MudStack>
+
+@code {
+    public class Item
     {
-        currentCount++;
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+
+        public bool Disabled { get; set; } = false;
+    }
+
+    public List<Item> items = Enumerable.Range(1, 50).Select(i => new Item { Id = i, Name = $"Item {i}" }).ToList();
+
+    private void SortList((int oldIndex, int newIndex) indices)
+    {
+        // deconstruct the tuple
+        var (oldIndex, newIndex) = indices;
+
+        var items = this.items;
+        var itemToMove = items[oldIndex];
+        items.RemoveAt(oldIndex);
+
+        if (newIndex < items.Count)
+        {
+            items.Insert(newIndex, itemToMove);
+        }
+        else
+        {
+            items.Add(itemToMove);
+        }
+
+        StateHasChanged();
     }
 }

@@ -20,7 +20,12 @@ public static class Database
 
         var connectionString = builder
             .Configuration.GetConnectionString("TpvVyberDb")
-            .Replace("<YSQL_PASSWORD>", ysqlPassword);
+            ?.Replace("<YSQL_PASSWORD>", ysqlPassword);
+
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            throw new NullReferenceException("Connection String Was Null");
+        }
 
         builder.Services.AddDbContext<TpvVyberContext>(options =>
             options.UseNpgsql(

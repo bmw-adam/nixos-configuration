@@ -1,5 +1,15 @@
-{ kubenixconfig, pkgs, tpvsel, config, ... }:
+{
+  kubenixconfig,
+  pkgs,
+  tpvsel,
+  config,
+  ...
+}:
 let
+  yugabyteServerCrtPath = config.sops.secrets.yugabyteServerCrt.path;
+  yugabyteServerKeyPath = config.sops.secrets.yugabyteServerKey.path;
+  yugabyteClientCrtPath = config.sops.secrets.yugabyteClientCrt.path;
+
   kubenixScript = pkgs.writeShellScriptBin "kubenixScript" ''
     #!${pkgs.runtimeShell}
     set -euo pipefail
@@ -29,13 +39,15 @@ let
 
     echo "Applying Kubernetes config..."
     cat ${kubenixconfig.defaultPackage.${pkgs.system}}/kube.json
-    ${pkgs.kubectl}/bin/kubectl --kubeconfig=$KUBECONFIG apply -f ${kubenixconfig.defaultPackage.${pkgs.system}}/kube.json
+    ${pkgs.kubectl}/bin/kubectl --kubeconfig=$KUBECONFIG apply -f ${
+      kubenixconfig.defaultPackage.${pkgs.system}
+    }/kube.json
 
     mkdir -p /var/lib/kubenixconfig
     echo "Kubenix config script ran at $(date)" > "$FLAG_FILE"
     echo "Initial run complete. Flag file created at '$FLAG_FILE'."
   '';
-  
+
   ensureDefaultSaScript = pkgs.writeShellScriptBin "ensureDefaultSaScript" ''
     #!${pkgs.runtimeShell}
     set -euo pipefail
@@ -64,7 +76,7 @@ let
     echo "Initializing Grafana Helm values Secret creation script..."
     set -e
     echo "Starting Grafana Helm values Secret creation script..."
-    
+
     # This is the path you specified
     SECRET_NAME="grafana-helm-values"
     # This MUST match the 'targetNamespace' in your HelmChart spec
@@ -97,7 +109,7 @@ let
     echo "Initializing ybSecretGenerate creation script..."
     set -e
     echo "Starting Grafana ybSecretGenerate creation script..."
-    
+
     # This is the path you specified
     SECRET_NAME="yb-auth-secret"
     # This MUST match the 'targetNamespace' in your HelmChart spec
@@ -162,6 +174,24 @@ let
             --port=5433 \
             -f - < "${config.sops.templates."yugabyte-init-script-cm.sql".path}"
     echo "SQL script executed successfully."
+
+
+    TSERVER_PODS=$(${pkgs.kubectl}/bin/kubectl --kubeconfig=/var/lib/rancher/k3s/server/cred/admin.kubeconfig get pods -n $NAMESPACE -l app=yb-tserver -o jsonpath='{.items[*].metadata.name}')
+
+    for POD in $TSERVER_PODS; do
+      echo "Configuring pod $POD..."
+      ${pkgs.kubectl}/bin/kubectl --kubeconfig=/var/lib/rancher/k3s/server/cred/admin.kubeconfig exec -n $NAMESPACE $POD -- bash -c "
+        export YSQL_ENABLE_AUTH=$ENABLE_AUTH
+        export YSQL_SERVER_CERT_FILE=${yugabyteServerCrtPath}
+        export YSQL_SERVER_KEY_FILE=${yugabyteServerKeyPath}
+        export YSQL_CA_CERT_FILE=${yugabyteClientCrtPath}
+        export YSQL_BIND_ADDRESS="0.0.0.0:5433"
+        echo 'TLS flags set on $POD'
+      "
+    done
+
+    echo "Restarting tserver StatefulSet to apply TLS..."
+    ${pkgs.kubectl}/bin/kubectl --kubeconfig=/var/lib/rancher/k3s/server/cred/admin.kubeconfig rollout restart statefulset yb-tserver -n $NAMESPACE
   '';
 
 in
@@ -183,8 +213,15 @@ in
     description = "Run kubectl command and create a flag file once k3s is ready";
 
     # Proper dependencies
-    after = [ "network-online.target" "k3s.service" "ensure-default-sa.service" ];
-    requires = [ "k3s.service" "ensure-default-sa.service" ];
+    after = [
+      "network-online.target"
+      "k3s.service"
+      "ensure-default-sa.service"
+    ];
+    requires = [
+      "k3s.service"
+      "ensure-default-sa.service"
+    ];
     wantedBy = [ "multi-user.target" ];
 
     serviceConfig = {
@@ -197,13 +234,23 @@ in
   systemd.services.create-grafana-helm-values = {
     enable = true;
     description = "Create Grafana Helm values Secret from runtime file";
-    
+
     # We need the network and the k3s server to be running.
-    after = [ "network-online.target" "k3s.service" "ensure-default-sa.service" ];
-    wants = [ "network-online.target" "k3s.service" ];
-    requires = [ "k3s.service" "ensure-default-sa.service" ];
+    after = [
+      "network-online.target"
+      "k3s.service"
+      "ensure-default-sa.service"
+    ];
+    wants = [
+      "network-online.target"
+      "k3s.service"
+    ];
+    requires = [
+      "k3s.service"
+      "ensure-default-sa.service"
+    ];
     wantedBy = [ "multi-user.target" ];
-    
+
     # Make kubectl available to our script
     path = [ pkgs.kubectl ];
 
@@ -217,13 +264,23 @@ in
   systemd.services.create-ysql-values = {
     enable = true;
     description = "Create ysql Secret from runtime file";
-    
+
     # We need the network and the k3s server to be running.
-    after = [ "network-online.target" "k3s.service" "ensure-default-sa.service" ];
-    wants = [ "network-online.target" "k3s.service" ];
-    requires = [ "k3s.service" "ensure-default-sa.service" ];
+    after = [
+      "network-online.target"
+      "k3s.service"
+      "ensure-default-sa.service"
+    ];
+    wants = [
+      "network-online.target"
+      "k3s.service"
+    ];
+    requires = [
+      "k3s.service"
+      "ensure-default-sa.service"
+    ];
     wantedBy = [ "multi-user.target" ];
-    
+
     # Make kubectl available to our script
     path = [ pkgs.kubectl ];
 
@@ -233,7 +290,6 @@ in
       ExecStart = "${ybSecretGenerate}/bin/ybSecretGenerate";
     };
   };
-
 
   environment.systemPackages = [
     pkgs.curl
@@ -253,11 +309,22 @@ in
 
   networking.firewall = {
     enable = true;
-    allowedTCPPortRanges= [
-      { from = 31721; to = 31723; }
-      { from = 31701; to = 31709; }
+    allowedTCPPortRanges = [
+      {
+        from = 31721;
+        to = 31723;
+      }
+      {
+        from = 31701;
+        to = 31709;
+      }
     ];
-    allowedTCPPorts = [ 80 443 1235 31895 ];
+    allowedTCPPorts = [
+      80
+      443
+      1235
+      31895
+    ];
     allowPing = true;
   };
 }

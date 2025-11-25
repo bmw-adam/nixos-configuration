@@ -260,4 +260,6 @@ app.MapGet(
     }
 );
 
+Console.WriteLine("Running.");
+
 app.Run();

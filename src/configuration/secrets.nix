@@ -145,11 +145,10 @@ in
           -- 3. Grant privileges on the database
           GRANT ALL PRIVILEGES ON DATABASE tpvvyberdb TO tpv;
 
-          -- 4. Disable the built-in 'yugabyte' user (optional)
-          ALTER USER yugabyte WITH NOLOGIN;
 
           -- 5. Connect to the new database to create the schema
-          \c tpvvyberdb postgres  -- or whichever superuser you’re connected as
+          \c tpvvyberdb yugabyte 
+          -- or whichever superuser youre connected as
 
           -- 6. Create a dedicated schema for your application
           CREATE SCHEMA tpv_schema;
@@ -157,8 +156,10 @@ in
           -- 7. Grant privileges to your user on the schema
           GRANT USAGE, CREATE ON SCHEMA tpv_schema TO tpv;
 
-          -- 8. (Optional) Set default privileges so future tables are automatically accessible
           ALTER DEFAULT PRIVILEGES IN SCHEMA tpv_schema GRANT ALL ON TABLES TO tpv;
+
+          -- 4. Disable the built-in 'yugabyte' user (optional)
+          ALTER USER yugabyte WITH NOLOGIN;
         '';
       };
     };
