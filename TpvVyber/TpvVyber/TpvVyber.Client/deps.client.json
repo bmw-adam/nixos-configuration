@@ -10,6 +10,11 @@
     "hash": "sha256-gWf4ct0bO2hW1xB7ZCmWMJ2IkXKGPpGsYisGlTTyh2s="
   },
   {
+    "pname": "Fluid.Core",
+    "version": "2.30.0",
+    "hash": "sha256-0qKZ2ii51+H5c0A2b6tkxQ8gmFeY2uqmCzPmlR9X1fs="
+  },
+  {
     "pname": "Microsoft.AspNetCore.Authentication",
     "version": "2.3.0",
     "hash": "sha256-7i4ZrV0ktGoZe/CCkAjkhpBWF4Gf0oktySXlMEHS4Gc="
@@ -226,6 +231,11 @@
   },
   {
     "pname": "Microsoft.Extensions.FileProviders.Abstractions",
+    "version": "9.0.0",
+    "hash": "sha256-mVfLjZ8VrnOQR/uQjv74P2uEG+rgW72jfiGdSZhIfDc="
+  },
+  {
+    "pname": "Microsoft.Extensions.FileProviders.Abstractions",
     "version": "9.0.11",
     "hash": "sha256-xBLCCrTgcXEu97+8QXAhpurtKntak5xkc4kpDLXGLFQ="
   },
@@ -350,6 +360,56 @@
     "hash": "sha256-I6kJEvND0i3I/amZBhDF8LjYeGGWuMwoSLiev6BS3UM="
   },
   {
+    "pname": "Namotion.Reflection",
+    "version": "3.4.3",
+    "hash": "sha256-4M0llvgnQRbO7RmM71TRrhMYa9ygzPDzHCOR29gsVdU="
+  },
+  {
+    "pname": "Newtonsoft.Json",
+    "version": "13.0.3",
+    "hash": "sha256-hy/BieY4qxBWVVsDqqOPaLy1QobiIapkbrESm6v2PHc="
+  },
+  {
+    "pname": "NJsonSchema",
+    "version": "11.5.2",
+    "hash": "sha256-pG9IJqK7xrQSyeHDkBOtxLLkZ+DSEXSb2P2rhkczYsM="
+  },
+  {
+    "pname": "NJsonSchema.Annotations",
+    "version": "11.5.2",
+    "hash": "sha256-ZLdV/B6KBIC9coxcGA2iBDYT2vajbTS29AlbitVo3uc="
+  },
+  {
+    "pname": "NJsonSchema.CodeGeneration",
+    "version": "11.5.2",
+    "hash": "sha256-6+/T5CoYm1GfOPvX4jA8Gxi/Im7dorHgN/P6wM0C+hY="
+  },
+  {
+    "pname": "NJsonSchema.CodeGeneration.CSharp",
+    "version": "11.5.2",
+    "hash": "sha256-dji3EPbPjRippUhDsO+LrpKd9jQmMNfOm8uS9Wr5bx8="
+  },
+  {
+    "pname": "NSwag.CodeGeneration",
+    "version": "14.6.3",
+    "hash": "sha256-VPghPC999XgNQELR5jn0gsqr1RcLZftgxirDHAezags="
+  },
+  {
+    "pname": "NSwag.CodeGeneration.CSharp",
+    "version": "14.6.3",
+    "hash": "sha256-wcP5gTihXan/o2gzCfuBR7Ww476JFxpF1MPDksov7JE="
+  },
+  {
+    "pname": "NSwag.Core",
+    "version": "14.6.3",
+    "hash": "sha256-5kjVMRUDfvndcwfhTNygbWsgPusN9EzZrMJEZlJ8Rr8="
+  },
+  {
+    "pname": "Parlot",
+    "version": "1.4.0",
+    "hash": "sha256-4I9+uG+MW5KTxbGFjXoEjsK8/g6m6ZvuqUOohGNk2gE="
+  },
+  {
     "pname": "System.Buffers",
     "version": "4.6.0",
     "hash": "sha256-c2QlgFB16IlfBms5YLsTCFQ/QeKoS6ph1a9mdRkq/Jc="
@@ -388,5 +448,10 @@
     "pname": "System.Text.Encodings.Web",
     "version": "8.0.0",
     "hash": "sha256-IUQkQkV9po1LC0QsqrilqwNzPvnc+4eVvq+hCvq8fvE="
+  },
+  {
+    "pname": "TimeZoneConverter",
+    "version": "7.0.0",
+    "hash": "sha256-CMEdkQxUYIQFloGHNxpu6MUZ+vpIv5sfphz/u+8DnL8="
   }
 ]

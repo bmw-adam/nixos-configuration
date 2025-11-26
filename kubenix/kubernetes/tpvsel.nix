@@ -84,7 +84,7 @@ in
         selector.app = "tpvsel";
         type = "NodePort";
         ports = [
-          { name = "tpvsel"; port = 1235; nodePort = 31895; protocol = "TCP"; }
+          { name = "tpvsel"; port = 1234; nodePort = 80; protocol = "TCP"; }
         ];
       };
     };

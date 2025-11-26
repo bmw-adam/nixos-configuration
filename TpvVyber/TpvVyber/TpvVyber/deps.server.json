@@ -10,6 +10,11 @@
     "hash": "sha256-gWf4ct0bO2hW1xB7ZCmWMJ2IkXKGPpGsYisGlTTyh2s="
   },
   {
+    "pname": "Fluid.Core",
+    "version": "2.30.0",
+    "hash": "sha256-0qKZ2ii51+H5c0A2b6tkxQ8gmFeY2uqmCzPmlR9X1fs="
+  },
+  {
     "pname": "Google.Protobuf",
     "version": "3.30.1",
     "hash": "sha256-JbsYm/b/qZdxG9grkE0dy9pnWkbOIxZy6WLT34qwpHU="
@@ -71,11 +76,6 @@
   },
   {
     "pname": "Microsoft.AspNetCore.Components",
-    "version": "8.0.0",
-    "hash": "sha256-hdRzDkVUSnxZFxxS4MeNafOXYGxcZ8fhLiyPvdeK4lA="
-  },
-  {
-    "pname": "Microsoft.AspNetCore.Components",
     "version": "8.0.2",
     "hash": "sha256-ZGV0pf7dzGoGFQBkzy2QZimEOkqLa6Y3NBPYnCPDdCM="
   },
@@ -103,11 +103,6 @@
     "pname": "Microsoft.AspNetCore.Components.Authorization",
     "version": "9.0.11",
     "hash": "sha256-WPw9esBByB/3ns8yE1EFEt6HO69xS/YuHiJXZxW2UUc="
-  },
-  {
-    "pname": "Microsoft.AspNetCore.Components.Forms",
-    "version": "8.0.0",
-    "hash": "sha256-rggamq5n3Nb5GXfpArcc+r8y3XeaDmbYJtD9uv3LsZ8="
   },
   {
     "pname": "Microsoft.AspNetCore.Components.Forms",
@@ -516,11 +511,6 @@
   },
   {
     "pname": "Microsoft.JSInterop",
-    "version": "8.0.0",
-    "hash": "sha256-k4omTJJODnwUMFtgUrUFh/HK+ly8SWlZJVsH64p96LQ="
-  },
-  {
-    "pname": "Microsoft.JSInterop",
     "version": "8.0.2",
     "hash": "sha256-LQ4I3EXR3IeL3z/mz52b69LRdz1MXhKE36XuIESVNnE="
   },
@@ -565,9 +555,39 @@
     "hash": "sha256-I6kJEvND0i3I/amZBhDF8LjYeGGWuMwoSLiev6BS3UM="
   },
   {
+    "pname": "Namotion.Reflection",
+    "version": "3.4.3",
+    "hash": "sha256-4M0llvgnQRbO7RmM71TRrhMYa9ygzPDzHCOR29gsVdU="
+  },
+  {
     "pname": "Newtonsoft.Json",
     "version": "11.0.2",
     "hash": "sha256-YhlAbGfwoxQzxb3Hef4iyV9eGdPQJJNd2GgSR0jsBJ0="
+  },
+  {
+    "pname": "Newtonsoft.Json",
+    "version": "13.0.3",
+    "hash": "sha256-hy/BieY4qxBWVVsDqqOPaLy1QobiIapkbrESm6v2PHc="
+  },
+  {
+    "pname": "NJsonSchema",
+    "version": "11.5.2",
+    "hash": "sha256-pG9IJqK7xrQSyeHDkBOtxLLkZ+DSEXSb2P2rhkczYsM="
+  },
+  {
+    "pname": "NJsonSchema.Annotations",
+    "version": "11.5.2",
+    "hash": "sha256-ZLdV/B6KBIC9coxcGA2iBDYT2vajbTS29AlbitVo3uc="
+  },
+  {
+    "pname": "NJsonSchema.CodeGeneration",
+    "version": "11.5.2",
+    "hash": "sha256-6+/T5CoYm1GfOPvX4jA8Gxi/Im7dorHgN/P6wM0C+hY="
+  },
+  {
+    "pname": "NJsonSchema.CodeGeneration.CSharp",
+    "version": "11.5.2",
+    "hash": "sha256-dji3EPbPjRippUhDsO+LrpKd9jQmMNfOm8uS9Wr5bx8="
   },
   {
     "pname": "NpgsqlYB.EntityFrameworkCore.YugabyteDB",
@@ -578,6 +598,21 @@
     "pname": "NpgsqlYugabyteDB",
     "version": "8.0.3.2",
     "hash": "sha256-46X6BjbWQyTuaP1KrCi5e5RWpZ8wB709xcf7Od+GGYw="
+  },
+  {
+    "pname": "NSwag.CodeGeneration",
+    "version": "14.6.3",
+    "hash": "sha256-VPghPC999XgNQELR5jn0gsqr1RcLZftgxirDHAezags="
+  },
+  {
+    "pname": "NSwag.CodeGeneration.CSharp",
+    "version": "14.6.3",
+    "hash": "sha256-wcP5gTihXan/o2gzCfuBR7Ww476JFxpF1MPDksov7JE="
+  },
+  {
+    "pname": "NSwag.Core",
+    "version": "14.6.3",
+    "hash": "sha256-5kjVMRUDfvndcwfhTNygbWsgPusN9EzZrMJEZlJ8Rr8="
   },
   {
     "pname": "OpenTelemetry",
@@ -613,6 +648,11 @@
     "pname": "OpenTelemetry.Instrumentation.Http",
     "version": "1.14.0",
     "hash": "sha256-FzOu1W8Ox8MAUhv1KrwQ7w5PAAQKGTdzB0F51y390ag="
+  },
+  {
+    "pname": "Parlot",
+    "version": "1.4.0",
+    "hash": "sha256-4I9+uG+MW5KTxbGFjXoEjsK8/g6m6ZvuqUOohGNk2gE="
   },
   {
     "pname": "Serilog",
@@ -718,5 +758,10 @@
     "pname": "System.Text.Encodings.Web",
     "version": "8.0.0",
     "hash": "sha256-IUQkQkV9po1LC0QsqrilqwNzPvnc+4eVvq+hCvq8fvE="
+  },
+  {
+    "pname": "TimeZoneConverter",
+    "version": "7.0.0",
+    "hash": "sha256-CMEdkQxUYIQFloGHNxpu6MUZ+vpIv5sfphz/u+8DnL8="
   }
 ]
