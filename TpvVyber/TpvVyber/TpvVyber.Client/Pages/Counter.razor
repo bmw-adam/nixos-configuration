@@ -13,22 +13,30 @@
     </NotAuthorized>
 </Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
 
-<SortableList Id="dragHandles" Handle=".drag-tpv-handle" Items="items" OnUpdate="@SortList" Context="item">
-    <SortableItemTemplate>
-        <MudStack Row Style="height: 100%" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudIconButton Class="drag-tpv-handle" Icon="@Icons.Material.Filled.DragIndicator" />
-            <MudText Typo="Typo.h6">@item.Name</MudText>
-            <MudText Typo="Typo.h6">@item.Id</MudText>
-        </MudStack>
-    </SortableItemTemplate>
-</SortableList>
+@if (_group != null)
+{
+    <SortableList Id="@ListId" Put="false" GroupModel="@_group" Handle=".drag-handle" Context="item"
+        OnUpdate="@SortList" ForceFallback="false">
+        <SortableItemTemplate>
+            <MudStack StretchItems="StretchItems.Middle" Row>
+                <MudIconButton Icon="@Icons.Material.Filled.DragIndicator" class="drag-handle"></MudIconButton>
+                <MudButton EndIcon="@Icons.Material.Filled.Info">@item.Name</MudButton>
+                <MudText>@item.Id</MudText>
+            </MudStack>
+        </SortableItemTemplate>
+    </SortableList>
+}
 
 <MudStack Row Spacing="5">
-    <MudButton Color="Color.Secondary" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Cancel">Zrušit</MudButton>
+    <MudButton Color="Color.Secondary" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Cancel">Zrušit
+    </MudButton>
     <MudButton Color="Color.Info" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save">Ok</MudButton>
 </MudStack>
 
 @code {
+    public List<Item> items = Enumerable.Range(1, 10).Select(i => new Item { Id = i, Name = $"Item {i}" }).ToList();
+
+
     public class Item
     {
         public int Id { get; set; }
@@ -37,11 +45,31 @@
         public bool Disabled { get; set; } = false;
     }
 
-    public List<Item> items = Enumerable.Range(1, 50).Select(i => new Item { Id = i, Name = $"Item {i}" }).ToList();
+    private const string ListId = "sortable";
 
+    private SingleSortableListGroup<Item>? _group = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        var settings = new SortableListSettings
+        {
+            MultiSelection = false,
+            SwapThreshold = 0.85,
+            FallbackOnBody = true,
+            CssForSelection = "color: red"
+        };
+
+        _group = new(ListId, new SortableListModel<Item>(items)
+        {
+            Settings = settings
+        });
+
+    }
     private void SortList((int oldIndex, int newIndex) indices)
     {
-        // deconstruct the tuple
+        Console.WriteLine($"Indicies: adsf");
         var (oldIndex, newIndex) = indices;
 
         var items = this.items;
@@ -57,6 +85,7 @@
             items.Add(itemToMove);
         }
 
+        Console.WriteLine($"Indicies: {items.Count}");
         StateHasChanged();
     }
 }

@@ -1,11 +1,15 @@
 namespace TpvVyber.Client.Classes;
 
-public class Course
+public class CourseCln
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string PdfUrl { get; set; } = string.Empty;
+    public CourseClnExtended? Extended { get; set; }
+}
 
-    public List<OrderCourse> OrderCourses { get; } = [];
+public class CourseClnExtended
+{
+    public List<OrderCourseCln>? OrderCourses { get; set; }
 }

@@ -1,0 +1,89 @@
+@page "/admin/courses"
+@using TpvVyber.Client.Classes
+@inject HttpClient httpClient
+
+@* <MudDataGrid @ref="_CourseGrid" T="Course" Items="@_Courses" ReadOnly="false" EditMode="DataGridEditMode.Cell"
+    CommittedItemChanges="@CommittedItemChanges" Bordered="true" Dense="true"
+    EditTrigger="DataGridEditTrigger.OnRowClick">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Periodic Courses</MudText>
+        <MudSpacer />
+        <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Filled">
+            <MudButton OnClick="NewItemAsync">
+                Add New Item
+            </MudButton>
+        </MudButtonGroup>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
+        <PropertyColumn Property="x => x.Name" />
+        <PropertyColumn Property="x => x.Description" />
+        <PropertyColumn Property="x => x.PdfUrl" />
+
+        <TemplateColumn Hidden="false" CellClass="d-flex justify-between">
+            <CellTemplate>
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete"
+                    OnClick="@(() => DeleteItem(context.Item))" />
+            </CellTemplate>
+            <EditTemplate>
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete"
+                    OnClick="@(() => DeleteItem(context.Item))" />
+            </EditTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid> *@
+
+
+@code {
+    @* private IEnumerable<Course> _CourseMasterList = [];
+    private List<Course> _Courses = [];
+    private MudDataGrid<Course> _CourseGrid = default!;
+
+    private async Task LoadData()
+    {
+        var courses = await httpClient.GetFromJsonAsync<IEnumerable<Course>>("api/courses/get_all");
+        _Courses = courses?.ToList() ?? [];
+        StateHasChanged();
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _ = LoadData();
+    }
+
+    private async Task NewItemAsync()
+    {
+        var elem = new Course();
+        var res = await httpClient.PostAsJsonAsync("api/courses/add", elem);
+        if (res.IsSuccessStatusCode == false)
+        {
+            return;
+        }
+
+        var newElem = await res.Content.ReadFromJsonAsync<Course>();
+        if (newElem == null)
+        {
+            return;
+        }
+        
+        _Courses.Insert(0, newElem);
+    }
+
+    private void DeleteItem(Course item)
+    {
+        _Courses.Remove(item);
+    }
+
+    private void CommittedItemChanges(Course item)
+    {
+        // update code for the backing data here
+        _ = CommitData(item);
+    }
+
+    private async Task CommitData(Course course)
+    {
+        await httpClient.PutAsJsonAsync("api/courses/update", course);
+        await LoadData();
+    } *@
+}

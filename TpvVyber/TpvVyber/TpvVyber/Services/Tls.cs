@@ -26,15 +26,15 @@ public static class Tls
             throw new Exception("TLS_PFX_FILE is not set");
         }
 
-        builder.WebHost.ConfigureKestrel(options =>
-        {
-            options.ListenAnyIP(
-                1235,
-                listenOptions =>
-                {
-                    listenOptions.UseHttps(pfxFile, pfxKeyPassword);
-                }
-            );
-        });
+        // builder.WebHost.ConfigureKestrel(options =>
+        // {
+        //     options.ListenAnyIP(
+        //         1235,
+        //         listenOptions =>
+        //         {
+        //             listenOptions.UseHttps(pfxFile, pfxKeyPassword);
+        //         }
+        //     );
+        // });
     }
 }

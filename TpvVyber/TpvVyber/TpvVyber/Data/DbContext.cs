@@ -1,19 +1,17 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using TpvVyber.Client.Classes;
+using TpvVyber.Classes;
 
 namespace TpvVyber.Data;
 
 public class TpvVyberContext : DbContext
 {
     public TpvVyberContext(DbContextOptions<TpvVyberContext> options)
-    : base(options)
-    {
-    }
+        : base(options) { }
 
-    public DbSet<Student> Students { get; set; }
-    public DbSet<Course> Courses { get; set; }
-    public DbSet<OrderCourse> OrderCourses { get; set; }
+    public required DbSet<Student> Students { get; set; }
+    public required DbSet<Course> Courses { get; set; }
+    public required DbSet<OrderCourse> OrderCourses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

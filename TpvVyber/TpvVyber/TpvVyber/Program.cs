@@ -20,13 +20,14 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
 using TpvVyber.Client.Classes.Client;
-using TpvVyber.Client.Classes.Interfaces;
 using TpvVyber.Client.Pages;
 using TpvVyber.Components;
 using TpvVyber.Data;
 using TpvVyber.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddHttpClient();
 
 builder.ConfigureTls();
 builder.AddLoggingService();
@@ -163,6 +164,10 @@ builder
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
+builder.Services.AddRazorPages();
+
+builder.Services.AddControllers();
+
 builder.Services.AddAntiforgery();
 
 var app = builder.Build();
@@ -184,6 +189,7 @@ else
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+// app.MapStaticAssets();
 app.UseBlazorFrameworkFiles();
 
 app.UseRouting();
@@ -195,7 +201,8 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(TpvVyber.Client._Imports).Assembly);
 
-// Wait for the database to be ready and apply migrations
+app.MapRazorPages();
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<TpvVyberContext>();
@@ -239,6 +246,8 @@ using (var scope = app.Services.CreateScope())
 // Use authentication & authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapControllers();
 
 app.MapGet(
     "/signin-oauth",

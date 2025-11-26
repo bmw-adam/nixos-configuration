@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@inject NavigationManager Navigation
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -14,12 +16,14 @@
 </head>
 
 <body>
-    <script src="/src/sortable.js"></script>
-     <script>
+    <!--script src="/src/sortable.js"></script-->
+    <script type="module" src="_content/BlazorSortableList/SortableList.razor.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script>
         window.isBlazorWasm = !!window.Blazor && !!Blazor._internal && !!Blazor._internal.dotNetRuntime;
     </script>
 
-    <TpvVyber.Client.Routes />
+    <TpvVyber.Client.Routes @rendermode="InteractiveAuto" />
     <script src="_framework/blazor.web.js"></script>
     <script src=@Assets["_content/MudBlazor/MudBlazor.min.js"]></script>
 </body>

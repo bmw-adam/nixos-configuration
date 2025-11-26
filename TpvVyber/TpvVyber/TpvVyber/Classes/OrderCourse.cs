@@ -1,4 +1,4 @@
-namespace TpvVyber.Client.Classes;
+namespace TpvVyber.Classes;
 
 public class OrderCourse
 {

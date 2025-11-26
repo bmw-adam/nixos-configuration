@@ -12,18 +12,40 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BlazorSortableList" Version="2.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.*" />
     <PackageReference Include="Microsoft.Extensions.Localization" Version="9.*" />
 
     <PackageReference Include="MudBlazor" Version="8.*" />
 
     <!-- Auth -->
-    <PackageReference
-      Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication"
-      Version="9.*"
-    />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="9.*" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.3.0" />
     <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="9.*" />
+    <PackageReference Include="NSwag.CodeGeneration.CSharp" Version="14.6.3" />
   </ItemGroup>
+
+  <!-- NSwag -->
+  <Target Name="NSwagCodeGeneration" BeforeTargets="CoreCompile">
+    <Exec WorkingDirectory="$(ProjectDir)" Command="nswag run nswag.json /variables:Configuration=$(Configuration)" Outputs="obj/ApiClient.g.cs" ConsoleToMSBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="OutputOfExec" />
+      <Output ItemName="Generated" TaskParameter="Outputs" />
+    </Exec>
+    <ItemGroup>
+      <!--This is supposed to allow 'clean' to work but it does not work-->
+      <FileWrites Include="@(Generated)" />
+    </ItemGroup>
+  </Target>
+  <!--This is the only way I could get the file to be deleted on clean-->
+  <Target Name="forceReGenerationOnRebuild" AfterTargets="CoreClean">
+    <Delete Files="$(ProjectDir)\obj\Client.g.cs"></Delete>
+    <Delete Files="$(ProjectDir)\obj\Contracts.g.cs"></Delete>
+  </Target>
+
+  <Target Name="UpdateGeneratedFiles" BeforeTargets="CoreCompile" DependsOnTargets="NSwagCodeGeneration">
+    <ItemGroup>
+      <Compile Include="$(BaseIntermediateOutputPath)*.g.cs" />
+    </ItemGroup>
+  </Target>
 </Project>
