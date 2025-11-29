@@ -1,1 +1,199 @@
 @page "/admin/ordercourses"
+@using TpvVyber.Client.Classes
+@inject NavigationManager NavigationManager
+@inject PersistentComponentState ApplicationState
+@inject IAdminService AdminService
+@inject IDialogService DialogService
+@implements IDisposable
+
+@if (OrderCourseData is null)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" Class="my-6" />
+}
+else
+{
+    <MudDataGrid @ref="StudentGrid" T="OrderCourseCln" Items="@OrderCourseData" ReadOnly="false"
+                 EditMode="DataGridEditMode.Cell" CommittedItemChanges="@CommittedItemChanges"
+                 Bordered="true" Dense="true" EditTrigger="DataGridEditTrigger.OnRowClick">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Pořadí kurzů</MudText>
+            <MudSpacer />
+            <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Filled">
+                <MudButton OnClick="NewItemAsync">Přidat pořadí kurzu</MudButton>
+            </MudButtonGroup>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
+            <PropertyColumn Property="x => x.Order" Title="Order" />
+            <PropertyColumn Editable="false" Property="x => x.CourseId" Title="Course Id" />
+
+            <TemplateColumn Title="Kurz" CellClass="d-flex">
+                <CellTemplate>
+                    <MudText>@context.Item.Extended?.Course?.Name</MudText>
+                </CellTemplate>
+                <EditTemplate>
+                    @if (context.Item.Extended != null)
+                    {
+                        <MudSelect Style="display: block;" T="CourseCln" Value="context.Item.Extended.Course" ValueChanged="(value) => ChangeValueCourse(context.Item, value)" ToStringFunc="s => s.Name" Required="true"
+                               RequiredError="Kurz je povinný!" HelperText="Vyberte kurz">
+                        @foreach (var course in AvailableCourses)
+                        {
+                            <MudSelectItem T="CourseCln" Value="course">@course.Name</MudSelectItem>
+                        }
+                        </MudSelect>
+                    }
+                    else 
+                    {
+                        <MudText>Error - nenalezen žák</MudText>
+                    }
+                </EditTemplate>
+
+            </TemplateColumn>
+            
+            <PropertyColumn Editable="false" Property="x => x.StudentId" Title="Žák Id" />
+            
+            <TemplateColumn Title="Žák">
+                <CellTemplate>
+                    <MudText>@context.Item.Extended?.Student?.Name</MudText>
+                </CellTemplate>
+                <EditTemplate>
+                    @if (context.Item.Extended != null)
+                    {
+                        <MudSelect Style="display: block;" T="StudentCln" Value="context.Item.Extended.Student" ValueChanged="(value) => ChangeValueStudent(context.Item, value)" ToStringFunc="s => s.Name" Required="true"
+                               RequiredError="Žák je povinný!" HelperText="Vyberte žáka">
+                        @foreach (var student in AvailableStudents)
+                        {
+                            <MudSelectItem T="StudentCln" Value="student">@student.Name</MudSelectItem>
+                        }
+                        </MudSelect>
+                    }
+                    else 
+                    {
+                        <MudText>Error - nenalezen žák</MudText>
+                    }
+                </EditTemplate>
+            </TemplateColumn>
+
+
+            <TemplateColumn>
+                <CellTemplate>
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
+                                   OnClick="@(() => DeleteItemAsync(context.Item))" />
+                </CellTemplate>
+                <EditTemplate>
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
+                                   OnClick="@(() => DeleteItemAsync(context.Item))" />
+                </EditTemplate>
+            </TemplateColumn>
+        </Columns>
+    </MudDataGrid>
+}
+
+@code {
+    private List<OrderCourseCln>? OrderCourseData;
+    private MudDataGrid<OrderCourseCln> StudentGrid = default!;
+    private PersistingComponentStateSubscription? _subscription;
+
+    private List<CourseCln> AvailableCourses = new();
+    private List<StudentCln> AvailableStudents = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _subscription = ApplicationState.RegisterOnPersisting(Persist);
+
+        AvailableCourses = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(AvailableCourses), out var cachedCourses)
+            ? cachedCourses?.ToList() ?? new List<CourseCln>()
+            : (await AdminService.GetAllCoursesAsync()).ToList();
+
+        AvailableStudents = ApplicationState.TryTakeFromJson<IEnumerable<StudentCln>>(nameof(AvailableStudents), out var cachedStudents)
+            ? cachedStudents?.ToList() ?? new List<StudentCln>()
+            : (await AdminService.GetAllStudentsAsync()).ToList();
+
+        OrderCourseData = ApplicationState.TryTakeFromJson<IEnumerable<OrderCourseCln>>(nameof(OrderCourseData), out var cached)
+            ? cached?.ToList()
+            : (await AdminService.GetAllOrderCourseAsync(FillOrderCourseExtended.Student | FillOrderCourseExtended.Course)).ToList();
+    }
+
+    private Task Persist()
+    {
+        if (OrderCourseData is not null)
+            ApplicationState.PersistAsJson(nameof(OrderCourseData), OrderCourseData);
+
+        if (AvailableCourses is not null)
+            ApplicationState.PersistAsJson(nameof(AvailableCourses), AvailableCourses);
+
+        if (AvailableStudents is not null)
+            ApplicationState.PersistAsJson(nameof(AvailableStudents), AvailableStudents);
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _subscription?.Dispose();
+
+    private async Task NewItemAsync()
+    {
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<AddOrderCourseDialog>
+        {
+            { x => x.AvailableCourses, AvailableCourses },
+            { x => x.AvailableStudents, AvailableStudents }
+        };
+        var dialog = await DialogService.ShowAsync<AddOrderCourseDialog>("Přidat pořadí kurzu", parameters, options);
+
+        var result = await dialog.Result;
+        var retData = result?.Data;
+
+        if (!(result?.Canceled ?? true) && retData != null && retData is OrderCourseCln orderCourse)
+        {
+            var newOrderCourse = await AdminService.AddOrderCourseAsync(orderCourse, FillOrderCourseExtended.Student | FillOrderCourseExtended.Course);
+            if (newOrderCourse is not null)
+            {
+                OrderCourseData?.Insert(0, newOrderCourse);
+            }
+        }
+    }
+
+    private async Task DeleteItemAsync(OrderCourseCln item)
+    {
+        await AdminService.DeleteOrderCourseAsync(item.Id);
+        OrderCourseData?.Remove(item);
+    }
+
+    private void CommittedItemChanges(OrderCourseCln item)
+    {
+        _ = CommitDataAsync(item);
+    }
+
+    private async Task CommitDataAsync(OrderCourseCln OrderCourse)
+    {
+        await AdminService.UpdateOrderCourseAsync(OrderCourse);
+        // Only reload if needed, often unnecessary if your grid binds to OrderCourseData
+    }
+
+    private void ExpandRow(OrderCourseCln item)
+    {
+        _ = StudentGrid.ToggleHierarchyVisibilityAsync(item);
+    }
+
+    private void ChangeValueCourse(OrderCourseCln item, CourseCln value)
+    {
+        if (item.Extended == null)
+            return;
+
+        item.Extended.Course = value;
+        item.CourseId = value.Id;
+
+        CommittedItemChanges(item);
+    }
+
+    private void ChangeValueStudent(OrderCourseCln item, StudentCln value)
+    {
+        if (item.Extended == null)
+            return;
+            
+        item.Extended.Student = value;
+        item.StudentId = value.Id;
+
+        CommittedItemChanges(item);
+    }
+}

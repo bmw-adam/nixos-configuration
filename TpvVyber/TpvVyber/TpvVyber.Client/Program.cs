@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using TpvVyber.Client.Services;
-using TpvVyber.Client.Classes.Gen;
+using TpvVyber.Client.Services.Admin;
 // using TpvVyber.Client.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -22,5 +22,6 @@ builder.Services.AddScoped(sp => new HttpClient()
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddSingleton<AuthenticationStateProvider, PersistentAuthenticationStateProvider>();
+builder.Services.AddScoped<IAdminService, ClientAdminService>();
 
 await builder.Build().RunAsync();

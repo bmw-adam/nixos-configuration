@@ -120,8 +120,8 @@
           projectFile = "TpvVyber.Client.csproj";
           nugetDeps = ./TpvVyber/TpvVyber.Client/deps.client.json;
 
-          nativeBuildInputs = [ pkgs.wasm-tools ];
-          buildInputs = [ pkgs.wasm-tools ];
+          nativeBuildInputs = [ pkgs.wasm-tools nswagConsoleTool ];
+          buildInputs = [ pkgs.wasm-tools nswagConsoleTool ];
 
           # Disable the workload resolver so Nix's preinstalled workloads are used
           dotnetBuildFlags = [
@@ -166,6 +166,8 @@
           inherit dotnet-sdk dotnet-runtime;
           pname = "TpvVyber";
           version = "0.1.0";
+
+          buildInputs = [ nswagConsoleTool];
 
           src = ./TpvVyber;
           projectFile = "TpvVyber/TpvVyber.csproj";

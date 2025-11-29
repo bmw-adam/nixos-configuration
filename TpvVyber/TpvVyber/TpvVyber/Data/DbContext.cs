@@ -35,6 +35,19 @@ public class TpvVyberContext : DbContext
         {
             entity.ToTable("OrderCourses");
             entity.HasKey(e => e.Id);
+            entity
+                .HasOne(oc => oc.Student)
+                .WithMany(c => c.OrderCourses)
+                .HasForeignKey(oc => oc.StudentId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity
+                .HasOne(oc => oc.Course)
+                .WithMany(c => c.OrderCourses)
+                .HasForeignKey(oc => oc.CourseId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         base.OnModelCreating(modelBuilder);

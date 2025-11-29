@@ -1,10 +1,18 @@
 ﻿
 <MudNavMenu>
+    <MudText Typo="Typo.h6" Class="px-4">Tpv Výběr</MudText>
+    <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Uživatel</MudText>
+    <MudDivider Class="my-2"/>
+
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
     <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
     
-    <MudNavLink Href="admin" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Admin</MudNavLink>
-
+    <MudNavGroup Title="Admin" Expanded="true">
+        <MudNavLink Match="NavLinkMatch.All" Href="/admin">Admin</MudNavLink>
+        <MudNavLink Match="NavLinkMatch.All" Href="/admin/courses">Kurzy</MudNavLink>
+        <MudNavLink Match="NavLinkMatch.All" Href="/admin/students">Žáci</MudNavLink>
+        <MudNavLink Match="NavLinkMatch.All" Href="/admin/ordercourses">Pořadí kurzů</MudNavLink>
+    </MudNavGroup>
 </MudNavMenu>
 
 

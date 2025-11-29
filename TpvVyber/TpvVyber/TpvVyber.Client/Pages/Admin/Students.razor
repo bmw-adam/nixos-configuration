@@ -1,1 +1,151 @@
 @page "/admin/students"
+@using TpvVyber.Client.Classes
+@inject NavigationManager NavigationManager
+@inject PersistentComponentState ApplicationState
+@inject IAdminService AdminService
+@implements IDisposable
+
+@if (StudentsData is null)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" Class="my-6" />
+}
+else
+{
+    <MudDataGrid @ref="StudentGrid" T="StudentCln" Items="@StudentsData" ReadOnly="false" EditMode="DataGridEditMode.Cell"
+        CommittedItemChanges="@CommittedItemChanges" Bordered="true" Dense="true"
+        EditTrigger="DataGridEditTrigger.OnRowClick">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Žáci</MudText>
+            <MudSpacer />
+            <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Filled">
+                <MudButton OnClick="NewItemAsync">Přidat žáka</MudButton>
+            </MudButtonGroup>
+        </ToolBarContent>
+        <Columns>
+            <HierarchyColumn Hidden />
+            <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
+            <PropertyColumn Property="x => x.Name" />
+            <PropertyColumn Property="x => x.Email" />
+            <PropertyColumn Property="x => x.Class" />
+            <TemplateColumn Title="Seznam kurzů">
+                <CellTemplate>
+                    <MudButton OnClick="() => ExpandRow(context.Item)" StartIcon="@Icons.Material.Filled.List"
+                        Size="Size.Small">Seznam kurzů</MudButton>
+                </CellTemplate>
+                <EditTemplate>
+                    <MudButton OnClick="() => ExpandRow(context.Item)" StartIcon="@Icons.Material.Filled.List"
+                        Size="Size.Small">Seznam kurzů</MudButton>
+                </EditTemplate>
+            </TemplateColumn>
+            <TemplateColumn>
+                <CellTemplate>
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
+                        OnClick="@(() => DeleteItemAsync(context.Item))" />
+                </CellTemplate>
+                <EditTemplate>
+                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
+                        OnClick="@(() => DeleteItemAsync(context.Item))" />
+                </EditTemplate>
+            </TemplateColumn>
+        </Columns>
+        <ChildRowContent>
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Seznam kurzů - @context.Item.Name</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (context.Item?.Extended?.Courses != null)
+                    {
+                        <MudDataGrid T="CourseCln" Items="context.Item.Extended.Courses" ReadOnly="true" Bordered="true"
+                            Dense="true">
+                            <Columns>
+                                <PropertyColumn Property="x => x.Id" Title="Id" />
+                                <PropertyColumn Property="x => x.Name" Title="Jméno" />
+                                <PropertyColumn Property="x => x.Description" Title="Popis" />
+                                <TemplateColumn Title="Pořadí" Editable="false">
+                                    <CellTemplate Context="course">
+                                        <MudText>@string.Join(", ", OrderCourses?.Where(oc => oc.CourseId == course.Item.Id &&
+                                                                                oc.StudentId == context.Item.Id).Select(oc => oc.Order) ?? [])</MudText>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+                                }
+                    else
+                    {
+                        <MudText>Error - extended je null</MudText>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </ChildRowContent>
+    </MudDataGrid>
+}
+
+@code {
+    private List<StudentCln>? StudentsData;
+    private MudDataGrid<StudentCln> StudentGrid = default!;
+    private PersistingComponentStateSubscription? _subscription;
+    private List<OrderCourseCln>? OrderCourses;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _subscription = ApplicationState.RegisterOnPersisting(Persist);
+
+        StudentsData = ApplicationState.TryTakeFromJson<IEnumerable<StudentCln>>(nameof(StudentsData), out var cached)
+        ? cached?.ToList()
+        : (await AdminService.GetAllStudentsAsync(FillStudentExtended.Courses)).ToList();
+
+        OrderCourses = ApplicationState.TryTakeFromJson<IEnumerable<OrderCourseCln>>(nameof(OrderCourses), out var
+        cachedOrderCourses)
+        ? cachedOrderCourses?.ToList()
+        : (await AdminService.GetAllOrderCourseAsync(FillOrderCourseExtended.Student |
+        FillOrderCourseExtended.Course)).ToList();
+
+    }
+
+    private Task Persist()
+    {
+        if (StudentsData is not null)
+            ApplicationState.PersistAsJson(nameof(StudentsData), StudentsData);
+
+        if (OrderCourses is not null)
+            ApplicationState.PersistAsJson(nameof(OrderCourses), OrderCourses);
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _subscription?.Dispose();
+
+    private async Task NewItemAsync()
+    {
+        var newStudent = await AdminService.AddStudentAsync(new StudentCln(), FillStudentExtended.Courses);
+        if (newStudent is not null)
+        {
+            StudentsData?.Insert(0, newStudent);
+        }
+    }
+
+    private async Task DeleteItemAsync(StudentCln item)
+    {
+        await AdminService.DeleteStudentAsync(item.Id);
+        StudentsData?.Remove(item);
+    }
+
+    private void CommittedItemChanges(StudentCln item)
+    {
+        _ = CommitDataAsync(item);
+    }
+
+    private async Task CommitDataAsync(StudentCln Student)
+    {
+        await AdminService.UpdateStudentAsync(Student);
+        // Only reload if needed, often unnecessary if your grid binds to StudentsData
+    }
+
+    private void ExpandRow(StudentCln item)
+    {
+        _ = StudentGrid.ToggleHierarchyVisibilityAsync(item);
+    }
+}

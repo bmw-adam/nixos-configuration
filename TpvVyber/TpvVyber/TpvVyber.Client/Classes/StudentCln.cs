@@ -13,5 +13,10 @@ public class StudentCln
 
 public class StudentClnExtended
 {
-    public List<OrderCourseCln>? OrderCourses { get; set; }
+    public List<CourseCln>? Courses { get; set; }
+}
+
+public enum FillStudentExtended
+{
+    Courses = 1,
 }

@@ -28,8 +28,8 @@ in
     extraFlags = toString [
       "--https-listen-port=6444"
       "--bind-address=0.0.0.0"
-      "--disable=traefik"
     ];
+      # "--disable=traefik"
 
     manifests.grafana.content = {
       apiVersion = "helm.cattle.io/v1";

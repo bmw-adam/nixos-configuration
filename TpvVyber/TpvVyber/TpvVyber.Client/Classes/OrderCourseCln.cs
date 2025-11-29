@@ -14,3 +14,9 @@ public class OrderCourseClnExtended
     public StudentCln? Student { get; set; }
     public CourseCln? Course { get; set; }
 }
+
+public enum FillOrderCourseExtended
+{
+    Student = 1,
+    Course = 2,
+}

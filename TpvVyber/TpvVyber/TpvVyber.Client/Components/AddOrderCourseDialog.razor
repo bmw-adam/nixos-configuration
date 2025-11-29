@@ -1,0 +1,70 @@
+<MudDialog>
+    <TitleContent>
+        @MudDialog.Title
+    </TitleContent>
+    <DialogContent>
+            <MudForm @ref="form" @bind-IsValid="@success">
+                <MudTextField @bind-Value="Model.Order" T="int" Label="Pořadí kurzu" HelperText="Vyberte pořadí kurzu"
+                                  InputType="InputType.Text" Required="true"
+                                  RequiredError="Pořadí kurzu je povinné!"/>
+
+                <MudSelect T="CourseCln" Label="Kurz" @bind-Value="selectedCourse" Required="true"
+                           RequiredError="Kurz je povinný!" HelperText="Vyberte kurz">
+                    @foreach (var course in AvailableCourses)
+                    {
+                        <MudSelectItem T="CourseCln" Value="course">@course.Name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="StudentCln" Label="Student" @bind-Value="selectedStudent" Required="true"
+                           RequiredError="Student je povinný!" HelperText="Vyberte studenta">
+                    @foreach (var student in AvailableStudents)
+                    {
+                        <MudSelectItem T="StudentCln" Value="student">@student.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Disabled="reverseSuccess" Color="Color.Primary" OnClick="Submit">OK</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    public required IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public required List<CourseCln> AvailableCourses { get; set; }
+    [Parameter] public required List<StudentCln> AvailableStudents { get; set; }
+
+    private CourseCln? selectedCourse;
+    private StudentCln? selectedStudent;
+
+    private MudForm? form;
+    private bool success;
+    private bool reverseSuccess {
+        get => !success;
+        set => success = !value;
+    }
+
+    private OrderCourseCln Model = new OrderCourseCln();
+
+    private void Submit() {
+        if (selectedCourse == null || selectedStudent == null)
+            return;
+
+        if (Model.Extended == null)
+            Model.Extended = new();
+
+        Model.CourseId = selectedCourse.Id;
+        Model.Extended.Course = selectedCourse;
+        
+        Model.StudentId = selectedStudent.Id;
+        Model.Extended.Student = selectedStudent;
+        
+        if (success)
+            MudDialog.Close(DialogResult.Ok(Model));
+    }
+    private void Cancel() => MudDialog.Cancel();
+}

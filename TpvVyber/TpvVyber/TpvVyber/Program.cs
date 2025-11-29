@@ -1,28 +1,16 @@
-using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Text;
 using System.Text.Json;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.OAuth;
-using Microsoft.AspNetCore.Authentication.OAuth.Claims;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
-// using Microsoft.IdentityModel.Tokens;
 using MudBlazor.Services;
-// using Keycloak.Net;
-using OpenTelemetry.Extensions.Hosting;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Serilog;
 using TpvVyber.Client.Classes.Client;
-using TpvVyber.Client.Pages;
+using TpvVyber.Client.Services.Admin;
 using TpvVyber.Components;
 using TpvVyber.Data;
+using TpvVyber.Endpoints.Admin;
 using TpvVyber.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -170,6 +158,8 @@ builder.Services.AddControllers();
 
 builder.Services.AddAntiforgery();
 
+builder.Services.AddScoped<IAdminService, ServerAdminService>();
+
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
@@ -189,6 +179,7 @@ else
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+
 // app.MapStaticAssets();
 app.UseBlazorFrameworkFiles();
 
@@ -248,6 +239,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Map Endpoints
+CoursesAdminEndpoints.MapAdminEndpoints(app);
+StudentsAdminEndpoints.MapAdminEndpoints(app);
+OrderCourseAdminEndpoints.MapAdminEndpoints(app);
 
 app.MapGet(
     "/signin-oauth",
