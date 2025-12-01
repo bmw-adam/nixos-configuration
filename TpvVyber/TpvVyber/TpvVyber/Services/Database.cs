@@ -27,7 +27,7 @@ public static class Database
             throw new NullReferenceException("Connection String Was Null");
         }
 
-        builder.Services.AddDbContext<TpvVyberContext>(options =>
+        builder.Services.AddDbContextFactory<TpvVyberContext>(options =>
             options.UseNpgsql(
                 connectionString,
                 o =>

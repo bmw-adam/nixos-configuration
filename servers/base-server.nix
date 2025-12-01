@@ -327,4 +327,29 @@ in
     ];
     allowPing = true;
   };
+
+
+  #Nginx reverse proxy for backend
+  security.acme = {
+    acceptTerms = true;
+    defaults.email = "baboraka@gasos-ro.cz";
+  };
+
+services.nginx = {
+    enable = true;
+    recommendedProxySettings = true;
+    recommendedTlsSettings = true;
+
+    virtualHosts."tpvselect.gasos.cz" = {
+      enableACME = true;
+      forceSSL = true;
+      locations."/" = {
+        # This points to the NodePort we defined above
+        proxyPass = "http://127.0.0.1:31895"; 
+        
+        # Websocket support (needed for Blazor/ASP.NET usually)
+        proxyWebsockets = true; 
+      };
+    };
+  };
 }

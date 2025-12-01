@@ -7,7 +7,7 @@ using TpvVyber.Data;
 
 namespace TpvVyber.Endpoints.Admin;
 
-public class ServerAdminService(TpvVyberContext context) : IAdminService
+public class ServerAdminService(IDbContextFactory<TpvVyberContext> _factory) : IAdminService
 {
     #region Courses
     private async Task<CourseCln> courseAddIntern(
@@ -15,21 +15,23 @@ public class ServerAdminService(TpvVyberContext context) : IAdminService
         FillCourseExtended? fillExtended = null
     )
     {
-        var newEntity = Course.ToServer(item, context, createNew: true);
-        var element = await context.Courses.AddAsync(newEntity);
-        await context.SaveChangesAsync();
+        await using var ctx = _factory.CreateDbContext();
+        var newEntity = Course.ToServer(item, ctx, createNew: true);
+        var element = await ctx.Courses.AddAsync(newEntity);
+        await ctx.SaveChangesAsync();
 
-        return context.Courses.Find(element.Entity.Id)?.ToClient(context, fillExtended)
+        return ctx.Courses.Find(element.Entity.Id)?.ToClient(ctx, fillExtended)
             ?? throw new Exception("Nepodařilo se přidat do databáze");
     }
 
     private async Task courseDeleteIntern(int Id)
     {
-        var entityToDelete = context.Courses.Find(Id);
+        await using var ctx = _factory.CreateDbContext();
+        var entityToDelete = ctx.Courses.Find(Id);
         if (entityToDelete != null)
         {
-            context.Courses.Remove(entityToDelete);
-            await context.SaveChangesAsync();
+            ctx.Courses.Remove(entityToDelete);
+            await ctx.SaveChangesAsync();
         }
         else
         {
@@ -39,9 +41,10 @@ public class ServerAdminService(TpvVyberContext context) : IAdminService
 
     private async Task courseUpdateIntern(CourseCln item)
     {
-        var entityToUpdate = Course.ToServer(item, context);
-        context.Courses.Update(entityToUpdate);
-        await context.SaveChangesAsync();
+        await using var ctx = _factory.CreateDbContext();
+        var entityToUpdate = Course.ToServer(item, ctx);
+        ctx.Courses.Update(entityToUpdate);
+        await ctx.SaveChangesAsync();
     }
 
     public Task<CourseCln> AddCourseAsync(CourseCln item, FillCourseExtended? fillExtended = null)
@@ -59,24 +62,29 @@ public class ServerAdminService(TpvVyberContext context) : IAdminService
         return courseUpdateIntern(item);
     }
 
-    public Task<CourseCln?> GetCourseByIdAsync(int id, FillCourseExtended? fillExtended = null)
+    public async Task<CourseCln?> GetCourseByIdAsync(
+        int id,
+        FillCourseExtended? fillExtended = null
+    )
     {
-        var course = context.Courses.Include(r => r.OrderCourses).First(a => a.Id == id);
+        await using var ctx = _factory.CreateDbContext();
+        var course = ctx.Courses.Include(r => r.OrderCourses).First(a => a.Id == id);
         if (course == null)
         {
-            return Task.FromResult<CourseCln?>(null);
+            return null;
         }
-        return Task.FromResult<CourseCln?>(course.ToClient(context, fillExtended));
+        return course.ToClient(ctx, fillExtended);
     }
 
-    public Task<IEnumerable<CourseCln>> GetAllCoursesAsync(FillCourseExtended? fillExtended = null)
+    public async Task<IEnumerable<CourseCln>> GetAllCoursesAsync(
+        FillCourseExtended? fillExtended = null
+    )
     {
-        return Task.FromResult<IEnumerable<CourseCln>>(
-            context
-                .Courses.Include(r => r.OrderCourses)
-                    .ThenInclude(oc => oc.Student)
-                .Select((course) => course.ToClient(context, fillExtended))
-        );
+        await using var ctx = _factory.CreateDbContext();
+        return ctx
+            .Courses.Include(r => r.OrderCourses)
+                .ThenInclude(oc => oc.Student)
+            .Select((course) => course.ToClient(ctx, fillExtended)).ToList();
     }
     #endregion
     #region Students
@@ -85,21 +93,23 @@ public class ServerAdminService(TpvVyberContext context) : IAdminService
         FillStudentExtended? fillExtended = null
     )
     {
-        var newEntity = Student.ToServer(item, context, createNew: true);
-        var element = await context.Students.AddAsync(newEntity);
-        await context.SaveChangesAsync();
+        await using var ctx = _factory.CreateDbContext();
+        var newEntity = Student.ToServer(item, ctx, createNew: true);
+        var element = await ctx.Students.AddAsync(newEntity);
+        await ctx.SaveChangesAsync();
 
-        return context.Students.Find(element.Entity.Id)?.ToClient(context, fillExtended)
+        return ctx.Students.Find(element.Entity.Id)?.ToClient(ctx, fillExtended)
             ?? throw new Exception("Nepodařilo se přidat do databáze");
     }
 
     private async Task studentDeleteIntern(int Id)
     {
-        var entityToDelete = context.Students.Find(Id);
+        await using var ctx = _factory.CreateDbContext();
+        var entityToDelete = ctx.Students.Find(Id);
         if (entityToDelete != null)
         {
-            context.Students.Remove(entityToDelete);
-            await context.SaveChangesAsync();
+            ctx.Students.Remove(entityToDelete);
+            await ctx.SaveChangesAsync();
         }
         else
         {
@@ -109,9 +119,10 @@ public class ServerAdminService(TpvVyberContext context) : IAdminService
 
     private async Task studentUpdateIntern(StudentCln item)
     {
-        var entityToUpdate = Student.ToServer(item, context);
-        context.Students.Update(entityToUpdate);
-        await context.SaveChangesAsync();
+        await using var ctx = _factory.CreateDbContext();
+        var entityToUpdate = Student.ToServer(item, ctx);
+        ctx.Students.Update(entityToUpdate);
+        await ctx.SaveChangesAsync();
     }
 
     public Task<StudentCln> AddStudentAsync(
@@ -132,27 +143,30 @@ public class ServerAdminService(TpvVyberContext context) : IAdminService
         return studentUpdateIntern(item);
     }
 
-    public Task<StudentCln?> GetStudentByIdAsync(int id, FillStudentExtended? fillExtended = null)
-    {
-        var student = context.Students.Find(id);
-        if (student == null)
-        {
-            return Task.FromResult<StudentCln?>(null);
-        }
-        return Task.FromResult<StudentCln?>(student.ToClient(context, fillExtended));
-    }
-
-    public Task<IEnumerable<StudentCln>> GetAllStudentsAsync(
+    public async Task<StudentCln?> GetStudentByIdAsync(
+        int id,
         FillStudentExtended? fillExtended = null
     )
     {
-        return Task.FromResult<IEnumerable<StudentCln>>(
-            context
-                .Students.Include(s => s.OrderCourses)
-                    .ThenInclude(oc => oc.Course)
-                .AsEnumerable()
-                .Select((student) => student.ToClient(context, fillExtended))
-        );
+        await using var ctx = _factory.CreateDbContext();
+        var student = ctx.Students.Find(id);
+        if (student == null)
+        {
+            return null;
+        }
+        return student.ToClient(ctx, fillExtended);
+    }
+
+    public async Task<IEnumerable<StudentCln>> GetAllStudentsAsync(
+        FillStudentExtended? fillExtended = null
+    )
+    {
+        await using var ctx = _factory.CreateDbContext();
+        return ctx
+            .Students.Include(s => s.OrderCourses)
+                .ThenInclude(oc => oc.Course)
+            .AsEnumerable()
+            .Select((student) => student.ToClient(ctx, fillExtended)).ToList();
     }
     #endregion
     #region OrderCourses
@@ -161,21 +175,23 @@ public class ServerAdminService(TpvVyberContext context) : IAdminService
         FillOrderCourseExtended? fillExtended = null
     )
     {
-        var newEntity = OrderCourse.ToServer(item, context, createNew: true);
-        var element = await context.OrderCourses.AddAsync(newEntity);
-        await context.SaveChangesAsync();
+        await using var ctx = _factory.CreateDbContext();
+        var newEntity = OrderCourse.ToServer(item, ctx, createNew: true);
+        var element = await ctx.OrderCourses.AddAsync(newEntity);
+        await ctx.SaveChangesAsync();
 
-        return context.OrderCourses.Find(element.Entity.Id)?.ToClient(context, fillExtended)
+        return ctx.OrderCourses.Find(element.Entity.Id)?.ToClient(ctx, fillExtended)
             ?? throw new Exception("Nepodařilo se přidat do databáze");
     }
 
     private async Task orderCourseDeleteIntern(int Id)
     {
-        var entityToDelete = context.OrderCourses.Find(Id);
+        await using var ctx = _factory.CreateDbContext();
+        var entityToDelete = ctx.OrderCourses.Find(Id);
         if (entityToDelete != null)
         {
-            context.OrderCourses.Remove(entityToDelete);
-            await context.SaveChangesAsync();
+            ctx.OrderCourses.Remove(entityToDelete);
+            await ctx.SaveChangesAsync();
         }
         else
         {
@@ -185,9 +201,10 @@ public class ServerAdminService(TpvVyberContext context) : IAdminService
 
     private async Task orderCourseUpdateIntern(OrderCourseCln item)
     {
-        var entityToUpdate = OrderCourse.ToServer(item, context);
-        context.OrderCourses.Update(entityToUpdate);
-        await context.SaveChangesAsync();
+        await using var ctx = _factory.CreateDbContext();
+        var entityToUpdate = OrderCourse.ToServer(item, ctx);
+        ctx.OrderCourses.Update(entityToUpdate);
+        await ctx.SaveChangesAsync();
     }
 
     public Task<OrderCourseCln> AddOrderCourseAsync(
@@ -208,30 +225,29 @@ public class ServerAdminService(TpvVyberContext context) : IAdminService
         return orderCourseUpdateIntern(item);
     }
 
-    public Task<OrderCourseCln?> GetOrderCourseByIdAsync(
+    public async Task<OrderCourseCln?> GetOrderCourseByIdAsync(
         int id,
         FillOrderCourseExtended? fillExtended = null
     )
     {
-        var orderCourse = context.OrderCourses.Find(id);
+        await using var ctx = _factory.CreateDbContext();
+        var orderCourse = ctx.OrderCourses.Find(id);
         if (orderCourse == null)
         {
-            return Task.FromResult<OrderCourseCln?>(null);
+            return null;
         }
-        return Task.FromResult<OrderCourseCln?>(orderCourse.ToClient(context, fillExtended));
+        return orderCourse.ToClient(ctx, fillExtended);
     }
 
-    public Task<IEnumerable<OrderCourseCln>> GetAllOrderCourseAsync(
+    public async Task<IEnumerable<OrderCourseCln>> GetAllOrderCourseAsync(
         FillOrderCourseExtended? fillExtended = null
     )
     {
-        return Task.FromResult<IEnumerable<OrderCourseCln>>(
-            context
-                .OrderCourses.Include(oc => oc.Course)
-                .Include(oc => oc.Student)
-                .Select((orderCourse) => orderCourse.ToClient(context, fillExtended))
-                .AsEnumerable()
-        );
+        await using var ctx = _factory.CreateDbContext();
+        return ctx
+            .OrderCourses.Include(oc => oc.Course)
+            .Include(oc => oc.Student)
+            .Select((orderCourse) => orderCourse.ToClient(ctx, fillExtended)).ToList();
     }
     #endregion
 }
