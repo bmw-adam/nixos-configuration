@@ -111,7 +111,7 @@ public static class Auth
 
                     // Email
                     var emailScope = "email";
-                    var superUser = "baborka@gasos-ro.cz";
+                    var superUser = "baboraka@gasos-ro.cz";
                     options.Scope.Add(emailScope);
 
                     options.TokenValidationParameters.NameClaimType = "name";

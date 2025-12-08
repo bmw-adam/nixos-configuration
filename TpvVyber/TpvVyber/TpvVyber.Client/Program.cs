@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using TpvVyber.Client.Services;
 using TpvVyber.Client.Services.Admin;
-// using TpvVyber.Client.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
