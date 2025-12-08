@@ -14,49 +14,6 @@
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        nswagConsoleTool = pkgs.stdenv.mkDerivation {
-          pname = " NSwag.ConsoleCore";
-          version = "14.6.3";
-
-          src = pkgs.fetchurl {
-            url = "https://www.nuget.org/api/v2/package/NSwag.ConsoleCore/14.6.3";
-            sha256 = "sha256-4oGTSG3/uwPprJSb+WGX2WtXEsKKLbSiBQ1GMnEJRcM=";
-          };
-
-          unpackPhase = ''
-            mkdir source
-            unzip $src -d source
-          '';
-
-          installPhase = ''
-            mkdir -p $out/lib
-            mkdir -p $out/bin
-
-            # Extract prebuilt DLL content
-            cp -r source/tools/net9.0/any/* $out/lib/
-
-            # Create launcher script
-            cat > $out/bin/nswag <<EOF
-            #!${pkgs.bash}/bin/bash
-            exec ${pkgs.dotnetCorePackages.dotnet_9.sdk}/bin/dotnet $out/lib/dotnet-nswag.dll "\$@"
-            EOF
-
-            chmod +x $out/bin/nswag
-          '';
-
-          nativeBuildInputs = [
-            pkgs.unzip
-            pkgs.bash
-            pkgs.dotnetCorePackages.dotnet_9.sdk
-          ];
-
-          meta = {
-            homepage = "https://github.com/blazorlore/blazor-formatter#readme";
-            license = pkgs.lib.licenses.mit;
-            platforms = pkgs.lib.platforms.linux;
-          };
-        };
-
         # --- Overlay Definition ---
         dotnetWasmOverlay = final: prev: {
           dotnet-sdk-wasm = prev.dotnetCorePackages.combinePackages [
@@ -120,8 +77,8 @@
           projectFile = "TpvVyber.Client.csproj";
           nugetDeps = ./TpvVyber/TpvVyber.Client/deps.client.json;
 
-          nativeBuildInputs = [ pkgs.wasm-tools nswagConsoleTool ];
-          buildInputs = [ pkgs.wasm-tools nswagConsoleTool ];
+          nativeBuildInputs = [ pkgs.wasm-tools ];
+          buildInputs = [ pkgs.wasm-tools ];
 
           # Disable the workload resolver so Nix's preinstalled workloads are used
           dotnetBuildFlags = [
@@ -167,7 +124,7 @@
           pname = "TpvVyber";
           version = "0.1.0";
 
-          buildInputs = [ nswagConsoleTool];
+          buildInputs = [ ];
 
           src = ./TpvVyber;
           projectFile = "TpvVyber/TpvVyber.csproj";
@@ -230,7 +187,6 @@
             pkgs.dotnet-sdk-wasm
             pkgs.nuget-to-json
             genDeps
-            nswagConsoleTool
           ];
           shellHook = ''
             export DOTNET_ROOT=${pkgs.dotnet-sdk-wasm}

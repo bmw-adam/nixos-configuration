@@ -1,11 +1,6 @@
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using TpvVyber.Classes;
+using Microsoft.AspNetCore.Authorization;
 using TpvVyber.Client.Classes;
 using TpvVyber.Client.Services.Admin;
-using TpvVyber.Data;
 
 namespace TpvVyber.Endpoints.Admin;
 
@@ -14,11 +9,22 @@ public static class CoursesAdminEndpoints
     public static void MapAdminEndpoints(this WebApplication app)
     {
         var baseAdminPath = "api/admin";
-        app.MapGet($"{baseAdminPath}/courses/get_all", HandlerGetAllCourses);
-        app.MapGet($"{baseAdminPath}/courses/get_by_id", HandlerGetCourseById);
-        app.MapPost($"{baseAdminPath}/courses/add", HandlerAddCourse);
-        app.MapDelete($"{baseAdminPath}/courses/delete/{{id}}", HandlerDeleteCourse);
-        app.MapPut($"{baseAdminPath}/courses/update", HandlerUpdateCourse);
+
+        // Create a group for "api/admin/courses" and apply the Admin role requirement
+        var coursesGroup = app.MapGroup($"{baseAdminPath}/courses")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" });
+
+        // Define endpoints relative to the group path
+        // e.g., this becomes "api/admin/courses/get_all"
+        coursesGroup.MapGet("get_all", HandlerGetAllCourses);
+
+        coursesGroup.MapGet("get_by_id", HandlerGetCourseById);
+
+        coursesGroup.MapPost("add", HandlerAddCourse);
+
+        coursesGroup.MapDelete("delete/{id}", HandlerDeleteCourse);
+
+        coursesGroup.MapPut("update", HandlerUpdateCourse);
     }
 
     private static async Task<IResult> HandlerGetAllCourses(

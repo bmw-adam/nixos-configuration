@@ -1,9 +1,7 @@
-using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using System.Text.Json;
-using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor.Services;
 using Serilog;
 using TpvVyber.Client.Classes.Client;
@@ -15,133 +13,12 @@ using TpvVyber.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHttpClient();
+// builder.Services.AddHttpClient();
 
 builder.ConfigureTls();
 builder.AddLoggingService();
 builder.AddDatabaseService();
-
-#region Auth
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddBlazoredLocalStorage();
-
-builder.Services.AddCors(policy =>
-{
-    policy.AddPolicy("CorsPolicy", opt => opt.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
-});
-
-var clientPath = builder.Configuration["OAUTH_CLIENT"];
-if (string.IsNullOrEmpty(clientPath))
-{
-    throw new Exception("OAUTH_CLIENT is not set");
-}
-var client = System.IO.File.ReadAllText(clientPath).Trim();
-if (string.IsNullOrEmpty(client))
-{
-    throw new Exception("OAUTH_CLIENT is empty");
-}
-
-Client? decodedClient = null;
-
-try
-{
-    decodedClient = JsonSerializer.Deserialize<Client>(client);
-}
-catch (Exception ex)
-{
-    throw new Exception("OAUTH_CLIENT is not valid", ex);
-}
-
-if (
-    decodedClient == null
-    || string.IsNullOrEmpty(decodedClient.ClientId)
-    || string.IsNullOrEmpty(decodedClient.Secret)
-)
-{
-    throw new Exception("OAUTH_CLIENT is missing required fields");
-}
-
-// builder
-//     .Services.AddAuthentication(options =>
-//     {
-//         options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-//         options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-//     })
-//     .AddCookie()
-//     .AddOpenIdConnect(
-//         "Keycloak",
-//         options =>
-//         {
-//             options.Authority = "https://sso.gasos.cz/realms/ucs";
-//             options.ClientId = decodedClient.ClientId;
-//             options.ClientSecret = decodedClient.Secret;
-//             options.ResponseType = "code";
-//             options.SaveTokens = true;
-//         }
-//     );
-// builder.Services.AddScoped<
-//     AuthenticationStateProvider,
-//     PersistingRevalidatingAuthenticationStateProvider
-// >();
-// builder
-//     .Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-//     .AddCookie();
-
-builder.Services.AddCascadingAuthenticationState();
-
-builder
-    .Services.AddAuthentication(options =>
-    {
-        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = "Keycloak";
-    })
-    .AddCookie()
-    .AddOAuth(
-        "Keycloak",
-        options =>
-        {
-            options.ClientId = decodedClient.ClientId;
-            options.ClientSecret = decodedClient.Secret;
-
-            options.CallbackPath = "/auth/callback";
-            options.AuthorizationEndpoint =
-                "https://sso.gasos.cz/realms/ucs/protocol/openid-connect/auth";
-            options.TokenEndpoint = "https://sso.gasos.cz/realms/ucs/protocol/openid-connect/token";
-            options.UserInformationEndpoint =
-                "https://sso.gasos.cz/realms/ucs/protocol/openid-connect/userinfo";
-
-            options.SaveTokens = true;
-
-            options.Scope.Clear();
-            options.Scope.Add("openid");
-            options.Scope.Add("profile");
-
-            options.ClaimActions.MapJsonKey(ClaimTypes.Name, "preferred_username");
-
-            options.Events.OnCreatingTicket = async ctx =>
-            {
-                var request = new HttpRequestMessage(
-                    HttpMethod.Get,
-                    ctx.Options.UserInformationEndpoint
-                );
-                request.Headers.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue(
-                        "Bearer",
-                        ctx.AccessToken
-                    );
-
-                var response = await ctx.Backchannel.SendAsync(request);
-                response.EnsureSuccessStatusCode();
-
-                var json = await response.Content.ReadAsStringAsync();
-                var user = System.Text.Json.JsonDocument.Parse(json);
-
-                ctx.RunClaimActions(user.RootElement);
-            };
-        }
-    );
-
-#endregion
+builder.AddAuthService();
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
@@ -150,7 +27,9 @@ builder.Services.AddMudServices();
 builder
     .Services.AddRazorComponents()
     .AddInteractiveServerComponents()
-    .AddInteractiveWebAssemblyComponents();
+    .AddInteractiveWebAssemblyComponents()
+    .AddAuthenticationStateSerialization(options => options.SerializeAllClaims = true);
+;
 
 builder.Services.AddRazorPages();
 
@@ -161,6 +40,19 @@ builder.Services.AddAntiforgery();
 builder.Services.AddScoped<IAdminService, ServerAdminService>();
 
 var app = builder.Build();
+
+app.Use(
+    (context, next) =>
+    {
+        // Force the app to believe it is running on HTTPS.
+        // This allows Secure cookies to be read even if the proxy sends "http"
+        context.Request.Scheme = "https";
+        return next();
+    }
+);
+app.UseForwardedHeaders();
+
+app.UseBlazorFrameworkFiles();
 
 app.UseSerilogRequestLogging();
 
@@ -181,7 +73,6 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 // app.MapStaticAssets();
-app.UseBlazorFrameworkFiles();
 
 app.UseRouting();
 
@@ -194,47 +85,10 @@ app.MapRazorComponents<App>()
 
 app.MapRazorPages();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<TpvVyberContext>();
-    var maxWaitTime = TimeSpan.FromMinutes(5); // maximum total wait
-    var delay = TimeSpan.FromSeconds(15); // wait between retries
-    var startTime = DateTime.UtcNow;
-    var migrationApplied = false;
+await app.UseDatabaseService();
 
-    while (!migrationApplied && DateTime.UtcNow - startTime < maxWaitTime)
-    {
-        try
-        {
-            db.Database.EnsureCreated();
-            await db.SaveChangesAsync();
-            db.Database.Migrate();
-            await db.SaveChangesAsync();
-
-            migrationApplied = true;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Database not ready yet: {ex.Message}. Retrying in {delay.TotalSeconds}s..."
-            );
-            Thread.Sleep(delay);
-        }
-    }
-
-    if (!migrationApplied)
-    {
-        throw new Exception(
-            "Failed to connect to the database and apply migrations within the timeout."
-        );
-    }
-    else
-    {
-        Console.WriteLine("Database migrations applied successfully.");
-    }
-}
-
-// Use authentication & authorization middleware
+// Minimal login endpoint
+app.UseLoginService();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -244,26 +98,6 @@ app.MapControllers();
 CoursesAdminEndpoints.MapAdminEndpoints(app);
 StudentsAdminEndpoints.MapAdminEndpoints(app);
 OrderCourseAdminEndpoints.MapAdminEndpoints(app);
-
-app.MapGet(
-    "/signin-oauth",
-    async context =>
-    {
-        await context.ChallengeAsync(
-            "Keycloak",
-            new AuthenticationProperties { RedirectUri = "/counter" }
-        );
-    }
-);
-
-app.MapGet(
-    "/auth/logout",
-    async context =>
-    {
-        await context.SignOutAsync();
-        context.Response.Redirect("/");
-    }
-);
 
 Console.WriteLine("Running.");
 

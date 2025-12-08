@@ -166,18 +166,33 @@ in
     images = [
       (pkgs.dockerTools.buildLayeredImage {
         name = "tpvsel";
-        contents = [ tpvsel.packages.${pkgs.system}.default pkgs.bash pkgs.findutils pkgs.coreutils pkgs.gnugrep ];
+        contents = [
+          tpvsel.packages.${pkgs.system}.default
+          pkgs.bash
+          pkgs.findutils
+          pkgs.coreutils
+          pkgs.gnugrep
+          pkgs.tzdata
+        ];
         tag = "latest";
-        
+
         # extraCommands = ''
-        #   find / | grep tpvsel
+        #   # Set the timezone to Europe/Prague
+        #   echo "Europe/Berlin" > /etc/timezone
+
+        #   # Optional: set TZ environment variable for applications
+        #   echo 'export TZ=Europe/Berlin' >> /etc/profile
         # '';
+
         config = {
           Cmd = [ "$TPVSEL_PATH" ];
+          
+          EntryPoint = ["${pkgs.coreutils}/bin/date"];
+          Env = ["TZDIR=${pkgs.tzdata}/share/zoneinfo"];
 
           ExposedPorts = {
-            "1234/tcp" = { };
-            "1235/tcp" = { };
+            "1234/tcp" = {};
+            "1235/tcp" = {};
           };
         };
       })

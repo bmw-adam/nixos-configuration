@@ -14,14 +14,15 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.Services.AddMudServices();
 builder.Services.AddBlazoredLocalStorage();
 
+builder.Services.AddAuthorizationCore();
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddAuthenticationStateDeserialization();
+
 builder.Services.AddScoped(sp => new HttpClient()
 {
     BaseAddress = new Uri(sp.GetRequiredService<NavigationManager>().BaseUri),
 });
 
-builder.Services.AddAuthorizationCore();
-builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddSingleton<AuthenticationStateProvider, PersistentAuthenticationStateProvider>();
 builder.Services.AddScoped<IAdminService, ClientAdminService>();
 
 await builder.Build().RunAsync();

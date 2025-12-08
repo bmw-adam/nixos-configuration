@@ -1,4 +1,6 @@
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using TpvVyber.Classes;
 using TpvVyber.Client.Classes;
@@ -84,7 +86,8 @@ public class ServerAdminService(IDbContextFactory<TpvVyberContext> _factory) : I
         return ctx
             .Courses.Include(r => r.OrderCourses)
                 .ThenInclude(oc => oc.Student)
-            .Select((course) => course.ToClient(ctx, fillExtended)).ToList();
+            .Select((course) => course.ToClient(ctx, fillExtended))
+            .ToList();
     }
     #endregion
     #region Students
@@ -166,7 +169,8 @@ public class ServerAdminService(IDbContextFactory<TpvVyberContext> _factory) : I
             .Students.Include(s => s.OrderCourses)
                 .ThenInclude(oc => oc.Course)
             .AsEnumerable()
-            .Select((student) => student.ToClient(ctx, fillExtended)).ToList();
+            .Select((student) => student.ToClient(ctx, fillExtended))
+            .ToList();
     }
     #endregion
     #region OrderCourses
@@ -247,7 +251,8 @@ public class ServerAdminService(IDbContextFactory<TpvVyberContext> _factory) : I
         return ctx
             .OrderCourses.Include(oc => oc.Course)
             .Include(oc => oc.Student)
-            .Select((orderCourse) => orderCourse.ToClient(ctx, fillExtended)).ToList();
+            .Select((orderCourse) => orderCourse.ToClient(ctx, fillExtended))
+            .ToList();
     }
     #endregion
 }

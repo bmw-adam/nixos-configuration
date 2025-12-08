@@ -6,7 +6,22 @@
 
 <Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
     <Authorized>
-        @context.User.Identity?.Name
+        @if (context.User.Identity?.IsAuthenticated ?? false)
+        {
+            <p>User: @context.User.Identity.Name</p>
+
+            <p>claims:</p>
+            <ul>
+                @foreach (var roleClaim in context.User.Claims)
+                {
+                    <li>@roleClaim.Type - @roleClaim.Value</li>
+                }
+            </ul>
+        }
+        else
+        {
+            <MudText>User is not authenticated.</MudText>
+        }
     </Authorized>
     <NotAuthorized>
         <MudText>Not logged in</MudText>

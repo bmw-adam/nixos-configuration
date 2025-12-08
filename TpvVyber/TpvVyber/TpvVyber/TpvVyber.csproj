@@ -7,6 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Keycloak.AuthServices.Authentication" Version="2.7.0" />
+    <PackageReference Include="Keycloak.AuthServices.Authorization" Version="2.7.0" />
+    <PackageReference Include="Keycloak.AuthServices.Sdk" Version="2.7.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.3.0" />
     <ProjectReference Include="..\TpvVyber.Client\TpvVyber.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.*" />

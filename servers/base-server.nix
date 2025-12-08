@@ -328,14 +328,14 @@ in
     allowPing = true;
   };
 
-
   #Nginx reverse proxy for backend
   security.acme = {
     acceptTerms = true;
     defaults.email = "baboraka@gasos-ro.cz";
+    defaults.server = "https://acme-staging-v02.api.letsencrypt.org/directory";
   };
 
-services.nginx = {
+  services.nginx = {
     enable = true;
     recommendedProxySettings = true;
     recommendedTlsSettings = true;
@@ -343,12 +343,25 @@ services.nginx = {
     virtualHosts."tpvselect.gasos.cz" = {
       enableACME = true;
       forceSSL = true;
+      extraConfig = ''
+        # Large client headers (cookies, JWTs, etc.)
+        large_client_header_buffers 16 64k;
+      '';
+
       locations."/" = {
         # This points to the NodePort we defined above
-        proxyPass = "http://127.0.0.1:31895"; 
-        
+        proxyPass = "http://127.0.0.1:31895";
+
         # Websocket support (needed for Blazor/ASP.NET usually)
-        proxyWebsockets = true; 
+        proxyWebsockets = true;
+
+        # Increase buffer sizes for large OIDC headers
+        extraConfig = ''
+          # Upstream response buffers
+          proxy_buffer_size       256k;
+          proxy_buffers           8 512k;
+          proxy_busy_buffers_size 512k;
+        '';
       };
     };
   };

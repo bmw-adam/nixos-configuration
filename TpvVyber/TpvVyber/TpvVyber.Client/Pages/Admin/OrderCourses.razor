@@ -1,5 +1,5 @@
 @page "/admin/ordercourses"
-@using TpvVyber.Client.Classes
+@attribute [Authorize(Roles = "Admin")]
 @inject NavigationManager NavigationManager
 @inject PersistentComponentState ApplicationState
 @inject IAdminService AdminService

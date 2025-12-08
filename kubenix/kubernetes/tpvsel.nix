@@ -36,7 +36,8 @@
                 ];
                 # ... (Env vars kept exactly as they were) ...
                 env = [
-                  { name = "OAUTH_CLIENT"; value = "/k3sdata/secrets/oauthClient"; }
+                  { name = "TZ"; value = "Europe/Berlin"; }
+                  { name = "OIDC_SECRET"; value = "/k3sdata/secrets/oIdcSecret"; }
                   { name = "OTEL_EXPORTER_OTLP_ENDPOINT"; value = "https://otlp-gateway-prod-eu-west-2.grafana.net/otlp"; }
                   { name = "GRAFANA_OTEL_HEADERS_PATH"; value = "/k3sdata/secrets/grafanaOtelHeaders"; }
                   { name = "ASPNETCORE_ENVIRONMENT"; value = "Development"; }
@@ -52,11 +53,13 @@
 
                 volumeMounts = [
                   { name = "k3sdata"; mountPath = "/k3sdata"; }
+                  { name = "localtime"; mountPath = "/etc/localtime"; readOnly = true; }
                 ];
               }
             ];
             volumes = [
               { name = "k3sdata"; hostPath = { path = "/k3sdata"; type = "Directory"; }; }
+              { name = "localtime"; hostPath = { path = "/etc/localtime"; type = "File"; }; }
             ];
           };
         };

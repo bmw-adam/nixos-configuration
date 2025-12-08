@@ -1,9 +1,10 @@
-@page "/login"
+@page "/login2"
 @inject NavigationManager nav
 
 @code {
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        nav.NavigateTo("signin-oauth");
+        await Task.Yield(); 
+        nav.NavigateTo("/login", true);
     }
 }

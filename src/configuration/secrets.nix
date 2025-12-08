@@ -2,7 +2,7 @@
 let
   defaultPasswordPath = config.sops.secrets.password.path;
   kubeTokenPath = config.sops.secrets."kubernetes/token".path;
-  oauthClientPath = config.sops.secrets.oauthClient.path;
+  oIdcSecretPath = config.sops.secrets.oIdcSecret.path;
   grafanaTokenPath = config.sops.secrets.grafanaToken.path;
   grafanaOtelHeadersPath = config.sops.secrets.grafanaOtelHeaders.path;
   pfxKeyPath = config.sops.secrets.pfxKey.path;
@@ -21,7 +21,7 @@ in
     secrets = {
       password = { neededForUsers = true; };
       "kubernetes/token"  = {};
-      oauthClient = {};
+      oIdcSecret = {};
       grafanaToken = {};
       grafanaOtelHeaders = {};
       pfxKey = {};
@@ -169,7 +169,6 @@ in
   environment.variables = {
     DEFAULT_PASSWORD_PATH = defaultPasswordPath;
     KUBE_TOKEN_PATH = kubeTokenPath;
-    OAUTH_CLIENT = oauthClientPath;
     GRAFANA_TOKEN_PATH = grafanaTokenPath;
     GRAFANA_OTEL_HEADERS_PATH = grafanaOtelHeadersPath;
     PFX_KEY = pfxKeyPath;
@@ -179,5 +178,6 @@ in
     YUGABYTE_SERVER_CRT = yugabyteServerCrtPath;
     YUGABYTE_SERVER_KEY = yugabyteServerKeyPath;
     YUGABYTE_CLIENT_CRT = yugabyteClientCrtPath;
+    OIDC_SECRET = oIdcSecretPath;
   };
 }
