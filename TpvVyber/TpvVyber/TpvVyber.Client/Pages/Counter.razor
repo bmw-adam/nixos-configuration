@@ -4,7 +4,7 @@
 
 <MudText Typo="Typo.h3" GutterBottom="true">Counter</MudText>
 
-<Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
+<AuthorizeView>
     <Authorized>
         @if (context.User.Identity?.IsAuthenticated ?? false)
         {
@@ -26,7 +26,7 @@
     <NotAuthorized>
         <MudText>Not logged in</MudText>
     </NotAuthorized>
-</Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
+</AuthorizeView>
 
 @if (_group != null)
 {

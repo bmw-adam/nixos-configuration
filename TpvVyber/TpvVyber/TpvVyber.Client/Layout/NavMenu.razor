@@ -1,5 +1,14 @@
 ﻿
 <MudNavMenu>
+    <AuthorizeView>
+        <Authorized>
+            <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">@context.User.Identity?.Name</MudText>
+            <MudDivider Class="my-2"/>
+        </Authorized>
+        <NotAuthorized>
+            <MudLink Href="login">Přihlásit se</MudLink>
+        </NotAuthorized>
+    </AuthorizeView>
     <MudText Typo="Typo.h6" Class="px-4">Tpv Výběr</MudText>
     <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Uživatel</MudText>
     <MudDivider Class="my-2"/>
@@ -8,12 +17,14 @@
     <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
     <MudNavLink Href="login" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Login">Login</MudNavLink>
     
-    <MudNavGroup Title="Admin" Expanded="true">
-        <MudNavLink Match="NavLinkMatch.All" Href="/admin">Admin</MudNavLink>
-        <MudNavLink Match="NavLinkMatch.All" Href="/admin/courses">Kurzy</MudNavLink>
-        <MudNavLink Match="NavLinkMatch.All" Href="/admin/students">Žáci</MudNavLink>
-        <MudNavLink Match="NavLinkMatch.All" Href="/admin/ordercourses">Pořadí kurzů</MudNavLink>
-    </MudNavGroup>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <MudNavGroup Title="Admin" Expanded="true">
+                <MudNavLink Match="NavLinkMatch.All" Href="/admin">Admin</MudNavLink>
+                <MudNavLink Match="NavLinkMatch.All" Href="/admin/courses">Kurzy</MudNavLink>
+                <MudNavLink Match="NavLinkMatch.All" Href="/admin/students">Žáci</MudNavLink>
+                <MudNavLink Match="NavLinkMatch.All" Href="/admin/ordercourses">Pořadí kurzů</MudNavLink>
+            </MudNavGroup>
+        </Authorized>
+    </AuthorizeView>
 </MudNavMenu>
-
-
