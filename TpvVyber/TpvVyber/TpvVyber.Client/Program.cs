@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using TpvVyber.Client.Services;
 using TpvVyber.Client.Services.Admin;
+using TpvVyber.Client.Services.Select;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -23,5 +24,7 @@ builder.Services.AddScoped(sp => new HttpClient()
 });
 
 builder.Services.AddScoped<IAdminService, ClientAdminService>();
+builder.Services.AddScoped<ISelectService, ClientSelectService>();
+builder.Services.AddBlazorBootstrap();
 
 await builder.Build().RunAsync();

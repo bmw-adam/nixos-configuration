@@ -1,0 +1,53 @@
+using Microsoft.AspNetCore.Authorization;
+using TpvVyber.Client.Classes;
+using TpvVyber.Client.Services.Select;
+
+namespace TpvVyber.Endpoints.Select;
+
+public static class SelectEndpoints
+{
+    public static void MapSelectEndpoints(this WebApplication app)
+    {
+        var baseAdminPath = "api/select";
+
+        // Create a group
+        var selectGroup = app.MapGroup($"{baseAdminPath}").RequireAuthorization();
+
+        // Define endpoints relative to the group path
+        selectGroup.MapGet("get_sorted_courses", HandlerGetAllCourses);
+
+        selectGroup.MapPut("update_order", HandlerUpdateCourse);
+    }
+
+    private static async Task<IResult> HandlerGetAllCourses(
+        ISelectService selectService,
+        FillCourseExtended? fillExtended
+    )
+    {
+        try
+        {
+            var result = await selectService.GetSortedCoursesAsync(fillExtended);
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+
+    private static async Task<IResult> HandlerUpdateCourse(
+        ISelectService selectService,
+        Dictionary<int, CourseCln> updateItems
+    )
+    {
+        try
+        {
+            await selectService.UpdateOrderAsync(updateItems);
+            return Results.Ok();
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+}

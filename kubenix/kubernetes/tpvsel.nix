@@ -44,6 +44,7 @@
                   { name = "TLS_PFX_KEY"; value = "/k3sdata/secrets/pfxKey"; }
                   { name = "TLS_PFX_FILE"; value = "/k3sdata/secrets/pfxFile"; }
                   { name = "YSQL_PASSWORD"; value = "/k3sdata/secrets/ysqlPassword"; }
+                  { name = "RUNNING_LOCALLY"; value = "false"; }
                 ];
 
                 ports = [

@@ -1,14 +1,17 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json;
+using BlazorBootstrap;
 using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor.Services;
 using Serilog;
 using TpvVyber.Client.Classes.Client;
 using TpvVyber.Client.Services.Admin;
+using TpvVyber.Client.Services.Select;
 using TpvVyber.Components;
 using TpvVyber.Data;
 using TpvVyber.Endpoints.Admin;
+using TpvVyber.Endpoints.Select;
 using TpvVyber.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,7 +41,9 @@ builder.Services.AddControllers();
 builder.Services.AddAntiforgery();
 
 builder.Services.AddScoped<IAdminService, ServerAdminService>();
+builder.Services.AddScoped<ISelectService, ServerSelectService>();
 
+builder.Services.AddBlazorBootstrap();
 var app = builder.Build();
 
 app.Use(
@@ -98,6 +103,9 @@ app.MapControllers();
 CoursesAdminEndpoints.MapAdminEndpoints(app);
 StudentsAdminEndpoints.MapAdminEndpoints(app);
 OrderCourseAdminEndpoints.MapAdminEndpoints(app);
+
+// Select
+SelectEndpoints.MapSelectEndpoints(app);
 
 Console.WriteLine("Running.");
 

@@ -1,13 +1,13 @@
 [
   {
+    "pname": "Blazor.Bootstrap",
+    "version": "3.5.0",
+    "hash": "sha256-x6a8MYjU2wZappYZzAKg9BKpTe+TZy2U/ToBGTWKNMM="
+  },
+  {
     "pname": "Blazored.LocalStorage",
     "version": "4.5.0",
     "hash": "sha256-0vklTFHEGgNG8V6ivQictuooyiXS2nMn/qLpfYhEBlE="
-  },
-  {
-    "pname": "BlazorSortableList",
-    "version": "2.1.0",
-    "hash": "sha256-gWf4ct0bO2hW1xB7ZCmWMJ2IkXKGPpGsYisGlTTyh2s="
   },
   {
     "pname": "Fluid.Core",
@@ -76,11 +76,6 @@
   },
   {
     "pname": "Microsoft.AspNetCore.Authentication.JwtBearer",
-    "version": "10.0.0",
-    "hash": "sha256-VJREi/phDmn2toJiTvyFbUO0qXG/Ef4QtbeVHLNJNw0="
-  },
-  {
-    "pname": "Microsoft.AspNetCore.Authentication.JwtBearer",
     "version": "8.0.19",
     "hash": "sha256-JrgqTvwJn5jIikTjRUQiP+Hc1Lab/mI+NyThjQA6pb0="
   },
@@ -116,8 +111,8 @@
   },
   {
     "pname": "Microsoft.AspNetCore.Components",
-    "version": "8.0.2",
-    "hash": "sha256-ZGV0pf7dzGoGFQBkzy2QZimEOkqLa6Y3NBPYnCPDdCM="
+    "version": "9.0.0",
+    "hash": "sha256-YaheShFj+gha0i2nLX0QSJuVezIWzGiJZYPI/gr2sWU="
   },
   {
     "pname": "Microsoft.AspNetCore.Components",
@@ -151,8 +146,8 @@
   },
   {
     "pname": "Microsoft.AspNetCore.Components.Forms",
-    "version": "8.0.2",
-    "hash": "sha256-a/sTllU+A9C/BnbgGLM3jMfdzFdcEbykjQZgO0Mlgoo="
+    "version": "9.0.0",
+    "hash": "sha256-btRZROZBe6OzBfHLJ01SuCTb2FvE35UMmf5sFgUBMZE="
   },
   {
     "pname": "Microsoft.AspNetCore.Components.Forms",
@@ -166,8 +161,8 @@
   },
   {
     "pname": "Microsoft.AspNetCore.Components.Web",
-    "version": "8.0.2",
-    "hash": "sha256-YxnNogc5bJWLQpouKEqYjXgVAR7A1Lfy0TOPGWdLljs="
+    "version": "9.0.0",
+    "hash": "sha256-0qkkWqGsWrOaPxxwUXzzwjjDRdJSe9MV3O2mS7psx/E="
   },
   {
     "pname": "Microsoft.AspNetCore.Components.Web",
@@ -358,6 +353,11 @@
     "pname": "Microsoft.Extensions.DependencyInjection",
     "version": "8.0.0",
     "hash": "sha256-+qIDR8hRzreCHNEDtUcPfVHQdurzWPo/mqviCH78+EQ="
+  },
+  {
+    "pname": "Microsoft.Extensions.DependencyInjection",
+    "version": "9.0.0",
+    "hash": "sha256-dAH52PPlTLn7X+1aI/7npdrDzMEFPMXRv4isV1a+14k="
   },
   {
     "pname": "Microsoft.Extensions.DependencyInjection",
@@ -651,8 +651,8 @@
   },
   {
     "pname": "Microsoft.JSInterop",
-    "version": "8.0.2",
-    "hash": "sha256-LQ4I3EXR3IeL3z/mz52b69LRdz1MXhKE36XuIESVNnE="
+    "version": "9.0.0",
+    "hash": "sha256-d1Q1piVzRaVMfNf78wGacKjNT5kYG8D1hVreBG/4wfA="
   },
   {
     "pname": "Microsoft.JSInterop",

@@ -23,6 +23,8 @@ public class TpvVyberContext : DbContext
         {
             entity.ToTable("Students");
             entity.HasKey(e => e.Id);
+
+            entity.HasAlternateKey(e => e.Email);
         });
 
         modelBuilder.Entity<Course>(entity =>

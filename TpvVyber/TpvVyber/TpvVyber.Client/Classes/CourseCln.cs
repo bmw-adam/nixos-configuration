@@ -6,6 +6,8 @@ public class CourseCln
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string PdfUrl { get; set; } = string.Empty;
+    public string ForClasses { get; set; } = string.Empty;
+    public decimal Price { get; set; } = 0;
     public CourseClnExtended? Extended { get; set; }
 }
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Hosting;
 
 namespace TpvVyber.Services;
 
@@ -26,19 +27,41 @@ public static class Tls
             throw new Exception("TLS_PFX_FILE is not set");
         }
 
-        builder.WebHost.ConfigureKestrel(options =>
+        var runningLocallyString = builder.Configuration["RUNNING_LOCALLY"];
+        var runningLocally =
+            !string.IsNullOrEmpty(runningLocallyString)
+            && runningLocallyString.ToLower() == true.ToString().ToLower();
+
+        if (runningLocally)
         {
-            options.ListenAnyIP(
-                1234,
-                listenoptions =>
-                {
-                    listenoptions.UseConnectionLogging();
-                }
-            // listenOptions =>
-            // {
-            // listenOptions.UseHttps(pfxFile, pfxKeyPassword);
-            // }
-            );
-        });
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.ListenAnyIP(
+                    1234,
+                    listenoptions =>
+                    {
+                        listenoptions.UseHttps(pfxFile, pfxKeyPassword);
+                        listenoptions.UseConnectionLogging();
+                    }
+                );
+            });
+        }
+        else
+        {
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.ListenAnyIP(
+                    1234,
+                    listenoptions =>
+                    {
+                        listenoptions.UseConnectionLogging();
+                    }
+                // listenOptions =>
+                // {
+                // listenOptions.UseHttps(pfxFile, pfxKeyPassword);
+                // }
+                );
+            });
+        }
     }
 }

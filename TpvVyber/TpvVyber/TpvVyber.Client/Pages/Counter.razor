@@ -1,44 +1,24 @@
 ﻿@page "/counter"
+@using System.Threading.Tasks
+@using System.Runtime.InteropServices
+@inject ISelectService SelectService
+@inject ISnackbar snackbar
 
 <PageTitle>Counter</PageTitle>
 
 <MudText Typo="Typo.h3" GutterBottom="true">Counter</MudText>
 
-<AuthorizeView>
-    <Authorized>
-        @if (context.User.Identity?.IsAuthenticated ?? false)
-        {
-            <p>User: @context.User.Identity.Name</p>
-
-            <p>claims:</p>
-            <ul>
-                @foreach (var roleClaim in context.User.Claims)
-                {
-                    <li>@roleClaim.Type - @roleClaim.Value</li>
-                }
-            </ul>
-        }
-        else
-        {
-            <MudText>User is not authenticated.</MudText>
-        }
-    </Authorized>
-    <NotAuthorized>
-        <MudText>Not logged in</MudText>
-    </NotAuthorized>
-</AuthorizeView>
-
-@if (_group != null)
+@if (SortableCourses != null)
 {
-    <SortableList Id="@ListId" Put="false" GroupModel="@_group" Handle=".drag-handle" Context="item"
-        OnUpdate="@SortList" ForceFallback="false">
-        <SortableItemTemplate>
+    <SortableList TItem="CourseCln" @ref="SortableListRef" Data="SortableCourses" Context="item" AllowSorting
+        OnUpdate="@OnListUpdate">
+        <ItemTemplate>
             <MudStack StretchItems="StretchItems.Middle" Row>
                 <MudIconButton Icon="@Icons.Material.Filled.DragIndicator" class="drag-handle"></MudIconButton>
                 <MudButton EndIcon="@Icons.Material.Filled.Info">@item.Name</MudButton>
                 <MudText>@item.Id</MudText>
             </MudStack>
-        </SortableItemTemplate>
+        </ItemTemplate>
     </SortableList>
 }
 
@@ -49,58 +29,105 @@
 </MudStack>
 
 @code {
-    public List<Item> items = Enumerable.Range(1, 10).Select(i => new Item { Id = i, Name = $"Item {i}" }).ToList();
-
-
-    public class Item
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = "";
-
-        public bool Disabled { get; set; } = false;
-    }
-
-    private const string ListId = "sortable";
-
-    private SingleSortableListGroup<Item>? _group = null;
+    SortableList<CourseCln>? SortableListRef;
+    List<CourseCln>? SortableCourses = null;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-
-        var settings = new SortableListSettings
-        {
-            MultiSelection = false,
-            SwapThreshold = 0.85,
-            FallbackOnBody = true,
-            CssForSelection = "color: red"
-        };
-
-        _group = new(ListId, new SortableListModel<Item>(items)
-        {
-            Settings = settings
-        });
-
+        _ = InitialLoadSort();
     }
-    private void SortList((int oldIndex, int newIndex) indices)
+
+    private async Task InitialLoadSort()
     {
-        Console.WriteLine($"Indicies: adsf");
-        var (oldIndex, newIndex) = indices;
+        var dict = await SelectService.GetSortedCoursesAsync();
+        var lst = dict?.OrderBy(d => d.Key)?.Select(r => r.Value) ?? [];
 
-        var items = this.items;
-        var itemToMove = items[oldIndex];
-        items.RemoveAt(oldIndex);
 
-        if (newIndex < items.Count)
+        if (dict == null || lst == null)
         {
-            items.Insert(newIndex, itemToMove);
-        }
-        else
-        {
-            items.Add(itemToMove);
+            snackbar.Add("Nepodařilo se mi získat data.");
+            return;
         }
 
-        Console.WriteLine($"Indicies: {items.Count}");
+        SortableCourses = lst.ToList();
+
         StateHasChanged();
     }
+
+    private void OnListUpdate(SortableListEventArgs args)
+    {
+        if (SortableCourses == null)
+        {
+            snackbar.Add("Nenačetl jsem data", Severity.Error);
+            return;
+        }
+        Console.WriteLine($"Indicies: {args.OldIndex} -> {args.NewIndex}");
+
+        var itemToMove = SortableCourses[args.OldIndex];
+        SortableCourses.RemoveAt(args.OldIndex);
+
+        if (args.NewIndex < SortableCourses.Count)
+            SortableCourses.Insert(args.NewIndex, itemToMove);
+        else
+            SortableCourses.Add(itemToMove);
+
+        Console.WriteLine($"List: {SortableCourses.Count}");
+        @* _ = AsyncUpdate(); *@
+    }
+
+    private async Task AsyncUpdate()
+    {
+        if (SortableCourses == null)
+        {
+            snackbar.Add("Nenačetl jsem data", Severity.Error);
+            return;
+        }
+
+        await SelectService.UpdateOrderAsync(
+        SortableCourses
+        .Select((course, index) => new { index, course })
+        .ToDictionary(x => x.index, x => x.course)
+        );
+        await InitialLoadSort();
+    }
+
+    /*private async Task SortList((int oldIndex, int newIndex) indices)
+    {
+    var lst = _group?.Model?.Items;
+    if (lst == null || lst.ToList() == null)
+    {
+    snackbar.Add("Nenačetl jsem data", Severity.Error);
+    return;
+    }
+
+    var (oldIndex, newIndex) = indices;
+
+    Console.WriteLine($"Indicies: {oldIndex} -> {newIndex}");
+
+    var itemToMove = lst[oldIndex];
+
+    if (itemToMove == null)
+    {
+    snackbar.Add("Nemohl jsem přeřadit element", Severity.Error);
+    return;
+    }
+
+    var newDict = new Dictionary<decimal, CourseCln>();
+
+    lst.Where(r => r != itemToMove).Select((course, index) => new KeyValuePair<decimal, CourseCln>(index,
+    course)).ToList().ForEach(s => newDict.Add(s.Key, s.Value));
+    newDict.Add(newIndex - (decimal)0.5, itemToMove);
+    @* _group = new(ListId, new SortableListModel<CourseCln>(newDict.OrderBy(a => a.Key).Select(f => f.Value).ToList())
+    {
+    Settings = Settings
+    }); *@
+
+    Console.WriteLine($"List: {lst.Count}");
+
+    await SelectService.UpdateOrderAsync(newDict.Select(s => new KeyValuePair<int, CourseCln>((int)(s.Key * 2),
+    s.Value)).ToDictionary());
+    await InitialLoadSort();
+    @* StateHasChanged(); *@
+    }*/
 }

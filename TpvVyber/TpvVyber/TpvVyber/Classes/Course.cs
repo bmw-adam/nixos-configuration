@@ -12,6 +12,8 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string PdfUrl { get; set; } = string.Empty;
+    public string ForClasses { get; set; } = string.Empty;
+    public decimal Price { get; set; } = 0;
 
     public List<OrderCourse> OrderCourses { get; } = [];
 
@@ -23,6 +25,8 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
             Name = Name,
             Description = Description,
             PdfUrl = PdfUrl,
+            ForClasses = ForClasses,
+            Price = Price,
         };
 
         if (fillExtended != null)
@@ -56,6 +60,8 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
                 Name = clientObject.Name,
                 Description = clientObject.Description,
                 PdfUrl = clientObject.PdfUrl,
+                ForClasses = clientObject.ForClasses,
+                Price = clientObject.Price,
             };
         }
 
@@ -69,6 +75,8 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
         entity.Name = clientObject.Name;
         entity.Description = clientObject.Description;
         entity.PdfUrl = clientObject.PdfUrl;
+        entity.ForClasses = clientObject.ForClasses;
+        entity.Price = clientObject.Price;
 
         // FIXME check if it breaks things
         // if (clientObject.Extended?.OrderCourses != null)
