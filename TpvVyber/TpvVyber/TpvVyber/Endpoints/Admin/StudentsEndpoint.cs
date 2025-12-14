@@ -1,10 +1,6 @@
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using TpvVyber.Classes;
+using Microsoft.AspNetCore.Authorization;
 using TpvVyber.Client.Classes;
 using TpvVyber.Client.Services.Admin;
-using TpvVyber.Data;
 
 namespace TpvVyber.Endpoints.Admin;
 
@@ -13,11 +9,15 @@ public static class StudentsAdminEndpoints
     public static void MapAdminEndpoints(this WebApplication app)
     {
         var baseAdminPath = "api/admin";
-        app.MapGet($"{baseAdminPath}/students/get_all", HandlerGetAllStudents);
-        app.MapGet($"{baseAdminPath}/students/get_by_id", HandlerGetStudentById);
-        app.MapPost($"{baseAdminPath}/students/add", HandlerAddStudent);
-        app.MapDelete($"{baseAdminPath}/students/delete/{{id}}", HandlerDeleteStudent);
-        app.MapPut($"{baseAdminPath}/students/update", HandlerUpdateStudent);
+
+        var studentsGroup = app.MapGroup($"{baseAdminPath}/students")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" });
+
+        studentsGroup.MapGet("get_all", HandlerGetAllStudents);
+        studentsGroup.MapGet("get_by_id", HandlerGetStudentById);
+        studentsGroup.MapPost("add", HandlerAddStudent);
+        studentsGroup.MapDelete("delete/{id}", HandlerDeleteStudent);
+        studentsGroup.MapPut("update", HandlerUpdateStudent);
     }
 
     private static async Task<IResult> HandlerGetAllStudents(

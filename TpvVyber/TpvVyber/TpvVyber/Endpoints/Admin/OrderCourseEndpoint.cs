@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TpvVyber.Classes;
 using TpvVyber.Client.Classes;
@@ -13,11 +14,15 @@ public static class OrderCourseAdminEndpoints
     public static void MapAdminEndpoints(this WebApplication app)
     {
         var baseAdminPath = "api/admin";
-        app.MapGet($"{baseAdminPath}/order_courses/get_all", HandlerGetAllOrderCourses);
-        app.MapGet($"{baseAdminPath}/order_courses/get_by_id", HandlerGetOrderCourseById);
-        app.MapPost($"{baseAdminPath}/order_courses/add", HandlerAddOrderCourse);
-        app.MapDelete($"{baseAdminPath}/order_courses/delete/{{id}}", HandlerDeleteOrderCourse);
-        app.MapPut($"{baseAdminPath}/order_courses/update", HandlerUpdateOrderCourse);
+
+        var coursesOrdersGroup = app.MapGroup($"{baseAdminPath}/order_courses")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" });
+
+        coursesOrdersGroup.MapGet("get_all", HandlerGetAllOrderCourses);
+        coursesOrdersGroup.MapGet("get_by_id", HandlerGetOrderCourseById);
+        coursesOrdersGroup.MapPost("add", HandlerAddOrderCourse);
+        coursesOrdersGroup.MapDelete("delete/{id}", HandlerDeleteOrderCourse);
+        coursesOrdersGroup.MapPut("update", HandlerUpdateOrderCourse);
     }
 
     private static async Task<IResult> HandlerGetAllOrderCourses(

@@ -14,16 +14,10 @@ public static class CoursesAdminEndpoints
         var coursesGroup = app.MapGroup($"{baseAdminPath}/courses")
             .RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" });
 
-        // Define endpoints relative to the group path
-        // e.g., this becomes "api/admin/courses/get_all"
         coursesGroup.MapGet("get_all", HandlerGetAllCourses);
-
         coursesGroup.MapGet("get_by_id", HandlerGetCourseById);
-
         coursesGroup.MapPost("add", HandlerAddCourse);
-
         coursesGroup.MapDelete("delete/{id}", HandlerDeleteCourse);
-
         coursesGroup.MapPut("update", HandlerUpdateCourse);
     }
 

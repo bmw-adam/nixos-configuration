@@ -7,6 +7,18 @@ public static class Tls
 {
     public static void ConfigureTls(this WebApplicationBuilder builder)
     {
+        // Add CORS services
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy(
+                "CorsPolicy",
+                policy =>
+                {
+                    policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+                }
+            );
+        });
+
         builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
 
         var pfxKey = builder.Configuration["TLS_PFX_KEY"];

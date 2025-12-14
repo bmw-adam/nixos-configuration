@@ -79,6 +79,8 @@ app.UseStaticFiles();
 
 // app.MapStaticAssets();
 
+app.UseCors("CorsPolicy");
+
 app.UseRouting();
 
 app.UseAntiforgery();

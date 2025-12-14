@@ -1,6 +1,7 @@
 ﻿@page "/counter"
 @using System.Threading.Tasks
 @using System.Runtime.InteropServices
+@attribute [Authorize]
 @inject ISelectService SelectService
 @inject ISnackbar snackbar
 
@@ -16,16 +17,16 @@
             <MudStack StretchItems="StretchItems.Middle" Row>
                 <MudIconButton Icon="@Icons.Material.Filled.DragIndicator" class="drag-handle"></MudIconButton>
                 <MudButton EndIcon="@Icons.Material.Filled.Info">@item.Name</MudButton>
-                <MudText>@item.Id</MudText>
+                <MudText>@item.Price</MudText>
             </MudStack>
         </ItemTemplate>
     </SortableList>
 }
 
-<MudStack Row Spacing="5">
-    <MudButton Color="Color.Secondary" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Cancel">Zrušit
+<MudStack Justify="Justify.FlexEnd" Row Spacing="5">
+    <MudButton OnClick="InitialLoadSort" Color="Color.Secondary" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Cancel">Zrušit
     </MudButton>
-    <MudButton Color="Color.Info" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save">Ok</MudButton>
+    <MudButton OnClick="AsyncUpdate" Color="Color.Info" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save">Ok</MudButton>
 </MudStack>
 
 @code {
@@ -73,7 +74,6 @@
             SortableCourses.Add(itemToMove);
 
         Console.WriteLine($"List: {SortableCourses.Count}");
-        @* _ = AsyncUpdate(); *@
     }
 
     private async Task AsyncUpdate()

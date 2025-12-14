@@ -34,6 +34,7 @@ public class ClientSelectService(HttpClient httpClient, ISnackbar snackbarServic
         {
             var response = await httpClient.PutAsJsonAsync("api/select/update_order", input);
             response.EnsureSuccessStatusCode();
+            snackbarService.Add("Aktualizoval jsem seřazení kurzů", Severity.Success);
         }
         catch
         {
