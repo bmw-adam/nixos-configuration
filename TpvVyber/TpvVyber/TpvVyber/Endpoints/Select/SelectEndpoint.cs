@@ -17,6 +17,7 @@ public static class SelectEndpoints
         selectGroup.MapGet("get_sorted_courses", HandlerGetAllCourses);
 
         selectGroup.MapPut("update_order", HandlerUpdateCourse);
+        selectGroup.MapPut("get_course_info", HandlerCourseInfo);
     }
 
     private static async Task<IResult> HandlerGetAllCourses(
@@ -44,6 +45,23 @@ public static class SelectEndpoints
         {
             await selectService.UpdateOrderAsync(updateItems);
             return Results.Ok();
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+
+    private static async Task<IResult> HandlerCourseInfo(
+        ISelectService selectService,
+        int id,
+        FillCourseExtended? fillExtended
+    )
+    {
+        try
+        {
+            var result = await selectService.GetCourseInfo(id, fillExtended);
+            return Results.Ok(result);
         }
         catch (Exception ex)
         {

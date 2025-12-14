@@ -1,0 +1,97 @@
+@page "/course_info/{CourseId:int}"
+@inject ISelectService selectService
+@attribute [Authorize]
+
+@if (Course != null)
+{
+    <MudSimpleTable Dense="true" Hover="true" Bordered="true" Striped="true" Style="overflow-x: auto;">
+        <thead>
+            <MudTr>
+                <MudTh>Vlastnost</MudTh>
+                <MudTh>Hodnota</MudTh>
+            </MudTr>
+        </thead>
+        <tbody>
+            <MudTr>
+                <MudTd>Id</MudTd>
+                <MudTd>@Course.Id</MudTd>
+            </MudTr>
+            <MudTr>
+                <MudTd>Jméno</MudTd>
+                <MudTd>@Course.Name</MudTd>
+            </MudTr>
+            <MudTr>
+                <MudTd>Popis</MudTd>
+                <MudTd>@Course.Description</MudTd>
+            </MudTr>
+            <MudTr>
+                <MudTd>Pdf Url</MudTd>
+                <MudTd>
+                    <MudLink Href="@Course.PdfUrl">@Course.PdfUrl</MudLink>
+                </MudTd>
+            </MudTr>
+            <MudTr>
+                <MudTd>Pro třídy</MudTd>
+                <MudTd>@string.Join(", ", Course.ForClasses.Split(";"))</MudTd>
+            </MudTr>
+            <MudTr>
+                <MudTd>Cena</MudTd>
+                <MudTd>@Course.Price</MudTd>
+            </MudTr>
+            <MudTr>
+                <MudTd>Kapacita</MudTd>
+                <MudTd>@Course.Capacity</MudTd>
+            </MudTr>
+            <MudTr>
+                <MudTd>Dostupnost pro mě</MudTd>
+                <MudTd><b>@availabilityTranslate(Course?.Extended?.Availability)</b></MudTd>
+            </MudTr>
+        </tbody>
+    </MudSimpleTable>
+}
+else
+{
+    <MudProgressCircular Indeterminate></MudProgressCircular>
+}
+
+@code {
+    [Parameter]
+    public int CourseId { get; set; }
+
+    private CourseCln? Course { get; set; }
+
+    private async Task InitialLoad()
+    {
+        var courseInfo = await selectService.GetCourseInfo(CourseId, FillCourseExtended.Students |
+        FillCourseExtended.Availability);
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+
+    string availabilityTranslate(Availability? availability)
+    {
+        if (availability == null)
+        {
+            return "?";
+        }
+        else if (availability.Value == Availability.Free)
+        {
+            return "Volno";
+        }
+        else if (availability.Value == Availability.Rullette)
+        {
+            return "Ruleta";
+        }
+        else if (availability.Value == Availability.Occupied)
+        {
+            return "Zaplněno";
+        }
+        else
+        {
+            return "?";
+        }
+    }
+}

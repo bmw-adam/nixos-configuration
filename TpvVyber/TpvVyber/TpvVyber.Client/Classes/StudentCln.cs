@@ -6,7 +6,6 @@ public class StudentCln
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Class { get; set; } = string.Empty;
-    public int ClaimStrength => 0;
 
     public StudentClnExtended? Extended { get; set; }
 }

@@ -30,7 +30,7 @@ public class ServerAdminService(
             var element = await ctx.Courses.AddAsync(newEntity);
             await ctx.SaveChangesAsync();
 
-            return ctx.Courses.Find(element.Entity.Id)?.ToClient(ctx, fillExtended)
+            return ctx.Courses.Find(element.Entity.Id)?.ToClient(ctx, null, fillExtended)
                 ?? throw new Exception(
                     $"Nepodařilo se přidat do databáze: kurz {JsonSerializer.Serialize(item)}"
                 );
@@ -114,7 +114,7 @@ public class ServerAdminService(
             {
                 return null;
             }
-            return course.ToClient(ctx, fillExtended);
+            return course.ToClient(ctx, null, fillExtended);
         }
         catch (Exception ex)
         {
@@ -134,7 +134,7 @@ public class ServerAdminService(
             return ctx
                 .Courses.Include(r => r.OrderCourses)
                     .ThenInclude(oc => oc.Student)
-                .Select((course) => course.ToClient(ctx, fillExtended))
+                .Select((course) => course.ToClient(ctx, null, fillExtended))
                 .ToList();
         }
         catch (Exception ex)
@@ -158,7 +158,7 @@ public class ServerAdminService(
             var element = await ctx.Students.AddAsync(newEntity);
             await ctx.SaveChangesAsync();
 
-            return ctx.Students.Find(element.Entity.Id)?.ToClient(ctx, fillExtended)
+            return ctx.Students.Find(element.Entity.Id)?.ToClient(ctx, null, fillExtended)
                 ?? throw new Exception(
                     $"Nepodařilo se přidat do databáze. Item: {JsonSerializer.Serialize(item)}"
                 );
@@ -245,7 +245,7 @@ public class ServerAdminService(
             {
                 return null;
             }
-            return student.ToClient(ctx, fillExtended);
+            return student.ToClient(ctx, null, fillExtended);
         }
         catch (Exception ex)
         {
@@ -266,7 +266,7 @@ public class ServerAdminService(
                 .Students.Include(s => s.OrderCourses)
                     .ThenInclude(oc => oc.Course)
                 .AsEnumerable()
-                .Select((student) => student.ToClient(ctx, fillExtended))
+                .Select((student) => student.ToClient(ctx, null, fillExtended))
                 .ToList();
         }
         catch (Exception ex)
@@ -290,7 +290,7 @@ public class ServerAdminService(
             var element = await ctx.OrderCourses.AddAsync(newEntity);
             await ctx.SaveChangesAsync();
 
-            return ctx.OrderCourses.Find(element.Entity.Id)?.ToClient(ctx, fillExtended)
+            return ctx.OrderCourses.Find(element.Entity.Id)?.ToClient(ctx, null, fillExtended)
                 ?? throw new Exception("Nepodařilo se přidat do databáze");
         }
         catch (Exception ex)
@@ -375,7 +375,7 @@ public class ServerAdminService(
             {
                 return null;
             }
-            return orderCourse.ToClient(ctx, fillExtended);
+            return orderCourse.ToClient(ctx, null, fillExtended);
         }
         catch (Exception ex)
         {
@@ -397,7 +397,7 @@ public class ServerAdminService(
             return ctx
                 .OrderCourses.Include(oc => oc.Course)
                 .Include(oc => oc.Student)
-                .Select((orderCourse) => orderCourse.ToClient(ctx, fillExtended))
+                .Select((orderCourse) => orderCourse.ToClient(ctx, null, fillExtended))
                 .ToList();
         }
         catch (Exception ex)

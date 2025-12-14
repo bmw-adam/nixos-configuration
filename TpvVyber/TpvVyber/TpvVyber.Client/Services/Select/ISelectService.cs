@@ -21,4 +21,12 @@ public interface ISelectService
     /// <param name="input"></param>
     /// <returns></returns>
     public Task UpdateOrderAsync(Dictionary<int, CourseCln> input);
+
+    /// <summary>
+    /// Get Course Info
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="fillExtended"></param>
+    /// <returns></returns>
+    public Task<CourseCln?> GetCourseInfo(int id, FillCourseExtended? fillExtended = null);
 }

@@ -41,4 +41,22 @@ public class ClientSelectService(HttpClient httpClient, ISnackbar snackbarServic
             snackbarService.Add("Nepodařilo se aktualizovat seřazení kurzů", Severity.Error);
         }
     }
+
+    public async Task<CourseCln?> GetCourseInfo(int id, FillCourseExtended? fillExtended = null)
+    {
+        try
+        {
+            var response = await httpClient.GetFromJsonAsync<CourseCln>(
+                $"api/select/get_course_info?id={id}{(fillExtended == null ? "" : $"&fillExtended={fillExtended}")}"
+            );
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            snackbarService.Add("Nepodařilo se získat informace o kurzu", Severity.Error);
+            return null;
+        }
+    }
 }

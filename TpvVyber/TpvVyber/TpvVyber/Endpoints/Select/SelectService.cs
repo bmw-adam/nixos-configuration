@@ -6,6 +6,7 @@ using TpvVyber.Client.Classes;
 using TpvVyber.Client.Services.Admin;
 using TpvVyber.Client.Services.Select;
 using TpvVyber.Data;
+using TpvVyber.Extensions;
 
 namespace TpvVyber.Endpoints.Select;
 
@@ -17,54 +18,69 @@ public class ServerSelectService(
     ILogger<ServerSelectService> logger
 ) : ISelectService
 {
+    public async Task<CourseCln?> GetCourseInfo(int id, FillCourseExtended? fillExtended = null)
+    {
+        try
+        {
+            var userInfo = httpContextAccessor.GetCurrentUser();
+            await using var ctx = _factory.CreateDbContext();
+
+            var course = ctx
+                .Courses.Include(r => r.OrderCourses)
+                    .ThenInclude(e => e.Student)
+                .FirstOrDefault(i => i.Id == id);
+
+            if (course == null)
+            {
+                throw new Exception("Nepodařilo se najít kurz");
+            }
+
+            var currentUser = ctx.Students.FirstOrDefault(e => e.Email == userInfo.UserEmail);
+            if (currentUser == null)
+            {
+                throw new Exception("Nepoznal jsem aktuálního uživatele");
+            }
+
+            return course.ToClient(ctx, currentUser, fillExtended);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Nepodařilo se získat informace o kurzu - {ex.Message}");
+            snackbarService.Add("Nepodařilo se získat informace o kurzu", Severity.Error);
+            return null;
+        }
+    }
+
     public async Task<Dictionary<int, CourseCln>> GetSortedCoursesAsync(
         FillCourseExtended? fillExtended = null
     )
     {
         try
         {
-            // Access user claims
-            var userClaims = httpContextAccessor.HttpContext?.User.Claims;
-            var userEmail = userClaims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-            var userName = userClaims?.FirstOrDefault(c => c.Type == "name")?.Value;
-
-            var userRoles =
-                userClaims
-                    ?.Where(c => c.Type == ClaimTypes.Role || c.Type == "description")
-                    ?.Select(e => e.Value) ?? [];
-
-            if (string.IsNullOrEmpty(userName))
-            {
-                throw new NullReferenceException("Uživatelské jméno bylo null");
-            }
-
-            if (string.IsNullOrEmpty(userEmail))
-            {
-                throw new NullReferenceException("Uživatelský email byl null");
-            }
+            var userInfo = httpContextAccessor.GetCurrentUser();
 
             await using var ctx = _factory.CreateDbContext();
 
-            bool alreadyExisting = ctx.Students.Any(s => s.Email == userEmail);
+            bool alreadyExisting = ctx.Students.Any(s => s.Email == userInfo.UserEmail);
 
             if (!alreadyExisting)
             {
                 var newStudent = new StudentCln
                 {
-                    Class = string.Join(";", userRoles),
-                    Email = userEmail,
-                    Name = userName,
+                    Class = string.Join(";", userInfo.UserRoles),
+                    Email = userInfo.UserEmail,
+                    Name = userInfo.UserName,
                 };
 
                 await adminService.AddStudentAsync(newStudent);
             }
 
-            var student = ctx.Students.SingleOrDefault(s => s.Email == userEmail);
+            var student = ctx.Students.SingleOrDefault(s => s.Email == userInfo.UserEmail);
 
             if (student == null)
             {
                 throw new NullReferenceException(
-                    $"Nepodařilo se najít žáka/nepodařilo se přidat žáka (email: {userEmail})"
+                    $"Nepodařilo se najít žáka/nepodařilo se přidat žáka (email: {userInfo.UserEmail})"
                 );
             }
 
@@ -76,7 +92,7 @@ public class ServerSelectService(
             // dostupné kurzy podle role
             var availableCourses = ctx
                 .Courses.ToList()
-                .Where(c => c.ForClasses.Split(";").Any(r => userRoles.Contains(r)));
+                .Where(c => c.ForClasses.Split(";").Any(r => userInfo.UserRoles.Contains(r)));
 
             var result = new Dictionary<int, CourseCln>();
             int index = 0;
@@ -88,7 +104,7 @@ public class ServerSelectService(
                 if (course == null)
                     continue;
 
-                result[index++] = course.ToClient(ctx, fillExtended);
+                result[index++] = course.ToClient(ctx, student, fillExtended);
             }
 
             // kurzy bez orderingu
@@ -98,7 +114,7 @@ public class ServerSelectService(
                     .OrderBy(a => a.Price)
             )
             {
-                result[index++] = course.ToClient(ctx, fillExtended);
+                result[index++] = course.ToClient(ctx, student, fillExtended);
             }
 
             return result;
@@ -115,34 +131,16 @@ public class ServerSelectService(
     {
         try
         {
-            // Access user claims
-            var userClaims = httpContextAccessor.HttpContext?.User.Claims;
-            var userEmail = userClaims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-            var userName = userClaims?.FirstOrDefault(c => c.Type == "name")?.Value;
-
-            var userRoles =
-                userClaims
-                    ?.Where(c => c.Type == ClaimTypes.Role || c.Type == "description")
-                    ?.Select(e => e.Value) ?? [];
-
-            if (string.IsNullOrEmpty(userName))
-            {
-                throw new NullReferenceException("Uživatelské jméno bylo null");
-            }
-
-            if (string.IsNullOrEmpty(userEmail))
-            {
-                throw new NullReferenceException("Uživatelský email byl null");
-            }
+            var userInfo = httpContextAccessor.GetCurrentUser();
 
             await using var ctx = _factory.CreateDbContext();
 
-            var actualStudent = ctx.Students.SingleOrDefault(a => a.Email == userEmail);
+            var actualStudent = ctx.Students.SingleOrDefault(a => a.Email == userInfo.UserEmail);
 
             if (actualStudent == null)
             {
                 throw new NullReferenceException(
-                    $"Nenašel jsem aktuálního uživatele. (userEmail: {userEmail})"
+                    $"Nenašel jsem aktuálního uživatele. (userEmail: {userInfo.UserEmail})"
                 );
             }
 

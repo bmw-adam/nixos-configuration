@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Security.Claims;
 using TpvVyber.Classes.Interfaces;
 using TpvVyber.Client.Classes;
 using TpvVyber.Data;
@@ -10,11 +12,20 @@ public class Student : IClientConvertible<StudentCln, Student, FillStudentExtend
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Class { get; set; } = string.Empty;
-    public int ClaimStrength => 0; //TODO: implement claim strength calculation
+
+    [NotMapped]
+    public int ClaimStrength
+    {
+        get => Class.Split(";").Select(r => CalculateClaimStrenght(r)).Max();
+    }
 
     public List<OrderCourse> OrderCourses { get; } = [];
 
-    public StudentCln ToClient(TpvVyberContext context, FillStudentExtended? fillExtended = null)
+    public StudentCln ToClient(
+        TpvVyberContext context,
+        Student? currentUser,
+        FillStudentExtended? fillExtended = null
+    )
     {
         var clientObject = new StudentCln
         {
@@ -32,7 +43,7 @@ public class Student : IClientConvertible<StudentCln, Student, FillStudentExtend
             {
                 extended.Courses = OrderCourses
                     .Where(r => r.Course != null)
-                    .Select(oc => oc.Course!.ToClient(context))
+                    .Select(oc => oc.Course!.ToClient(context, currentUser))
                     .ToList();
             }
 
@@ -72,5 +83,33 @@ public class Student : IClientConvertible<StudentCln, Student, FillStudentExtend
         // FIXME check if it breaks things
 
         return entity;
+    }
+
+    private int CalculateClaimStrenght(string claimRole)
+    {
+        switch (claimRole.ToLower())
+        {
+            // FIXME Assign correct class names
+            case "oktáva":
+                return 9;
+            case "septima":
+                return 8;
+            case "sexta":
+                return 7;
+            case "1.i":
+                return 6;
+            case "kvinta":
+                return 5;
+            case "kvarta":
+                return 4;
+            case "tercie":
+                return 3;
+            case "sekunda":
+                return 2;
+            case "prima":
+                return 1;
+            default:
+                return 0;
+        }
     }
 }

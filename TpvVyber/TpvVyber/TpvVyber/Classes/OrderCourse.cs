@@ -17,6 +17,7 @@ public class OrderCourse : IClientConvertible<OrderCourseCln, OrderCourse, FillO
 
     public OrderCourseCln ToClient(
         TpvVyberContext context,
+        Student? currentUser,
         FillOrderCourseExtended? fillExtended = null
     )
     {
@@ -34,11 +35,11 @@ public class OrderCourse : IClientConvertible<OrderCourseCln, OrderCourse, FillO
 
             if (fillExtended.Value.HasFlag(FillOrderCourseExtended.Student))
             {
-                extended.Student = Student?.ToClient(context);
+                extended.Student = Student?.ToClient(context, currentUser);
             }
             if (fillExtended.Value.HasFlag(FillOrderCourseExtended.Course))
             {
-                extended.Course = Course?.ToClient(context);
+                extended.Course = Course?.ToClient(context, currentUser);
             }
 
             clientObject.Extended = extended;
