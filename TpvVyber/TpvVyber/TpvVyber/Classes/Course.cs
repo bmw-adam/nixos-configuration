@@ -1,7 +1,9 @@
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using TpvVyber.Classes.Interfaces;
 using TpvVyber.Client.Classes;
+using TpvVyber.Client.Services.Admin;
 using TpvVyber.Data;
 using TpvVyber.Extensions;
 
@@ -19,9 +21,10 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
 
     public List<OrderCourse> OrderCourses { get; } = [];
 
-    public CourseCln ToClient(
+    public async Task<CourseCln> ToClient(
         TpvVyberContext context,
         Student? currentUser,
+        IAdminService adminService,
         FillCourseExtended? fillExtended = null
     )
     {
@@ -42,20 +45,17 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
 
             if (fillExtended.Value.HasFlag(FillCourseExtended.Students))
             {
-                extended.Students = OrderCourses
-                    .Where(r => r.Student != null)
-                    .Select(oc => oc.Student!.ToClient(context, currentUser))
-                    .ToList();
-            }
+                extended.Students = new List<StudentCln>();
 
+                foreach (var oc in OrderCourses.Where(r => r.Student != null))
+                {
+                    extended.Students.Add(
+                        await oc.Student!.ToClient(context, currentUser, adminService)
+                    );
+                }
+            }
             if (fillExtended.Value.HasFlag(FillCourseExtended.Availability) && currentUser != null)
             {
-                var studentGroups = context
-                    .Students.Include(r => r.OrderCourses)
-                        .ThenInclude(r => r.Course)
-                    .GroupBy(e => e.ClaimStrength)
-                    .OrderByDescending(r => r.Key);
-
                 var currentCourse = context
                     .Courses.Include(r => r.OrderCourses)
                         .ThenInclude(r => r.Student)
@@ -68,47 +68,16 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
 
                 var claimingPeople = currentCourse.OrderCourses.Select(r => r.Student).Distinct();
 
-                var courseContainers = new Dictionary<int, List<Student>>(); // CourseId, Student List
-
-                foreach (var studentGroup in studentGroups)
-                {
-                    var shuffledGroup = studentGroup.ToList();
-                    shuffledGroup.ShuffleList();
-
-                    foreach (var student in shuffledGroup.ToList())
-                    {
-                        if (student != null)
-                        {
-                            var thisStudentsOrderings = student.OrderCourses.OrderBy(r => r.Order);
-                            foreach (var wish in thisStudentsOrderings)
-                            {
-                                var course = wish.Course;
-                                if (course == null)
-                                {
-                                    break;
-                                }
-
-                                var container = courseContainers[course.Id];
-                                var studentsNumber = container.Count;
-
-                                if (studentsNumber < course.Capacity)
-                                {
-                                    // Hooray - got in
-                                    courseContainers.Add(
-                                        course.Id,
-                                        container.Append(student).ToList()
-                                    );
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
+                var courseContainers = await adminService.ShowFillCourses(false, null, null);
 
                 // Can I gen in?
                 // Option 1 - no
                 if (
-                    courseContainers[this.Id].All(e => e.ClaimStrength > currentUser.ClaimStrength)
+                    courseContainers[this.Id]
+                        .All(e =>
+                            Student.ToServer(e, context, false).ClaimStrength
+                            > currentUser.ClaimStrength
+                        )
                     && courseContainers[this.Id].Count >= this.Capacity
                 )
                 {
@@ -117,8 +86,9 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
                 // Option 2 - maybe
                 else if (
                     courseContainers[this.Id].Count >= this.Capacity
-                    && courseContainers[this.Id].Select(r => r.ClaimStrength).Min()
-                        == currentUser.ClaimStrength
+                    && courseContainers[this.Id]
+                        .Select(r => Student.ToServer(r, context, false).ClaimStrength)
+                        .Min() == currentUser.ClaimStrength
                     && claimingPeople.Count() > this.Capacity
                 )
                 {
@@ -128,6 +98,13 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
                 {
                     extended.Availability = Availability.Free;
                 }
+            }
+
+            if (fillExtended.Value.HasFlag(FillCourseExtended.Occupied))
+            {
+                var tempResult = await adminService.ShowFillCourses(false, null, null);
+                var possible = tempResult.TryGetValue(this.Id, out var list);
+                extended.Occupied = possible ? list?.Count() : null;
             }
 
             clientObject.Extended = extended;

@@ -119,7 +119,7 @@ public static class Auth
 
                     options.Events = new OpenIdConnectEvents
                     {
-                        OnTokenValidated = context =>
+                        OnTokenValidated = context => // TODO create a student there
                         {
                             var identity = (ClaimsIdentity)context.Principal!.Identity!;
 

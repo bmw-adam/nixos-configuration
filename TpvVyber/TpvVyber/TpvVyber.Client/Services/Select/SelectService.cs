@@ -59,4 +59,20 @@ public class ClientSelectService(HttpClient httpClient, ISnackbar snackbarServic
             return null;
         }
     }
+
+    public async Task<List<CourseCln>?> GetAllCourses(FillCourseExtended? fillExtended = null)
+    {
+        try
+        {
+            var response = await httpClient.GetFromJsonAsync<List<CourseCln>?>(
+                $"api/select/get_all_courses{(fillExtended == null ? "" : $"?fillExtended={fillExtended}")}"
+            );
+            return response;
+        }
+        catch
+        {
+            snackbarService.Add("Nepodařilo se získat kurzy", Severity.Error);
+            return null;
+        }
+    }
 }

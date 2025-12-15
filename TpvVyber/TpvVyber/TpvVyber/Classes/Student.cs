@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Security.Claims;
 using TpvVyber.Classes.Interfaces;
 using TpvVyber.Client.Classes;
+using TpvVyber.Client.Services.Admin;
 using TpvVyber.Data;
 
 namespace TpvVyber.Classes;
@@ -21,9 +22,10 @@ public class Student : IClientConvertible<StudentCln, Student, FillStudentExtend
 
     public List<OrderCourse> OrderCourses { get; } = [];
 
-    public StudentCln ToClient(
+    public async Task<StudentCln> ToClient(
         TpvVyberContext context,
         Student? currentUser,
+        IAdminService adminService,
         FillStudentExtended? fillExtended = null
     )
     {
@@ -41,10 +43,13 @@ public class Student : IClientConvertible<StudentCln, Student, FillStudentExtend
 
             if (fillExtended.Value.HasFlag(FillStudentExtended.Courses))
             {
-                extended.Courses = OrderCourses
-                    .Where(r => r.Course != null)
-                    .Select(oc => oc.Course!.ToClient(context, currentUser))
-                    .ToList();
+                extended.Courses = new List<CourseCln>();
+                foreach (var oc in OrderCourses.Where(oc => oc.Course != null))
+                {
+                    extended.Courses.Add(
+                        await oc.Course!.ToClient(context, currentUser, adminService)
+                    );
+                }
             }
 
             clientObject.Extended = extended;

@@ -296,5 +296,26 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
             return;
         }
     }
+
+    public async Task<Dictionary<int, List<StudentCln>>> ShowFillCourses(
+        bool? forceRedo,
+        FillCourseExtended? fillCourse = null,
+        FillStudentExtended? fillStudent = null
+    )
+    {
+        try
+        {
+            var response = await httpClient.GetFromJsonAsync<Dictionary<int, List<StudentCln>>>(
+                "api/admin/courses/show_fill_courses"
+            );
+            return response ?? [];
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            snackbarService.Add("Nepodařilo se získat dočasné výsledky", Severity.Error);
+            return [];
+        }
+    }
     #endregion
 }

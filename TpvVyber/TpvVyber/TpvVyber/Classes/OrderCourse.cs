@@ -1,5 +1,7 @@
+using System.Threading.Tasks;
 using TpvVyber.Classes.Interfaces;
 using TpvVyber.Client.Classes;
+using TpvVyber.Client.Services.Admin;
 using TpvVyber.Data;
 
 namespace TpvVyber.Classes;
@@ -15,9 +17,10 @@ public class OrderCourse : IClientConvertible<OrderCourseCln, OrderCourse, FillO
     public int StudentId { get; set; }
     public Student? Student { get; set; }
 
-    public OrderCourseCln ToClient(
+    public async Task<OrderCourseCln> ToClient(
         TpvVyberContext context,
         Student? currentUser,
+        IAdminService adminService,
         FillOrderCourseExtended? fillExtended = null
     )
     {
@@ -35,11 +38,17 @@ public class OrderCourse : IClientConvertible<OrderCourseCln, OrderCourse, FillO
 
             if (fillExtended.Value.HasFlag(FillOrderCourseExtended.Student))
             {
-                extended.Student = Student?.ToClient(context, currentUser);
+                if (Student is not null)
+                {
+                    extended.Student = await Student.ToClient(context, currentUser, adminService);
+                }
             }
             if (fillExtended.Value.HasFlag(FillOrderCourseExtended.Course))
             {
-                extended.Course = Course?.ToClient(context, currentUser);
+                if (Course is not null)
+                {
+                    extended.Course = await Course.ToClient(context, currentUser, adminService);
+                }
             }
 
             clientObject.Extended = extended;

@@ -29,4 +29,5 @@ public interface ISelectService
     /// <param name="fillExtended"></param>
     /// <returns></returns>
     public Task<CourseCln?> GetCourseInfo(int id, FillCourseExtended? fillExtended = null);
+    public Task<List<CourseCln>?> GetAllCourses(FillCourseExtended? fillExtended = null);
 }

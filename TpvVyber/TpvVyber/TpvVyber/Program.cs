@@ -44,6 +44,10 @@ builder.Services.AddScoped<IAdminService, ServerAdminService>();
 builder.Services.AddScoped<ISelectService, ServerSelectService>();
 
 builder.Services.AddBlazorBootstrap();
+
+var redirectUri =
+    builder.Configuration["RedirectUri"] ?? throw new Exception("Redirect uri was not set.");
+
 var app = builder.Build();
 
 app.Use(
@@ -95,7 +99,7 @@ app.MapRazorPages();
 await app.UseDatabaseService();
 
 // Minimal login endpoint
-app.UseLoginService();
+app.UseLoginService(redirectUri);
 app.UseAuthentication();
 app.UseAuthorization();
 

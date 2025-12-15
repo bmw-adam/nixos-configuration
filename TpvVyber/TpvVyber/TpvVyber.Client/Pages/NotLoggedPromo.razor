@@ -1,0 +1,55 @@
+@inject ISelectService selectService
+@inject NavigationManager navigationManager
+
+@if (Courses != null)
+{
+    <MudSimpleTable Dense="true" Hover="true" Bordered="true" Striped="false" Style="overflow-x: auto;">
+        <thead>
+            <MudTr>
+                <MudTh>Název</MudTh>
+                <MudTh>Popis</MudTh>
+                <MudTh>Url</MudTh>
+                <MudTh>Cena</MudTh>
+                <MudTh>Kapacita</MudTh>
+                <MudTh>Obsazenost</MudTh>
+            </MudTr>
+        </thead>
+        <tbody>
+            @foreach (var course in Courses)
+            {
+                <MudTr>
+                    <MudTd>@course.Name</MudTd>
+                    <MudTd>@course.Description</MudTd>
+                    <MudTd>
+                        <MudLink Href="@course.PdfUrl">Url</MudLink>
+                    </MudTd>
+                    <MudTd>@course.Price</MudTd>
+                    <MudTd>@course.Capacity</MudTd>
+                    <MudTd>@course.Extended?.Occupied</MudTd>
+                </MudTr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+else
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+}
+
+<MudButton StartIcon="@Icons.Material.Filled.Login" OnClick="@(() => navigationManager.NavigateTo("/login"))">Přihlásit se</MudButton>
+
+@code {
+    private List<CourseCln>? Courses;
+
+    async Task InitialLoad()
+    {
+        Courses = await selectService.GetAllCourses(FillCourseExtended.Availability | FillCourseExtended.Occupied);
+
+        StateHasChanged();
+    }
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _ = InitialLoad();
+    }
+}

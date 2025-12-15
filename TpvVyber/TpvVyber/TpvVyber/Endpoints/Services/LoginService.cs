@@ -6,14 +6,14 @@ namespace TpvVyber.Services;
 
 public static class LoginService
 {
-    public static void UseLoginService(this WebApplication app)
+    public static void UseLoginService(this WebApplication app, string redirectUri)
     {
         app.MapGet(
             "/login",
             (HttpContext context) =>
             {
                 return Results.Challenge(
-                    new AuthenticationProperties { RedirectUri = "https://tpvselect.gasos.cz" },
+                    new AuthenticationProperties { RedirectUri = redirectUri },
                     new[] { OpenIdConnectDefaults.AuthenticationScheme }
                 );
             }

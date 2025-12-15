@@ -4,7 +4,7 @@
 
 @if (Course != null)
 {
-    <MudSimpleTable Dense="true" Hover="true" Bordered="true" Striped="true" Style="overflow-x: auto;">
+    <MudSimpleTable Dense="true" Hover="true" Bordered="true" Striped="false" Style="overflow-x: auto;">
         <thead>
             <MudTr>
                 <MudTh>Vlastnost</MudTh>
@@ -44,14 +44,14 @@
             </MudTr>
             <MudTr>
                 <MudTd>Dostupnost pro mě</MudTd>
-                <MudTd><b>@availabilityTranslate(Course?.Extended?.Availability)</b></MudTd>
+                <MudTd><b>@Course?.Extended?.Availability?.GetDescription()</b></MudTd>
             </MudTr>
         </tbody>
     </MudSimpleTable>
 }
 else
 {
-    <MudProgressCircular Indeterminate></MudProgressCircular>
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
 }
 
 @code {
@@ -64,34 +64,13 @@ else
     {
         var courseInfo = await selectService.GetCourseInfo(CourseId, FillCourseExtended.Students |
         FillCourseExtended.Availability);
+        Course = courseInfo;
+        StateHasChanged();
     }
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-    }
-
-    string availabilityTranslate(Availability? availability)
-    {
-        if (availability == null)
-        {
-            return "?";
-        }
-        else if (availability.Value == Availability.Free)
-        {
-            return "Volno";
-        }
-        else if (availability.Value == Availability.Rullette)
-        {
-            return "Ruleta";
-        }
-        else if (availability.Value == Availability.Occupied)
-        {
-            return "Zaplněno";
-        }
-        else
-        {
-            return "?";
-        }
+        _ = InitialLoad();
     }
 }

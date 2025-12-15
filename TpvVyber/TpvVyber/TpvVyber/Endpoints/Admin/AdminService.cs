@@ -8,13 +8,13 @@ using TpvVyber.Classes;
 using TpvVyber.Client.Classes;
 using TpvVyber.Client.Services.Admin;
 using TpvVyber.Data;
+using TpvVyber.Extensions;
 
 namespace TpvVyber.Endpoints.Admin;
 
 public class ServerAdminService(
     IDbContextFactory<TpvVyberContext> _factory,
-    ILogger<ServerAdminService> logger,
-    ISnackbar snackbar
+    ILogger<ServerAdminService> logger
 ) : IAdminService
 {
     #region Courses
@@ -26,19 +26,23 @@ public class ServerAdminService(
         try
         {
             await using var ctx = _factory.CreateDbContext();
+
             var newEntity = Course.ToServer(item, ctx, createNew: true);
             var element = await ctx.Courses.AddAsync(newEntity);
             await ctx.SaveChangesAsync();
 
-            return ctx.Courses.Find(element.Entity.Id)?.ToClient(ctx, null, fillExtended)
+            var course =
+                await ctx.Courses.FindAsync(element.Entity.Id)
                 ?? throw new Exception(
                     $"Nepodařilo se přidat do databáze: kurz {JsonSerializer.Serialize(item)}"
                 );
+
+            return await course.ToClient(ctx, null, this, fillExtended);
         }
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se přidat kurz do databáze {ex.Message}");
-            snackbar.Add("Nepodařilo se přidat kurz do databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se přidat kurz do databáze", Severity.Error);
             return item;
         }
     }
@@ -62,7 +66,7 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se odebrat kurz z databáze {Id} - {ex.Message}");
-            snackbar.Add("Nepodařilo se odebrat kurz z databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se odebrat kurz z databáze", Severity.Error);
             return;
         }
     }
@@ -81,7 +85,7 @@ public class ServerAdminService(
             logger.LogError(
                 $"Nepodařilo se aktualizovat kurz v databázi {JsonSerializer.Serialize(item)} - {ex.Message}"
             );
-            snackbar.Add("Nepodařilo se aktualizovat kurz v databázi", Severity.Error);
+            // snackbar.Add("Nepodařilo se aktualizovat kurz v databázi", Severity.Error);
             return;
         }
     }
@@ -114,12 +118,12 @@ public class ServerAdminService(
             {
                 return null;
             }
-            return course.ToClient(ctx, null, fillExtended);
+            return await course.ToClient(ctx, null, this, fillExtended);
         }
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat kurz z databáze Id: {id} - {ex.Message}");
-            snackbar.Add("Nepodařilo se získat kurz z databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se získat kurz z databáze", Severity.Error);
             return null;
         }
     }
@@ -131,16 +135,26 @@ public class ServerAdminService(
         try
         {
             await using var ctx = _factory.CreateDbContext();
-            return ctx
+
+            // Load courses and related entities into memory
+            var courses = await ctx
                 .Courses.Include(r => r.OrderCourses)
                     .ThenInclude(oc => oc.Student)
-                .Select((course) => course.ToClient(ctx, null, fillExtended))
-                .ToList();
+                .ToListAsync();
+
+            var result = new List<CourseCln>();
+            foreach (var course in courses)
+            {
+                // Sequentially await ToClient for safety
+                result.Add(await course.ToClient(ctx, null, this, fillExtended));
+            }
+
+            return result;
         }
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat kurzy z databáze - {ex.Message}");
-            snackbar.Add("Nepodařilo se získat kurzy z databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se získat kurzy z databáze", Severity.Error);
             return [];
         }
     }
@@ -154,19 +168,23 @@ public class ServerAdminService(
         try
         {
             await using var ctx = _factory.CreateDbContext();
+
             var newEntity = Student.ToServer(item, ctx, createNew: true);
             var element = await ctx.Students.AddAsync(newEntity);
             await ctx.SaveChangesAsync();
 
-            return ctx.Students.Find(element.Entity.Id)?.ToClient(ctx, null, fillExtended)
+            var student =
+                await ctx.Students.FindAsync(element.Entity.Id)
                 ?? throw new Exception(
                     $"Nepodařilo se přidat do databáze. Item: {JsonSerializer.Serialize(item)}"
                 );
+
+            return await student.ToClient(ctx, null, this, fillExtended);
         }
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se přidat kurz do databáze {ex.Message}");
-            snackbar.Add("Nepodařilo se přidat kurz do databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se přidat kurz do databáze", Severity.Error);
             return item;
         }
     }
@@ -190,7 +208,7 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se odebrat žáka z databáze {Id} - {ex.Message}");
-            snackbar.Add("Nepodařilo se odebrat žáka z databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se odebrat žáka z databáze", Severity.Error);
             return;
         }
     }
@@ -209,7 +227,7 @@ public class ServerAdminService(
             logger.LogError(
                 $"Nepodařilo se aktualizovat žáka v databázi {JsonSerializer.Serialize(item)} - {ex.Message}"
             );
-            snackbar.Add("Nepodařilo se aktualizovat žáka v databázi", Severity.Error);
+            // snackbar.Add("Nepodařilo se aktualizovat žáka v databázi", Severity.Error);
             return;
         }
     }
@@ -245,12 +263,12 @@ public class ServerAdminService(
             {
                 return null;
             }
-            return student.ToClient(ctx, null, fillExtended);
+            return await student.ToClient(ctx, null, this, fillExtended);
         }
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat žáka z databáze Id: {id} - {ex.Message}");
-            snackbar.Add("Nepodařilo se získat žáka z databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se získat žáka z databáze", Severity.Error);
             return null;
         }
     }
@@ -262,17 +280,26 @@ public class ServerAdminService(
         try
         {
             await using var ctx = _factory.CreateDbContext();
-            return ctx
+
+            // Load students and related entities into memory
+            var students = ctx
                 .Students.Include(s => s.OrderCourses)
                     .ThenInclude(oc => oc.Course)
-                .AsEnumerable()
-                .Select((student) => student.ToClient(ctx, null, fillExtended))
-                .ToList();
+                .AsEnumerable();
+
+            var result = new List<StudentCln>();
+            foreach (var student in students)
+            {
+                // Sequentially await ToClient for safety
+                result.Add(await student.ToClient(ctx, null, this, fillExtended));
+            }
+
+            return result;
         }
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat žáky z databáze - {ex.Message}");
-            snackbar.Add("Nepodařilo se získat žáky z databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se získat žáky z databáze", Severity.Error);
             return [];
         }
     }
@@ -286,17 +313,21 @@ public class ServerAdminService(
         try
         {
             await using var ctx = _factory.CreateDbContext();
+
             var newEntity = OrderCourse.ToServer(item, ctx, createNew: true);
             var element = await ctx.OrderCourses.AddAsync(newEntity);
             await ctx.SaveChangesAsync();
 
-            return ctx.OrderCourses.Find(element.Entity.Id)?.ToClient(ctx, null, fillExtended)
+            var orderCourse =
+                await ctx.OrderCourses.FindAsync(element.Entity.Id)
                 ?? throw new Exception("Nepodařilo se přidat do databáze");
+
+            return await orderCourse.ToClient(ctx, null, this, fillExtended);
         }
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se přidat pořadí kurzu do databáze {ex.Message}");
-            snackbar.Add("Nepodařilo se přidat pořadí kurzu do databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se přidat pořadí kurzu do databáze", Severity.Error);
             return item;
         }
     }
@@ -320,7 +351,7 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se odebrat pořadí kurzu z databáze {Id} - {ex.Message}");
-            snackbar.Add("Nepodařilo se odebrat pořadí kurzu z databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se odebrat pořadí kurzu z databáze", Severity.Error);
             return;
         }
     }
@@ -339,7 +370,7 @@ public class ServerAdminService(
             logger.LogError(
                 $"Nepodařilo se aktualizovat pořadí kurzu v databázi {JsonSerializer.Serialize(item)} - {ex.Message}"
             );
-            snackbar.Add("Nepodařilo se aktualizovat pořadí kurzu v databázi", Severity.Error);
+            // snackbar.Add("Nepodařilo se aktualizovat pořadí kurzu v databázi", Severity.Error);
             return;
         }
     }
@@ -375,14 +406,14 @@ public class ServerAdminService(
             {
                 return null;
             }
-            return orderCourse.ToClient(ctx, null, fillExtended);
+            return await orderCourse.ToClient(ctx, null, this, fillExtended);
         }
         catch (Exception ex)
         {
             logger.LogError(
                 $"Nepodařilo se získat pořadí kurzu z databáze Id: {id} - {ex.Message}"
             );
-            snackbar.Add("Nepodařilo se získat pořadí kurzu z databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se získat pořadí kurzu z databáze", Severity.Error);
             return null;
         }
     }
@@ -394,18 +425,83 @@ public class ServerAdminService(
         try
         {
             await using var ctx = _factory.CreateDbContext();
-            return ctx
+
+            var orderCourses = await ctx
                 .OrderCourses.Include(oc => oc.Course)
                 .Include(oc => oc.Student)
-                .Select((orderCourse) => orderCourse.ToClient(ctx, null, fillExtended))
-                .ToList();
+                .ToListAsync();
+
+            var result = new List<OrderCourseCln>();
+            foreach (var orderCourse in orderCourses)
+            {
+                result.Add(await orderCourse.ToClient(ctx, null, this, fillExtended));
+            }
+
+            return result;
         }
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat pořadí kurzů z databáze - {ex.Message}");
-            snackbar.Add("Nepodařilo se získat pořadí kurzů z databáze", Severity.Error);
+            // snackbar.Add("Nepodařilo se získat pořadí kurzů z databáze", Severity.Error);
             return [];
         }
+    }
+
+    public async Task<Dictionary<int, List<StudentCln>>> ShowFillCourses(
+        bool? forceRedo,
+        FillCourseExtended? fillCourse,
+        FillStudentExtended? fillStudent
+    )
+    {
+        await using var ctx = _factory.CreateDbContext();
+
+        var studentGroups = ctx
+            .Students.Include(r => r.OrderCourses)
+                .ThenInclude(r => r.Course)
+            .AsEnumerable()
+            .GroupBy(e => e.ClaimStrength)
+            .OrderByDescending(r => r.Key);
+
+        var courseContainers = new Dictionary<int, List<StudentCln>>(); // CourseId, Student List
+
+        ctx.Courses.ToList().ForEach(a => courseContainers.Add(a.Id, []));
+
+        foreach (var studentGroup in studentGroups)
+        {
+            var shuffledGroup = studentGroup.ToList();
+            shuffledGroup.ShuffleList();
+
+            foreach (var student in shuffledGroup.ToList())
+            {
+                if (student != null)
+                {
+                    var thisStudentsOrderings = student.OrderCourses.OrderBy(r => r.Order);
+                    foreach (var wish in thisStudentsOrderings)
+                    {
+                        var course = wish.Course;
+                        if (course == null)
+                        {
+                            continue;
+                        }
+
+                        var container = courseContainers[course.Id];
+
+                        var studentsNumber = container.Count;
+
+                        if (studentsNumber < course.Capacity)
+                        {
+                            // Hooray - got in
+                            courseContainers[course.Id] = container
+                                .Append(await student.ToClient(ctx, null, this))
+                                .ToList();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return courseContainers;
     }
     #endregion
 }

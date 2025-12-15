@@ -38,5 +38,10 @@ public interface IAdminService
     public Task<IEnumerable<OrderCourseCln>> GetAllOrderCourseAsync(
         FillOrderCourseExtended? fillExtended = null
     );
+    public Task<Dictionary<int, List<StudentCln>>> ShowFillCourses(
+        bool? forceRedo,
+        FillCourseExtended? fillCourse = null,
+        FillStudentExtended? fillStudent = null
+    );
     #endregion
 }

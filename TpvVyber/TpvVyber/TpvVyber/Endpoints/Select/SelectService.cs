@@ -14,10 +14,37 @@ public class ServerSelectService(
     IDbContextFactory<TpvVyberContext> _factory,
     IHttpContextAccessor httpContextAccessor,
     IAdminService adminService,
-    ISnackbar snackbarService,
+    // ISnackbar snackbarService,
     ILogger<ServerSelectService> logger
 ) : ISelectService
 {
+    public async Task<List<CourseCln>?> GetAllCourses(FillCourseExtended? fillExtended = null)
+    {
+        try
+        {
+            await using var ctx = _factory.CreateDbContext();
+
+            var courses = await ctx
+                .Courses.Include(c => c.OrderCourses)
+                    .ThenInclude(e => e.Student)
+                .ToListAsync();
+
+            var lst = new List<CourseCln>();
+            foreach (var course in courses)
+            {
+                lst.Add(await course.ToClient(ctx, null, adminService, fillExtended));
+            }
+
+            return lst;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Nepodařilo se získat kurzy - {ex.Message}");
+            // snackbarService.Add("Nepodařilo se získat informace o kurzu", Severity.Error);
+            return null;
+        }
+    }
+
     public async Task<CourseCln?> GetCourseInfo(int id, FillCourseExtended? fillExtended = null)
     {
         try
@@ -41,12 +68,12 @@ public class ServerSelectService(
                 throw new Exception("Nepoznal jsem aktuálního uživatele");
             }
 
-            return course.ToClient(ctx, currentUser, fillExtended);
+            return await course.ToClient(ctx, currentUser, adminService, fillExtended);
         }
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat informace o kurzu - {ex.Message}");
-            snackbarService.Add("Nepodařilo se získat informace o kurzu", Severity.Error);
+            // snackbarService.Add("Nepodařilo se získat informace o kurzu", Severity.Error);
             return null;
         }
     }
@@ -104,7 +131,7 @@ public class ServerSelectService(
                 if (course == null)
                     continue;
 
-                result[index++] = course.ToClient(ctx, student, fillExtended);
+                result[index++] = await course.ToClient(ctx, student, adminService, fillExtended);
             }
 
             // kurzy bez orderingu
@@ -114,7 +141,7 @@ public class ServerSelectService(
                     .OrderBy(a => a.Price)
             )
             {
-                result[index++] = course.ToClient(ctx, student, fillExtended);
+                result[index++] = await course.ToClient(ctx, student, adminService, fillExtended);
             }
 
             return result;
@@ -122,7 +149,7 @@ public class ServerSelectService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat seřazení kurzů - {ex.Message}");
-            snackbarService.Add("Nepodařilo se získat seřazení kurzů", Severity.Error);
+            // snackbarService.Add("Nepodařilo se získat seřazení kurzů", Severity.Error);
             return [];
         }
     }
@@ -157,12 +184,12 @@ public class ServerSelectService(
             );
 
             await ctx.SaveChangesAsync();
-            snackbarService.Add("Aktualizoval jsem seřazení kurzů", Severity.Success);
+            // snackbarService.Add("Aktualizoval jsem seřazení kurzů", Severity.Success);
         }
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se aktualizovat seřazení kurzů - {ex.Message}");
-            snackbarService.Add("Nepodařilo se aktualizovat seřazení kurzů", Severity.Error);
+            // snackbarService.Add("Nepodařilo se aktualizovat seřazení kurzů", Severity.Error);
         }
     }
 }

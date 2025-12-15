@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace TpvVyber.Client.Classes;
 
 public class CourseCln
@@ -16,17 +18,24 @@ public class CourseClnExtended
 {
     public List<StudentCln>? Students { get; set; }
     public Availability? Availability { get; set; }
+    public int? Occupied { get; set; }
 }
 
 public enum FillCourseExtended
 {
     Students = 1,
     Availability = 2,
+    Occupied = 4,
 }
 
 public enum Availability
 {
+    [Description("Volno")]
     Free = 1,
+
+    [Description("Ruleta")]
     Rullette = 2,
+
+    [Description("Obsazeno")]
     Occupied = 3,
 }

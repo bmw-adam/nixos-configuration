@@ -19,6 +19,7 @@ public static class CoursesAdminEndpoints
         coursesGroup.MapPost("add", HandlerAddCourse);
         coursesGroup.MapDelete("delete/{id}", HandlerDeleteCourse);
         coursesGroup.MapPut("update", HandlerUpdateCourse);
+        coursesGroup.MapGet("show_fill_courses", HandlerShowFillCourses);
     }
 
     private static async Task<IResult> HandlerGetAllCourses(
@@ -93,6 +94,24 @@ public static class CoursesAdminEndpoints
         {
             await adminService.UpdateCourseAsync(item);
             return Results.Ok();
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+
+    private static async Task<IResult> HandlerShowFillCourses(
+        IAdminService adminService,
+        bool? forceRedo,
+        FillCourseExtended? fillCourse,
+        FillStudentExtended? fillStudent
+    )
+    {
+        try
+        {
+            var result = await adminService.ShowFillCourses(forceRedo, fillCourse, fillStudent);
+            return Results.Ok(result);
         }
         catch (Exception ex)
         {
