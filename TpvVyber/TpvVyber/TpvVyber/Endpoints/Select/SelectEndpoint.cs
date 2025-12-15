@@ -17,7 +17,7 @@ public static class SelectEndpoints
         selectGroup.MapGet("get_sorted_courses", HandlerGetAllCourses);
 
         selectGroup.MapPut("update_order", HandlerUpdateCourse);
-        selectGroup.MapPut("get_course_info", HandlerCourseInfo);
+        selectGroup.MapGet("get_course_info", HandlerCourseInfo);
     }
 
     private static async Task<IResult> HandlerGetAllCourses(
