@@ -17,7 +17,7 @@ else
         <ToolBarContent>
             <MudText Typo="Typo.h6">Kurzy</MudText>
             <MudSpacer />
-            <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Filled">
+            <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Outlined">
                 <MudButton OnClick="NewItemAsync">Přidat nový kurz</MudButton>
             </MudButtonGroup>
         </ToolBarContent>
@@ -32,11 +32,11 @@ else
             <PropertyColumn Property="x => x.PdfUrl" />
             <TemplateColumn Title="Seznam kurzů">
                 <CellTemplate>
-                    <MudButton OnClick="() => ExpandRow(context.Item)" StartIcon="@Icons.Material.Filled.List"
+                    <MudButton OnClick="() => ExpandRow(context.Item)" StartIcon="@Icons.Material.Outlined.List"
                         Size="Size.Small">Seznam žáků</MudButton>
                 </CellTemplate>
                 <EditTemplate>
-                    <MudButton OnClick="() => ExpandRow(context.Item)" StartIcon="@Icons.Material.Filled.List"
+                    <MudButton OnClick="() => ExpandRow(context.Item)" StartIcon="@Icons.Material.Outlined.List"
                         Size="Size.Small">Seznam žáků</MudButton>
                 </EditTemplate>
             </TemplateColumn>

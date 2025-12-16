@@ -1,29 +1,27 @@
-﻿@page "/counter"
-@using System.Threading.Tasks
-@using System.Runtime.InteropServices
+﻿@page "/tpv_picker"
 @attribute [Authorize]
 @inject ISelectService SelectService
-@inject ISnackbar snackbar
+@inject NotificationService notificationService
 @inject NavigationManager navigationManager
+@inject PersistentComponentState ApplicationState
+@implements IDisposable
 
-<PageTitle>Counter</PageTitle>
+<PageTitle>Výběr TPV</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Counter</MudText>
+<MudText Typo="Typo.h5" GutterBottom="true">Seřadit kurzy</MudText>
 
 @if (SortableCourses != null)
 {
     <SortableList Style="width: 100%" Handle=".drag-handle" TItem="CourseCln" @ref="SortableListRef" Data="SortableCourses"
         Context="item" AllowSorting OnUpdate="@OnListUpdate">
         <ItemTemplate>
-            <MudStack StretchItems="StretchItems.End" Row>
-                <MudIconButton Icon="@Icons.Material.Filled.DragIndicator" class="drag-handle"></MudIconButton>
-                <MudBadge Style="width: 100%" Content="@item.Extended?.Availability?.GetDescription()" Color="Color.Primary" Overlap="true"
-                    Class="mx-6 my-4">
-                    <MudButton Style="width: 100%" OnClick="@(() => navigationManager.NavigateTo($"/course_info/{item.Id}"))"
-                        EndIcon="@Icons.Material.Filled.Info">
-                        @item.Name
-                    </MudButton>
-                </MudBadge>
+            <MudStack StretchItems="StretchItems.Middle" Row>
+                <MudIconButton Icon="@Icons.Material.Outlined.DragIndicator" class="drag-handle"></MudIconButton>
+                <MudButton OnClick="@(() => navigationManager.NavigateTo($"/course_info/{item.Id}"))"
+                    EndIcon="@Icons.Material.Outlined.Info">
+                    @item.Name
+                </MudButton>
+                <MudChip T="string" Variant="Variant.Outlined" Color="AvailabilityBadge(item.Extended?.Availability)">@item.Extended?.Availability?.GetDescription()</MudChip>
             </MudStack>
         </ItemTemplate>
     </SortableList>
@@ -35,35 +33,43 @@ else
 
 <MudStack Justify="Justify.FlexEnd" Row Spacing="5">
     <MudButton OnClick="InitialLoadSort" Color="Color.Secondary" Variant="Variant.Outlined"
-        StartIcon="@Icons.Material.Filled.Cancel">Zrušit
+        StartIcon="@Icons.Material.Outlined.Cancel">Zrušit
     </MudButton>
     <MudButton OnClick="AsyncUpdate" Color="Color.Info" Variant="Variant.Outlined"
-        StartIcon="@Icons.Material.Filled.Save">Ok</MudButton>
+        StartIcon="@Icons.Material.Outlined.Save">Ok</MudButton>
 </MudStack>
 
 @code {
     SortableList<CourseCln>? SortableListRef;
     List<CourseCln>? SortableCourses = null;
+    private PersistingComponentStateSubscription? _subscription;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        _subscription = ApplicationState.RegisterOnPersisting(Persist);
+
         _ = InitialLoadSort();
     }
 
-    private async Task InitialLoadSort()
+    private async Task<List<CourseCln>?> ApiCallCourses()
     {
         var dict = await SelectService.GetSortedCoursesAsync(FillCourseExtended.Availability);
         var lst = dict?.OrderBy(d => d.Key)?.Select(r => r.Value) ?? [];
 
-
         if (dict == null || lst == null)
         {
-            snackbar.Add("Nepodařilo se mi získat data.");
-            return;
+            notificationService.Notify("Nepodařilo se mi získat data.", Severity.Error);
+            return null;
         }
+        return lst?.ToList();
+    }
 
-        SortableCourses = lst.ToList();
+    private async Task InitialLoadSort()
+    {
+        SortableCourses = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(SortableCourses), out var cached)
+        ? cached?.ToList()
+        : (await ApiCallCourses());
 
         StateHasChanged();
     }
@@ -72,7 +78,7 @@ else
     {
         if (SortableCourses == null)
         {
-            snackbar.Add("Nenačetl jsem data", Severity.Error);
+            notificationService.Notify("Nenačetl jsem data", Severity.Error);
             return;
         }
 
@@ -89,7 +95,7 @@ else
     {
         if (SortableCourses == null)
         {
-            snackbar.Add("Nenačetl jsem data", Severity.Error);
+            notificationService.Notify("Nenačetl jsem data", Severity.Error);
             return;
         }
 
@@ -101,7 +107,7 @@ else
         await InitialLoadSort();
     }
 
-    private Color AvailabilityBadge(Availability availability)
+    private Color AvailabilityBadge(Availability? availability)
     {
         switch (availability)
         {
@@ -115,4 +121,14 @@ else
                 return Color.Default;
         }
     }
+
+    private Task Persist()
+    {
+        if (SortableCourses is not null)
+            ApplicationState.PersistAsJson(nameof(SortableCourses), SortableCourses);
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _subscription?.Dispose();
 }

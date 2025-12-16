@@ -1,28 +1,37 @@
-﻿
+﻿@inject NavigationManager navigationManager
+
 <MudNavMenu>
     <MudText Typo="Typo.h6" Class="px-4">Tpv Výběr</MudText>
-    <AuthorizeView>
+    <AuthorizeView >
         <Authorized>
             <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">@context.User.Identity?.Name</MudText>
             <MudDivider Class="my-2"/>
         </Authorized>
         <NotAuthorized>
-            <MudLink Href="login">Přihlásit se</MudLink>
+            <MudLink OnClick="@(() => navigationManager.NavigateTo("login", forceLoad: true))" Class="px-4">Přihlásit se</MudLink>
         </NotAuthorized>
     </AuthorizeView>
     <MudDivider Class="my-2"/>
 
-    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
-    <MudNavLink Href="login" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Login">Login</MudNavLink>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.Home">Home</MudNavLink>
+    <MudNavLink Href="tpv_picker" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Outlined.Reorder">Výběr TPV</MudNavLink>
+    <AuthorizeView>
+        <Authorized>
+            <MudNavLink OnClick="@(() => navigationManager.NavigateTo("logout", forceLoad: true))" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Outlined.Login">Logout</MudNavLink>
+        </Authorized>
+        <NotAuthorized>
+            <MudNavLink OnClick="@(() => navigationManager.NavigateTo("login", forceLoad: true))" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Outlined.Login">Login</MudNavLink>
+        </NotAuthorized>
+    </AuthorizeView>
     
     <AuthorizeView Roles="Admin">
         <Authorized>
-            <MudNavGroup Title="Admin" Expanded="true">
-                <MudNavLink Match="NavLinkMatch.All" Href="/admin">Admin</MudNavLink>
-                <MudNavLink Match="NavLinkMatch.All" Href="/admin/courses">Kurzy</MudNavLink>
-                <MudNavLink Match="NavLinkMatch.All" Href="/admin/students">Žáci</MudNavLink>
-                <MudNavLink Match="NavLinkMatch.All" Href="/admin/ordercourses">Pořadí kurzů</MudNavLink>
+            <MudNavGroup Icon="@Icons.Material.Outlined.AdminPanelSettings" Title="Admin" Expanded="true">
+                <MudNavLink Icon="@Icons.Material.Outlined.HomeWork" Match="NavLinkMatch.All" Href="/admin">Admin</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Outlined.AirplaneTicket" Match="NavLinkMatch.All" Href="/admin/courses">Kurzy</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Outlined.Person" Match="NavLinkMatch.All" Href="/admin/students">Žáci</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Outlined.FormatListNumbered" Match="NavLinkMatch.All" Href="/admin/ordercourses">Pořadí kurzů</MudNavLink>
+                <MudNavLink Icon="@Icons.Material.Outlined.DataSaverOff" Match="NavLinkMatch.All" Href="/admin/results">Výsledky</MudNavLink>
             </MudNavGroup>
         </Authorized>
     </AuthorizeView>

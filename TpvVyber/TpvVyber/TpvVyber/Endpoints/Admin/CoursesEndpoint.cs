@@ -20,6 +20,8 @@ public static class CoursesAdminEndpoints
         coursesGroup.MapDelete("delete/{id}", HandlerDeleteCourse);
         coursesGroup.MapPut("update", HandlerUpdateCourse);
         coursesGroup.MapGet("show_fill_courses", HandlerShowFillCourses);
+        coursesGroup.MapGet("get_logging_ending", HandlerGetLoggingEnding);
+        coursesGroup.MapPut("update_logging_ending", HandlerUpdateLoggingEnding);
     }
 
     private static async Task<IResult> HandlerGetAllCourses(
@@ -111,6 +113,35 @@ public static class CoursesAdminEndpoints
         try
         {
             var result = await adminService.ShowFillCourses(forceRedo, fillCourse, fillStudent);
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+
+    private static async Task<IResult> HandlerGetLoggingEnding(IAdminService adminService)
+    {
+        try
+        {
+            var result = await adminService.GetLoggingEndings();
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+
+    private static async Task<IResult> HandlerUpdateLoggingEnding(
+        IAdminService adminService,
+        LoggingEndingCln loggingEndingCln
+    )
+    {
+        try
+        {
+            var result = await adminService.UpdateLoggingEnding(loggingEndingCln);
             return Results.Ok(result);
         }
         catch (Exception ex)

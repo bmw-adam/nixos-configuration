@@ -14,9 +14,67 @@ namespace TpvVyber.Endpoints.Admin;
 
 public class ServerAdminService(
     IDbContextFactory<TpvVyberContext> _factory,
-    ILogger<ServerAdminService> logger
+    ILogger<ServerAdminService> logger,
+    NotificationService notificationService
 ) : IAdminService
 {
+    public async Task<LoggingEndingCln?> GetLoggingEndings()
+    {
+        try
+        {
+            await using var ctx = _factory.CreateDbContext();
+            var loggingEnding = ctx.LoggingEndings.FirstOrDefault();
+
+            if (loggingEnding == null)
+            {
+                ctx.LoggingEndings.Add(new LoggingEnding { TimeEnding = DateTime.MinValue });
+                await ctx.SaveChangesAsync();
+
+                var loggingEndingNew = ctx.LoggingEndings.FirstOrDefault();
+                if (loggingEndingNew == null)
+                {
+                    return null;
+                }
+
+                return await loggingEndingNew.ToClient(ctx, null, this, null);
+            }
+
+            return await loggingEnding.ToClient(ctx, null, this, null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Nepodařilo se získat konec přihlašování {ex.Message}");
+            notificationService.Notify("Nepodařilo se získat konec přihlašování", Severity.Error);
+            return null;
+        }
+    }
+
+    public async Task<LoggingEndingCln?> UpdateLoggingEnding(LoggingEndingCln loggingEnding)
+    {
+        try
+        {
+            await using var ctx = _factory.CreateDbContext();
+            var loggingEndingServer = LoggingEnding.ToServer(loggingEnding, ctx, false);
+
+            if (loggingEndingServer == null)
+            {
+                return null;
+            }
+
+            await ctx.SaveChangesAsync();
+            return await loggingEndingServer.ToClient(ctx, null, this, null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Nepodařilo se aktualizovat konec přihlašování {ex.Message}");
+            notificationService.Notify(
+                "Nepodařilo se aktualizovat konec přihlašování",
+                Severity.Error
+            );
+            return null;
+        }
+    }
+
     #region Courses
     private async Task<CourseCln> courseAddIntern(
         CourseCln item,
@@ -42,7 +100,7 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se přidat kurz do databáze {ex.Message}");
-            // snackbar.Add("Nepodařilo se přidat kurz do databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se přidat kurz do databáze", Severity.Error);
             return item;
         }
     }
@@ -66,7 +124,7 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se odebrat kurz z databáze {Id} - {ex.Message}");
-            // snackbar.Add("Nepodařilo se odebrat kurz z databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se odebrat kurz z databáze", Severity.Error);
             return;
         }
     }
@@ -85,7 +143,10 @@ public class ServerAdminService(
             logger.LogError(
                 $"Nepodařilo se aktualizovat kurz v databázi {JsonSerializer.Serialize(item)} - {ex.Message}"
             );
-            // snackbar.Add("Nepodařilo se aktualizovat kurz v databázi", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se aktualizovat kurz v databázi",
+                Severity.Error
+            );
             return;
         }
     }
@@ -123,7 +184,7 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat kurz z databáze Id: {id} - {ex.Message}");
-            // snackbar.Add("Nepodařilo se získat kurz z databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat kurz z databáze", Severity.Error);
             return null;
         }
     }
@@ -154,7 +215,7 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat kurzy z databáze - {ex.Message}");
-            // snackbar.Add("Nepodařilo se získat kurzy z databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat kurzy z databáze", Severity.Error);
             return [];
         }
     }
@@ -184,7 +245,7 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se přidat kurz do databáze {ex.Message}");
-            // snackbar.Add("Nepodařilo se přidat kurz do databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se přidat kurz do databáze", Severity.Error);
             return item;
         }
     }
@@ -208,7 +269,7 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se odebrat žáka z databáze {Id} - {ex.Message}");
-            // snackbar.Add("Nepodařilo se odebrat žáka z databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se odebrat žáka z databáze", Severity.Error);
             return;
         }
     }
@@ -227,7 +288,10 @@ public class ServerAdminService(
             logger.LogError(
                 $"Nepodařilo se aktualizovat žáka v databázi {JsonSerializer.Serialize(item)} - {ex.Message}"
             );
-            // snackbar.Add("Nepodařilo se aktualizovat žáka v databázi", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se aktualizovat žáka v databázi",
+                Severity.Error
+            );
             return;
         }
     }
@@ -268,7 +332,7 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat žáka z databáze Id: {id} - {ex.Message}");
-            // snackbar.Add("Nepodařilo se získat žáka z databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat žáka z databáze", Severity.Error);
             return null;
         }
     }
@@ -299,7 +363,7 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat žáky z databáze - {ex.Message}");
-            // snackbar.Add("Nepodařilo se získat žáky z databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat žáky z databáze", Severity.Error);
             return [];
         }
     }
@@ -327,7 +391,10 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se přidat pořadí kurzu do databáze {ex.Message}");
-            // snackbar.Add("Nepodařilo se přidat pořadí kurzu do databáze", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se přidat pořadí kurzu do databáze",
+                Severity.Error
+            );
             return item;
         }
     }
@@ -351,7 +418,10 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se odebrat pořadí kurzu z databáze {Id} - {ex.Message}");
-            // snackbar.Add("Nepodařilo se odebrat pořadí kurzu z databáze", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se odebrat pořadí kurzu z databáze",
+                Severity.Error
+            );
             return;
         }
     }
@@ -370,7 +440,10 @@ public class ServerAdminService(
             logger.LogError(
                 $"Nepodařilo se aktualizovat pořadí kurzu v databázi {JsonSerializer.Serialize(item)} - {ex.Message}"
             );
-            // snackbar.Add("Nepodařilo se aktualizovat pořadí kurzu v databázi", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se aktualizovat pořadí kurzu v databázi",
+                Severity.Error
+            );
             return;
         }
     }
@@ -413,7 +486,10 @@ public class ServerAdminService(
             logger.LogError(
                 $"Nepodařilo se získat pořadí kurzu z databáze Id: {id} - {ex.Message}"
             );
-            // snackbar.Add("Nepodařilo se získat pořadí kurzu z databáze", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se získat pořadí kurzu z databáze",
+                Severity.Error
+            );
             return null;
         }
     }
@@ -442,7 +518,10 @@ public class ServerAdminService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat pořadí kurzů z databáze - {ex.Message}");
-            // snackbar.Add("Nepodařilo se získat pořadí kurzů z databáze", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se získat pořadí kurzů z databáze",
+                Severity.Error
+            );
             return [];
         }
     }

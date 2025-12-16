@@ -7,7 +7,8 @@ using TpvVyber.Client.Classes;
 
 namespace TpvVyber.Client.Services.Admin;
 
-public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService) : IAdminService
+public class ClientAdminService(HttpClient httpClient, NotificationService notificationService)
+    : IAdminService
 {
     #region Courses
     public async Task<CourseCln> AddCourseAsync(
@@ -28,7 +29,7 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se přidat kurz", Severity.Error);
+            notificationService.Notify("Nepodařilo se přidat kurz", Severity.Error);
             return item;
         }
     }
@@ -43,7 +44,7 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se odebrat kurz", Severity.Error);
+            notificationService.Notify("Nepodařilo se odebrat kurz", Severity.Error);
             return;
         }
     }
@@ -63,7 +64,7 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se získat kurzy z databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat kurzy z databáze", Severity.Error);
             return [];
         }
     }
@@ -84,7 +85,7 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se získat kurz z databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat kurz z databáze", Severity.Error);
             return null;
         }
     }
@@ -99,7 +100,10 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se aktualizovat kurz v databázi", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se aktualizovat kurz v databázi",
+                Severity.Error
+            );
             return;
         }
     }
@@ -123,7 +127,7 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se přidat kurz do databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se přidat kurz do databáze", Severity.Error);
             return item;
         }
     }
@@ -138,7 +142,7 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se odebrat žáka z databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se odebrat žáka z databáze", Severity.Error);
             return;
         }
     }
@@ -158,7 +162,7 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se získat žáky z databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat žáky z databáze", Severity.Error);
             return [];
         }
     }
@@ -179,7 +183,7 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se získat žáka z databáze", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat žáka z databáze", Severity.Error);
             return null;
         }
     }
@@ -194,7 +198,10 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se aktualizovat žáka v databázi", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se aktualizovat žáka v databázi",
+                Severity.Error
+            );
             return;
         }
     }
@@ -218,7 +225,10 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se přidat pořadí kurzu do databáze", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se přidat pořadí kurzu do databáze",
+                Severity.Error
+            );
             return item;
         }
     }
@@ -233,7 +243,10 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se odebrat pořadí kurzu z databáze", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se odebrat pořadí kurzu z databáze",
+                Severity.Error
+            );
             return;
         }
     }
@@ -253,7 +266,10 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se získat pořadí kurzů z databáze", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se získat pořadí kurzů z databáze",
+                Severity.Error
+            );
             return [];
         }
     }
@@ -274,7 +290,10 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se získat pořadí kurzu z databáze", Severity.Error);
+            notificationService.Notify(
+                "Nepodařilo se získat pořadí kurzu z databáze",
+                Severity.Error
+            );
             return null;
         }
     }
@@ -289,7 +308,7 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add(
+            notificationService.Notify(
                 "Nepodařilo se aktualizovat pořadí kurzu v databázi",
                 Severity.Error
             );
@@ -313,8 +332,47 @@ public class ClientAdminService(HttpClient httpClient, ISnackbar snackbarService
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se získat dočasné výsledky", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat dočasné výsledky", Severity.Error);
             return [];
+        }
+    }
+
+    public async Task<LoggingEndingCln?> GetLoggingEndings()
+    {
+        try
+        {
+            var response = await httpClient.GetFromJsonAsync<LoggingEndingCln?>(
+                "api/admin/courses/get_logging_ending"
+            );
+            return response;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            notificationService.Notify("Nepodařilo se získat konec přihlašování", Severity.Error);
+            return null;
+        }
+    }
+
+    public async Task<LoggingEndingCln?> UpdateLoggingEnding(LoggingEndingCln loggingEnding)
+    {
+        try
+        {
+            var response = await httpClient.PutAsJsonAsync<LoggingEndingCln?>(
+                "api/admin/courses/update_logging_ending",
+                loggingEnding
+            );
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<LoggingEndingCln?>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            notificationService.Notify(
+                "Nepodařilo se aktualizovat konec přihlašování",
+                Severity.Error
+            );
+            return null;
         }
     }
     #endregion

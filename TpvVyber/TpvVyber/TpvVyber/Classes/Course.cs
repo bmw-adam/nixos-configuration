@@ -54,6 +54,17 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
                     );
                 }
             }
+            if (fillExtended.Value.HasFlag(FillCourseExtended.OrderCourses))
+            {
+                extended.OrderCourses = new();
+
+                foreach (var orderCourse in OrderCourses)
+                {
+                    extended.OrderCourses.Add(
+                        await orderCourse.ToClient(context, currentUser, adminService, null)
+                    );
+                }
+            }
             if (fillExtended.Value.HasFlag(FillCourseExtended.Availability) && currentUser != null)
             {
                 var currentCourse = context

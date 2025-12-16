@@ -8,7 +8,7 @@ using TpvVyber.Client.Classes;
 
 namespace TpvVyber.Client.Services.Select;
 
-public class ClientSelectService(HttpClient httpClient, ISnackbar snackbarService) : ISelectService
+public class ClientSelectService(HttpClient httpClient, NotificationService notificationService) : ISelectService
 {
     public async Task<Dictionary<int, CourseCln>> GetSortedCoursesAsync(
         FillCourseExtended? fillExtended = null
@@ -23,7 +23,7 @@ public class ClientSelectService(HttpClient httpClient, ISnackbar snackbarServic
         }
         catch
         {
-            snackbarService.Add("Nepodařilo se získat kurzy", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat kurzy", Severity.Error);
             return [];
         }
     }
@@ -34,11 +34,11 @@ public class ClientSelectService(HttpClient httpClient, ISnackbar snackbarServic
         {
             var response = await httpClient.PutAsJsonAsync("api/select/update_order", input);
             response.EnsureSuccessStatusCode();
-            snackbarService.Add("Aktualizoval jsem seřazení kurzů", Severity.Success);
+            notificationService.Notify("Aktualizoval jsem seřazení kurzů", Severity.Success);
         }
         catch
         {
-            snackbarService.Add("Nepodařilo se aktualizovat seřazení kurzů", Severity.Error);
+            notificationService.Notify("Nepodařilo se aktualizovat seřazení kurzů", Severity.Error);
         }
     }
 
@@ -55,7 +55,7 @@ public class ClientSelectService(HttpClient httpClient, ISnackbar snackbarServic
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            snackbarService.Add("Nepodařilo se získat informace o kurzu", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat informace o kurzu", Severity.Error);
             return null;
         }
     }
@@ -71,7 +71,7 @@ public class ClientSelectService(HttpClient httpClient, ISnackbar snackbarServic
         }
         catch
         {
-            snackbarService.Add("Nepodařilo se získat kurzy", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat kurzy", Severity.Error);
             return null;
         }
     }

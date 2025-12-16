@@ -14,7 +14,7 @@ public class ServerSelectService(
     IDbContextFactory<TpvVyberContext> _factory,
     IHttpContextAccessor httpContextAccessor,
     IAdminService adminService,
-    // ISnackbar snackbarService,
+    NotificationService notificationService,
     ILogger<ServerSelectService> logger
 ) : ISelectService
 {
@@ -40,7 +40,7 @@ public class ServerSelectService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat kurzy - {ex.Message}");
-            // snackbarService.Add("Nepodařilo se získat informace o kurzu", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat informace o kurzu", Severity.Error);
             return null;
         }
     }
@@ -73,7 +73,7 @@ public class ServerSelectService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat informace o kurzu - {ex.Message}");
-            // snackbarService.Add("Nepodařilo se získat informace o kurzu", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat informace o kurzu", Severity.Error);
             return null;
         }
     }
@@ -87,20 +87,6 @@ public class ServerSelectService(
             var userInfo = httpContextAccessor.GetCurrentUser();
 
             await using var ctx = _factory.CreateDbContext();
-
-            bool alreadyExisting = ctx.Students.Any(s => s.Email == userInfo.UserEmail);
-
-            if (!alreadyExisting)
-            {
-                var newStudent = new StudentCln
-                {
-                    Class = string.Join(";", userInfo.UserRoles),
-                    Email = userInfo.UserEmail,
-                    Name = userInfo.UserName,
-                };
-
-                await adminService.AddStudentAsync(newStudent);
-            }
 
             var student = ctx.Students.SingleOrDefault(s => s.Email == userInfo.UserEmail);
 
@@ -149,7 +135,7 @@ public class ServerSelectService(
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se získat seřazení kurzů - {ex.Message}");
-            // snackbarService.Add("Nepodařilo se získat seřazení kurzů", Severity.Error);
+            notificationService.Notify("Nepodařilo se získat seřazení kurzů", Severity.Error);
             return [];
         }
     }
@@ -184,12 +170,12 @@ public class ServerSelectService(
             );
 
             await ctx.SaveChangesAsync();
-            // snackbarService.Add("Aktualizoval jsem seřazení kurzů", Severity.Success);
+            notificationService.Notify("Aktualizoval jsem seřazení kurzů", Severity.Success);
         }
         catch (Exception ex)
         {
             logger.LogError($"Nepodařilo se aktualizovat seřazení kurzů - {ex.Message}");
-            // snackbarService.Add("Nepodařilo se aktualizovat seřazení kurzů", Severity.Error);
+            notificationService.Notify("Nepodařilo se aktualizovat seřazení kurzů", Severity.Error);
         }
     }
 }

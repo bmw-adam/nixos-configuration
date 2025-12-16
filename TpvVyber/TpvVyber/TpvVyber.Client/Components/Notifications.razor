@@ -1,0 +1,20 @@
+@inject NotificationService notificationService
+@inject ISnackbar Snackbar
+
+@code {
+    protected override void OnInitialized()
+    {
+        notificationService.OnNotify += ShowSnackbar;
+    }
+
+    private void ShowSnackbar(UiNotification notification)
+    {
+        Snackbar.Add(notification.Message, notification.Severity);
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        notificationService.OnNotify -= ShowSnackbar;
+    }
+}

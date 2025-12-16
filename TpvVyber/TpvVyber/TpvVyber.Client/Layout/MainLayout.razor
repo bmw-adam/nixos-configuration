@@ -4,13 +4,14 @@
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
+<Notifications />
+
 <MudLayout>
     <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">Application</MudText>
+        <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h5" Class="ml-3">Tpv Výběr</MudText>
         <MudSpacer />
         <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
-        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
     </MudAppBar>
     <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <NavMenu />
@@ -20,6 +21,10 @@
     </MudMainContent>
 </MudLayout>
 
+
+<MudOverlay ZIndex="9999" Visible="@(!RendererInfo.IsInteractive)" DarkBackground="true" Absolute="true">
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+</MudOverlay>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.

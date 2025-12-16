@@ -9,8 +9,13 @@ public static class ServiceUserExtensions
 {
     public static UserInfo GetCurrentUser(this IHttpContextAccessor accessor)
     {
+        return accessor.HttpContext?.User?.Claims?.GetCurrentUser()
+            ?? throw new Exception("Uživatelský účet byl null");
+    }
+
+    public static UserInfo GetCurrentUser(this IEnumerable<Claim> userClaims)
+    {
         // Access user claims
-        var userClaims = accessor.HttpContext?.User.Claims;
         var userEmail = userClaims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
         var userName = userClaims?.FirstOrDefault(c => c.Type == "name")?.Value;
 

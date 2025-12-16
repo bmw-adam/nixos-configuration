@@ -1,28 +1,71 @@
 @page "/admin"
 @attribute [Authorize(Roles = "Admin")]
 @inject IAdminService AdminService
+@inject PersistentComponentState ApplicationState
+@implements IDisposable
 
 <PageTitle>Admin</PageTitle>
 <MudText Typo="Typo.h4" Class="my-4">Administrační rozhraní</MudText>
-<p>Vítejte v administračním rozhraní aplikace Tpv Výběr. Zde můžete spravovat různé aspekty aplikace, včetně kurzů a žáků.</p>
+<p>Vítejte v administračním rozhraní aplikace Tpv Výběr. Zde můžete spravovat různé aspekty aplikace, včetně kurzů a
+    žáků.</p>
 <br />
 
-<MudText Typo="Typo.h6">Správa kurzů (@coursesCount) <MudLink Href="/admin/courses">Kurzy TPV</MudLink></MudText>
+<MudText Typo="Typo.h6">Správa kurzů (@(coursesCount?.ToString() ?? "Načítání")) <MudLink Href="/admin/courses">Kurzy TPV</MudLink>
+</MudText>
 
-<MudText Typo="Typo.h6">Správa žáků (@studentsCount) <MudLink Href="/admin/students">Žáci</MudLink></MudText>
+<MudText Typo="Typo.h6">Správa žáků (@(studentsCount?.ToString() ?? "Načítání")) <MudLink Href="/admin/students">Žáci</MudLink>
+</MudText>
 
-<MudText Typo="Typo.h6">Pořadí kurzů (@orderCoursesCount) <MudLink Href="/admin/ordercourses">Pořadí kurzů</MudLink></MudText>
+<MudText Typo="Typo.h6">Pořadí kurzů (@(orderCoursesCount?.ToString() ?? "Načítání")) <MudLink Href="/admin/ordercourses">Pořadí
+        kurzů</MudLink>
+</MudText>
 <br />
 
 @code {
-    private int coursesCount;
-    private int studentsCount;
-    private int orderCoursesCount;
+    private int? coursesCount;
+    private int? studentsCount;
+    private int? orderCoursesCount;
 
-    protected override async Task OnInitializedAsync()
+    private PersistingComponentStateSubscription? _subscription;
+
+    protected override Task OnInitializedAsync()
     {
-        coursesCount = (await AdminService.GetAllCoursesAsync()).Count();
-        studentsCount = (await AdminService.GetAllStudentsAsync()).Count();
-        orderCoursesCount = (await AdminService.GetAllOrderCourseAsync()).Count();
+        _subscription = ApplicationState.RegisterOnPersisting(Persist);
+
+        _ = AsyncLoad();
+        return Task.CompletedTask;
     }
+
+    private async Task AsyncLoad()
+    {
+        coursesCount = ApplicationState.TryTakeFromJson<int>(nameof(coursesCount), out var cachedCoursesCount)
+        ? cachedCoursesCount
+        : ((await AdminService.GetAllCoursesAsync()).Count());
+
+        studentsCount = ApplicationState.TryTakeFromJson<int>(nameof(studentsCount), out var cachedStudentsCount)
+        ? cachedStudentsCount
+        : ((await AdminService.GetAllStudentsAsync()).Count());
+
+        orderCoursesCount = ApplicationState.TryTakeFromJson<int>(nameof(orderCoursesCount), out var cachedOrderCoursesCount)
+        ? cachedOrderCoursesCount
+        : ((await AdminService.GetAllOrderCourseAsync()).Count());
+
+        StateHasChanged();
+    }
+
+    private Task Persist()
+    {
+        if (coursesCount is not null)
+            ApplicationState.PersistAsJson(nameof(coursesCount), coursesCount);
+
+        if (studentsCount is not null)
+            ApplicationState.PersistAsJson(nameof(studentsCount), studentsCount);
+
+        if (orderCoursesCount is not null)
+            ApplicationState.PersistAsJson(nameof(orderCoursesCount), orderCoursesCount);
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _subscription?.Dispose();
 }

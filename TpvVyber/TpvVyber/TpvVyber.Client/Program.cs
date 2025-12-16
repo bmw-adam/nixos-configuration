@@ -25,6 +25,8 @@ builder.Services.AddScoped(sp => new HttpClient()
 
 builder.Services.AddScoped<IAdminService, ClientAdminService>();
 builder.Services.AddScoped<ISelectService, ClientSelectService>();
+builder.Services.AddScoped<NotificationService>();
+
 builder.Services.AddBlazorBootstrap();
 
 await builder.Build().RunAsync();

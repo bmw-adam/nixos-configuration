@@ -1,5 +1,7 @@
 @inject ISelectService selectService
 @inject NavigationManager navigationManager
+@inject PersistentComponentState ApplicationState
+@implements IDisposable
 
 @if (Courses != null)
 {
@@ -36,20 +38,36 @@ else
     <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
 }
 
-<MudButton StartIcon="@Icons.Material.Filled.Login" OnClick="@(() => navigationManager.NavigateTo("/login"))">Přihlásit se</MudButton>
+<MudButton StartIcon="@Icons.Material.Outlined.Login"
+    OnClick="@(() => navigationManager.NavigateTo("/login", forceLoad: true))">Přihlásit se</MudButton>
 
 @code {
+    private PersistingComponentStateSubscription? _subscription;
     private List<CourseCln>? Courses;
 
     async Task InitialLoad()
     {
-        Courses = await selectService.GetAllCourses(FillCourseExtended.Availability | FillCourseExtended.Occupied);
+        Courses = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(Courses), out var cached)
+            ? cached?.ToList()
+            : (await selectService.GetAllCourses(FillCourseExtended.Availability | FillCourseExtended.Occupied))?.ToList();
 
         StateHasChanged();
     }
     protected override void OnInitialized()
     {
         base.OnInitialized();
+        _subscription = ApplicationState.RegisterOnPersisting(Persist);
+
         _ = InitialLoad();
     }
+
+    private Task Persist()
+    {
+        if (Courses is not null)
+            ApplicationState.PersistAsJson(nameof(Courses), Courses);
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _subscription?.Dispose();
 }

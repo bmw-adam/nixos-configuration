@@ -12,6 +12,7 @@ public class TpvVyberContext : DbContext
     public required DbSet<Student> Students { get; set; }
     public required DbSet<Course> Courses { get; set; }
     public required DbSet<OrderCourse> OrderCourses { get; set; }
+    public required DbSet<LoggingEnding> LoggingEndings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

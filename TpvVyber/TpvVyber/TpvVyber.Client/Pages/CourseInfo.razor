@@ -1,5 +1,7 @@
 @page "/course_info/{CourseId:int}"
 @inject ISelectService selectService
+@inject PersistentComponentState ApplicationState
+@implements IDisposable
 @attribute [Authorize]
 
 @if (Course != null)
@@ -7,8 +9,8 @@
     <MudSimpleTable Dense="true" Hover="true" Bordered="true" Striped="false" Style="overflow-x: auto;">
         <thead>
             <MudTr>
-                <MudTh>Vlastnost</MudTh>
-                <MudTh>Hodnota</MudTh>
+                <MudTh><b>Vlastnost</b></MudTh>
+                <MudTh><b>Hodnota</b></MudTh>
             </MudTr>
         </thead>
         <tbody>
@@ -57,20 +59,34 @@ else
 @code {
     [Parameter]
     public int CourseId { get; set; }
-
+    private PersistingComponentStateSubscription? _subscription;
     private CourseCln? Course { get; set; }
 
     private async Task InitialLoad()
     {
-        var courseInfo = await selectService.GetCourseInfo(CourseId, FillCourseExtended.Students |
-        FillCourseExtended.Availability);
-        Course = courseInfo;
+        Course = ApplicationState.TryTakeFromJson<CourseCln>(nameof(Course), out var cached)
+            ? cached
+            : (await selectService.GetCourseInfo(CourseId, FillCourseExtended.Students |
+            FillCourseExtended.Availability));
+
         StateHasChanged();
     }
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
+        _subscription = ApplicationState.RegisterOnPersisting(Persist);
+
         _ = InitialLoad();
     }
+
+    private Task Persist()
+    {
+        if (Course is not null)
+            ApplicationState.PersistAsJson(nameof(Course), Course);
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _subscription?.Dispose();
 }

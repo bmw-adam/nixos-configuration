@@ -4,6 +4,10 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using TpvVyber.Client.Classes;
+using TpvVyber.Client.Services.Admin;
+using TpvVyber.Data;
+using TpvVyber.Extensions;
 
 namespace TpvVyber.Services;
 
@@ -119,7 +123,7 @@ public static class Auth
 
                     options.Events = new OpenIdConnectEvents
                     {
-                        OnTokenValidated = context => // TODO create a student there
+                        OnTokenValidated = async context => // TODO create a student there
                         {
                             var identity = (ClaimsIdentity)context.Principal!.Identity!;
 
@@ -163,7 +167,38 @@ public static class Auth
                                 identity.AddClaim(new Claim(roleScope, "Admin"));
                             }
 
-                            return Task.CompletedTask;
+                            if (string.IsNullOrWhiteSpace(userEmail))
+                                return;
+
+                            var db =
+                                context.HttpContext.RequestServices.GetRequiredService<TpvVyberContext>();
+
+                            var adminService =
+                                context.HttpContext.RequestServices.GetRequiredService<IAdminService>();
+
+                            var user = db.Students.FirstOrDefault(u => u.Email == userEmail);
+
+                            var userInfo = context.Principal.Claims.GetCurrentUser();
+
+                            if (user == null)
+                            {
+                                var newStudent = new StudentCln
+                                {
+                                    Class = string.Join(";", userInfo.UserRoles),
+                                    Email = userEmail,
+                                    Name = userInfo.UserName,
+                                };
+
+                                var newStudentDb = await adminService.AddStudentAsync(newStudent);
+
+                                if (newStudentDb != null)
+                                {
+                                    var newUsersOrderCourses = db.OrderCourses.Where(e =>
+                                        e.StudentId == newStudentDb.Id
+                                    );
+                                }
+                            }
+                            return;
                         },
                     };
                 }

@@ -5,6 +5,8 @@ namespace TpvVyber.Client.Services.Admin;
 
 public interface IAdminService
 {
+    public Task<LoggingEndingCln?> GetLoggingEndings();
+    public Task<LoggingEndingCln?> UpdateLoggingEnding(LoggingEndingCln loggingEnding);
     #region Courses
     public Task<CourseCln> AddCourseAsync(CourseCln item, FillCourseExtended? fillExtended = null);
     public Task DeleteCourseAsync(int Id);

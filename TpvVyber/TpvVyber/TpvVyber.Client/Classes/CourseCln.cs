@@ -17,6 +17,7 @@ public class CourseCln
 public class CourseClnExtended
 {
     public List<StudentCln>? Students { get; set; }
+    public List<OrderCourseCln>? OrderCourses { get; set; }
     public Availability? Availability { get; set; }
     public int? Occupied { get; set; }
 }
@@ -26,6 +27,7 @@ public enum FillCourseExtended
     Students = 1,
     Availability = 2,
     Occupied = 4,
+    OrderCourses = 8,
 }
 
 public enum Availability

@@ -1,0 +1,155 @@
+@page "/admin/results"
+@attribute [Authorize(Roles = "Admin")]
+@inject IAdminService AdminService
+@inject PersistentComponentState ApplicationState
+@implements IDisposable
+
+<PageTitle>Výsledky</PageTitle>
+<MudText Typo="Typo.h4">Výsledky</MudText>
+
+<MudText Typo="Typo.h6">Konec:</MudText>
+<MudStack Row>
+    <MudDatePicker Label="Datum" @bind-Date="LoggingEndTime"></MudDatePicker>
+    <MudTimePicker Label="čas" @bind-Time="LoggingEndTimeSpan"></MudTimePicker>
+    <MudButton OnClick="SubmitDateTime">Ok</MudButton>
+</MudStack>
+<div style="height: 20px;"></div>
+<MudPaper Class="doc-section-component-container">
+    <MudChart ChartType="MudBlazor.ChartType.StackedBar" ChartSeries="@_series" @bind-SelectedIndex="_index"
+        XAxisLabels="@_xAxisLabels" Width="100%" Height="auto" AxisChartOptions="_axisChartOptions"></MudChart>
+</MudPaper>
+<MudText Typo="Typo.caption"><i>Kolik lidí si dalo kurz na kolikáté pořadí?</i></MudText>
+
+<div style="height: 10px"></div>
+<MudText Typo="Typo.h4">Pořadí - Výsledky</MudText>
+<MudTable Items="@(Students ?? [])" Hover="true" Breakpoint="Breakpoint.Sm"
+    Loading="@(StudentCourses == null || Students == null)" LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>Třída</MudTh>
+        <MudTh>Jméno žáka</MudTh>
+        <MudTh>E-Mail</MudTh>
+        <MudTh>Název kurzu</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Třída">@GetClassName(context.Class)</MudTd>
+        <MudTd DataLabel="Jméno žáka">@context.Name</MudTd>
+        <MudTd DataLabel="E-Mail">@context.Email</MudTd>
+        <MudTd DataLabel="Název kurzu">@StudentCourses?.FirstOrDefault(e => e.Value.Select(q =>
+                        q.Id).Contains(context.Id)).Key?.Name</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private PersistingComponentStateSubscription? _subscription;
+
+    private Dictionary<CourseCln, List<StudentCln>>? StudentCourses;
+    private List<StudentCln>? Students { get; set; }
+    private List<CourseCln>? Courses { get; set; }
+    private DateTime? LoggingEndTime;
+    private TimeSpan? LoggingEndTimeSpan;
+    private LoggingEndingCln? loggingEndingCln;
+
+    private int _index = -1; //default value cannot be 0 -> first selectedindex is 0.
+    private AxisChartOptions _axisChartOptions = new AxisChartOptions();
+
+    private List<ChartSeries> _series = new List<ChartSeries>();
+    private string[] _xAxisLabels = { };
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _subscription = ApplicationState.RegisterOnPersisting(Persist);
+        _ = AsyncLoad();
+    }
+
+    private async Task<Dictionary<CourseCln, List<StudentCln>>> ApiCall()
+    {
+        var dict = await AdminService.ShowFillCourses(false, FillCourseExtended.Students, null);
+        var coursesDict = new Dictionary<CourseCln, List<StudentCln>>();
+
+        foreach (var pair in dict)
+        {
+            var course = await AdminService.GetCourseByIdAsync(pair.Key, null);
+            if (course != null)
+            {
+                coursesDict.Add(course, pair.Value.ToList());
+            }
+        }
+        return coursesDict;
+    }
+
+    private async Task AsyncLoad()
+    {
+        StudentCourses = ApplicationState.TryTakeFromJson<Dictionary<CourseCln, List<StudentCln>>>(nameof(StudentCourses), out
+        var cached)
+        ? cached
+        : (await ApiCall());
+
+        Students = ApplicationState.TryTakeFromJson<List<StudentCln>>(nameof(Students), out
+        var cachedStudents)
+        ? cachedStudents
+        : ((await AdminService.GetAllStudentsAsync(FillStudentExtended.Courses | FillStudentExtended.OrderCourses)).ToList());
+
+        Courses = ApplicationState.TryTakeFromJson<List<CourseCln>>(nameof(Courses), out
+        var cachedCourses)
+        ? cachedCourses
+        : ((await AdminService.GetAllCoursesAsync(FillCourseExtended.OrderCourses | FillCourseExtended.Students)).ToList());
+
+
+        _xAxisLabels = (StudentCourses?.Select(e => e.Key.Name).ToArray() ?? []).Order().ToArray();
+
+        foreach (var order in (Students?.SelectMany(e => e.Extended?.OrderCourses ?? [])?.Where(r => r is not null) ??
+        []).Select(r => r.Order).Distinct())
+        {
+            _series.Add(
+            new ChartSeries()
+            {
+                Name = $"Pořadí {order}",
+                Data = _xAxisLabels.Select(a => Courses?.FirstOrDefault(s => s.Name == a)).Select(r =>
+    r?.Extended?.OrderCourses?.Where(d => d.Order == order)).Select(q => q?.Count() ?? 0).Select(r => (double)r).ToArray()
+            }
+            );
+        }
+
+        var loggingEnd = await AdminService.GetLoggingEndings();
+        if (loggingEnd?.TimeEnding != null)
+        {
+            LoggingEndTime = loggingEnd.TimeEnding.Date;
+            LoggingEndTimeSpan = loggingEnd.TimeEnding - loggingEnd.TimeEnding.Date;
+        }
+        loggingEndingCln = loggingEnd;
+        StateHasChanged();
+    }
+    public void Dispose() => _subscription?.Dispose();
+
+    private Task Persist()
+    {
+        if (StudentCourses is not null)
+            ApplicationState.PersistAsJson(nameof(StudentCourses), StudentCourses);
+
+        if (Students is not null)
+            ApplicationState.PersistAsJson(nameof(Students), Students);
+
+        if (Courses is not null)
+            ApplicationState.PersistAsJson(nameof(Courses), Courses);
+
+        return Task.CompletedTask;
+    }
+
+    private string GetClassName(string classRoles)
+    {
+        var roles = classRoles.Split(";");
+        return roles.OrderByDescending(e => ClassExtensions.CalculateClaimStrenght(e)).FirstOrDefault() ?? "";
+    }
+
+    async Task SubmitDateTime()
+    {
+        if (LoggingEndTimeSpan == null || LoggingEndTime == null || loggingEndingCln == null)
+        {
+            return;
+        }
+        loggingEndingCln.TimeEnding = LoggingEndTime.Value.Add(LoggingEndTimeSpan.Value);
+        await AdminService.UpdateLoggingEnding(loggingEndingCln);
+        await AsyncLoad();
+    }
+}

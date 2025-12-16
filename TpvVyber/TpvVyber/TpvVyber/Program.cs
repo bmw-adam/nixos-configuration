@@ -18,10 +18,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // builder.Services.AddHttpClient();
 
-builder.ConfigureTls();
-builder.AddLoggingService();
-builder.AddDatabaseService();
-builder.AddAuthService();
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
@@ -43,7 +39,14 @@ builder.Services.AddAntiforgery();
 builder.Services.AddScoped<IAdminService, ServerAdminService>();
 builder.Services.AddScoped<ISelectService, ServerSelectService>();
 
+builder.ConfigureTls();
+builder.AddLoggingService();
+builder.AddDatabaseService();
+builder.AddAuthService();
+
 builder.Services.AddBlazorBootstrap();
+
+builder.Services.AddScoped<NotificationService>();
 
 var redirectUri =
     builder.Configuration["RedirectUri"] ?? throw new Exception("Redirect uri was not set.");
