@@ -60,6 +60,7 @@ public static class Auth
                 OpenIdConnectDefaults.AuthenticationScheme,
                 options =>
                 {
+                    options.UseTokenLifetime = false;
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 
                     var backendIdpUrl = "https://sso.gasos.cz/realms/ucs";
@@ -77,11 +78,9 @@ public static class Auth
                         ),
                         EndSessionEndpoint = $"{clientIdpUrl}/protocol/openid-connect/logout",
                     };
-                    Console.WriteLine("Jwks: " + options.Configuration.JsonWebKeySet);
                     foreach (var key in options.Configuration.JsonWebKeySet.GetSigningKeys())
                     {
                         options.Configuration.SigningKeys.Add(key);
-                        Console.WriteLine("Added SigningKey: " + key.KeyId);
                     }
 
                     options.ClientId = "tpv-vyber-01";
@@ -189,7 +188,10 @@ public static class Auth
                                     Name = userInfo.UserName,
                                 };
 
-                                var newStudentDb = await adminService.AddStudentAsync(newStudent);
+                                var newStudentDb = await adminService.AddStudentAsync(
+                                    newStudent,
+                                    false
+                                );
 
                                 if (newStudentDb != null)
                                 {
@@ -203,7 +205,11 @@ public static class Auth
                     };
                 }
             )
-            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
+            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+            {
+                options.ExpireTimeSpan = TimeSpan.FromDays(2);
+                options.SlidingExpiration = true;
+            });
 
         builder.Services.AddAuthorization();
 

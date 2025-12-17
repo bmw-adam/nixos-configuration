@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using TpvVyber.Client.Classes;
 using TpvVyber.Client.Services.Admin;
+using TpvVyber.Extensions;
 
 namespace TpvVyber.Endpoints.Admin;
 
@@ -20,8 +21,11 @@ public static class CoursesAdminEndpoints
         coursesGroup.MapDelete("delete/{id}", HandlerDeleteCourse);
         coursesGroup.MapPut("update", HandlerUpdateCourse);
         coursesGroup.MapGet("show_fill_courses", HandlerShowFillCourses);
-        coursesGroup.MapGet("get_logging_ending", HandlerGetLoggingEnding);
         coursesGroup.MapPut("update_logging_ending", HandlerUpdateLoggingEnding);
+
+        var coursesGroupNoAdmin = app.MapGroup($"{baseAdminPath}/courses");
+
+        coursesGroupNoAdmin.MapGet("get_logging_ending", HandlerGetLoggingEnding);
     }
 
     private static async Task<IResult> HandlerGetAllCourses(
@@ -31,7 +35,7 @@ public static class CoursesAdminEndpoints
     {
         try
         {
-            var result = await adminService.GetAllCoursesAsync(fillExtended);
+            var result = await adminService.GetAllCoursesAsync(true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -48,7 +52,7 @@ public static class CoursesAdminEndpoints
     {
         try
         {
-            var result = await adminService.GetCourseByIdAsync(id, fillExtended);
+            var result = await adminService.GetCourseByIdAsync(id, true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -65,7 +69,7 @@ public static class CoursesAdminEndpoints
     {
         try
         {
-            var result = await adminService.AddCourseAsync(item, fillExtended);
+            var result = await adminService.AddCourseAsync(item, true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -78,7 +82,7 @@ public static class CoursesAdminEndpoints
     {
         try
         {
-            await adminService.DeleteCourseAsync(id);
+            await adminService.DeleteCourseAsync(id, true);
             return Results.Ok();
         }
         catch (Exception ex)
@@ -94,7 +98,7 @@ public static class CoursesAdminEndpoints
     {
         try
         {
-            await adminService.UpdateCourseAsync(item);
+            await adminService.UpdateCourseAsync(item, true);
             return Results.Ok();
         }
         catch (Exception ex)
@@ -112,7 +116,12 @@ public static class CoursesAdminEndpoints
     {
         try
         {
-            var result = await adminService.ShowFillCourses(forceRedo, fillCourse, fillStudent);
+            var result = await adminService.ShowFillCourses(
+                forceRedo,
+                true,
+                fillCourse,
+                fillStudent
+            );
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -125,7 +134,7 @@ public static class CoursesAdminEndpoints
     {
         try
         {
-            var result = await adminService.GetLoggingEndings();
+            var result = await adminService.GetLoggingEndings(true);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -141,7 +150,7 @@ public static class CoursesAdminEndpoints
     {
         try
         {
-            var result = await adminService.UpdateLoggingEnding(loggingEndingCln);
+            var result = await adminService.UpdateLoggingEnding(loggingEndingCln, true);
             return Results.Ok(result);
         }
         catch (Exception ex)

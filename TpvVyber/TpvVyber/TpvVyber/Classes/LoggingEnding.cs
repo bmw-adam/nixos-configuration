@@ -19,7 +19,7 @@ public class LoggingEnding
         FillLoggingEndingExtended? fillExtended = null
     )
     {
-        var clientObject = new LoggingEndingCln { Id = Id, TimeEnding = TimeEnding };
+        var clientObject = new LoggingEndingCln { Id = Id, TimeEnding = TimeEnding.ToLocalTime() };
         return Task.FromResult(clientObject);
     }
 
@@ -41,7 +41,7 @@ public class LoggingEnding
             throw new Exception("Nepodařilo se najít LoggingEndings v databázi");
         }
 
-        entity.TimeEnding = clientObject.TimeEnding;
+        entity.TimeEnding = clientObject.TimeEnding.ToUniversalTime();
         return entity;
     }
 }

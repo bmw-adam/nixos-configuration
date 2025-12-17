@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using TpvVyber.Client.Classes;
 using TpvVyber.Client.Services.Select;
+using TpvVyber.Extensions;
 
 namespace TpvVyber.Endpoints.Select;
 
@@ -29,7 +30,7 @@ public static class SelectEndpoints
     {
         try
         {
-            var result = await selectService.GetSortedCoursesAsync(fillExtended);
+            var result = await selectService.GetSortedCoursesAsync(true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -45,11 +46,12 @@ public static class SelectEndpoints
     {
         try
         {
-            await selectService.UpdateOrderAsync(updateItems);
+            await selectService.UpdateOrderAsync(updateItems, true);
             return Results.Ok();
         }
         catch (Exception ex)
         {
+            System.Console.WriteLine($"Error: {ex.Message}");
             return Results.Problem(ex.Message);
         }
     }
@@ -62,7 +64,7 @@ public static class SelectEndpoints
     {
         try
         {
-            var result = await selectService.GetCourseInfo(id, fillExtended);
+            var result = await selectService.GetCourseInfo(id, true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -78,7 +80,7 @@ public static class SelectEndpoints
     {
         try
         {
-            var result = await selectService.GetAllCourses(fillExtended);
+            var result = await selectService.GetAllCourses(true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)

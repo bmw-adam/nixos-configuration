@@ -21,7 +21,8 @@
                     EndIcon="@Icons.Material.Outlined.Info">
                     @item.Name
                 </MudButton>
-                <MudChip T="string" Variant="Variant.Outlined" Color="AvailabilityBadge(item.Extended?.Availability)">@item.Extended?.Availability?.GetDescription()</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined" Color="AvailabilityBadge(item.Extended?.Availability)">
+                    @item.Extended?.Availability?.GetDescription()</MudChip>
             </MudStack>
         </ItemTemplate>
     </SortableList>
@@ -43,6 +44,9 @@ else
     SortableList<CourseCln>? SortableListRef;
     List<CourseCln>? SortableCourses = null;
     private PersistingComponentStateSubscription? _subscription;
+    [CascadingParameter]
+    public bool ReThrowError { get; set; }
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -54,7 +58,7 @@ else
 
     private async Task<List<CourseCln>?> ApiCallCourses()
     {
-        var dict = await SelectService.GetSortedCoursesAsync(FillCourseExtended.Availability);
+        var dict = await SelectService.GetSortedCoursesAsync(ReThrowError, FillCourseExtended.Availability);
         var lst = dict?.OrderBy(d => d.Key)?.Select(r => r.Value) ?? [];
 
         if (dict == null || lst == null)
@@ -103,6 +107,7 @@ else
         SortableCourses
         .Select((course, index) => new { index, course })
         .ToDictionary(x => x.index, x => x.course)
+        , ReThrowError
         );
         await InitialLoadSort();
     }

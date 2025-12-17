@@ -1,25 +1,36 @@
 ﻿@inherits LayoutComponentBase
+@inject IAdminService adminService
+@inject NavigationManager navigationManager
+@implements IDisposable
 
-<MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
+<MudThemeProvider @ref="provider" Theme="@_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <Notifications />
 
-<MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">Tpv Výběr</MudText>
-        <MudSpacer />
-        <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
-    </MudAppBar>
-    <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
-        <NavMenu />
-    </MudDrawer>
-    <MudMainContent Class="pt-16 pa-4">
-        @Body
-    </MudMainContent>
-</MudLayout>
+<CascadingValue Name="ReThrowError" Value="@(RendererInfo.Name == "WebAssembly")">
+    <CascadingValue Name="LoggingEndingCln" Value="LoggingEndingCln">
+        <MudLayout>
+            <MudAppBar Elevation="1">
+                <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                    OnClick="@((e) => DrawerToggle())" />
+                <MudText Typo="Typo.h5" Class="ml-3">Tpv Výběr</MudText>
+                <MudSpacer />
+            </MudAppBar>
+            <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+                <NavMenu />
+            </MudDrawer>
+            <MudMainContent Class="pt-16 pa-4">
+                @if ((LoggingEndingCln?.TimeEnding != null) && (LoggingEndingCln.TimeEnding < DateTime.Now))
+                {
+                    <MudAlert Severity="Severity.Warning">Přihlašování skončilo. Hodně štěstí!</MudAlert>
+                }
+                @Body
+            </MudMainContent>
+        </MudLayout>
+    </CascadingValue>
+</CascadingValue>
 
 
 <MudOverlay ZIndex="9999" Visible="@(!RendererInfo.IsInteractive)" DarkBackground="true" Absolute="true">
@@ -36,10 +47,15 @@
     private bool _drawerOpen = true;
     private bool _isDarkMode = true;
     private MudTheme? _theme = null;
+    private MudThemeProvider? provider;
+    LoggingEndingCln? LoggingEndingCln;
+    private CancellationTokenSource? _cts;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
+        _ = LoadDarkMode();
+        _ = LoadLoggingEnding();
 
         _theme = new()
         {
@@ -48,6 +64,54 @@
             LayoutProperties = new LayoutProperties()
         };
     }
+
+    private Task LoadLoggingEnding()
+    {
+        _cts = new CancellationTokenSource();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!_cts.Token.IsCancellationRequested)
+                {
+                    await Task.Delay(3000, _cts.Token);
+                    await LoadAsync();
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // Expected when disposing
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
+    async Task LoadAsync()
+    {
+        LoggingEndingCln = await adminService.GetLoggingEndings(RendererInfo.Name == "WebAssembly");
+        StateHasChanged();
+    }
+
+    private async Task LoadDarkMode()
+    {
+        if (provider == null)
+        {
+            return;
+        }
+        _isDarkMode = await provider.GetSystemDarkModeAsync();
+        await provider.WatchSystemDarkModeAsync(OnSystemPreferenceChanged);
+        StateHasChanged();
+    }
+    private Task OnSystemPreferenceChanged(bool newValue)
+    {
+        _isDarkMode = newValue;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
 
     private void DrawerToggle()
     {
@@ -103,6 +167,10 @@
         true => Icons.Material.Rounded.AutoMode,
         false => Icons.Material.Outlined.DarkMode,
     };
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
 }
-
-

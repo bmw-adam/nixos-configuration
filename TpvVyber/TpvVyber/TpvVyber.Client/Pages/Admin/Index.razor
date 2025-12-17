@@ -10,13 +10,16 @@
     žáků.</p>
 <br />
 
-<MudText Typo="Typo.h6">Správa kurzů (@(coursesCount?.ToString() ?? "Načítání")) <MudLink Href="/admin/courses">Kurzy TPV</MudLink>
+<MudText Typo="Typo.h6">Správa kurzů (@(coursesCount?.ToString() ?? "Načítání")) <MudLink Href="/admin/courses">Kurzy
+        TPV</MudLink>
 </MudText>
 
-<MudText Typo="Typo.h6">Správa žáků (@(studentsCount?.ToString() ?? "Načítání")) <MudLink Href="/admin/students">Žáci</MudLink>
+<MudText Typo="Typo.h6">Správa žáků (@(studentsCount?.ToString() ?? "Načítání")) <MudLink Href="/admin/students">Žáci
+    </MudLink>
 </MudText>
 
-<MudText Typo="Typo.h6">Pořadí kurzů (@(orderCoursesCount?.ToString() ?? "Načítání")) <MudLink Href="/admin/ordercourses">Pořadí
+<MudText Typo="Typo.h6">Pořadí kurzů (@(orderCoursesCount?.ToString() ?? "Načítání")) <MudLink
+        Href="/admin/ordercourses">Pořadí
         kurzů</MudLink>
 </MudText>
 <br />
@@ -27,6 +30,9 @@
     private int? orderCoursesCount;
 
     private PersistingComponentStateSubscription? _subscription;
+
+    [CascadingParameter]
+    public bool ReThrowError { get; set; }
 
     protected override Task OnInitializedAsync()
     {
@@ -40,15 +46,15 @@
     {
         coursesCount = ApplicationState.TryTakeFromJson<int>(nameof(coursesCount), out var cachedCoursesCount)
         ? cachedCoursesCount
-        : ((await AdminService.GetAllCoursesAsync()).Count());
+        : ((await AdminService.GetAllCoursesAsync(ReThrowError)).Count());
 
         studentsCount = ApplicationState.TryTakeFromJson<int>(nameof(studentsCount), out var cachedStudentsCount)
         ? cachedStudentsCount
-        : ((await AdminService.GetAllStudentsAsync()).Count());
+        : ((await AdminService.GetAllStudentsAsync(ReThrowError)).Count());
 
         orderCoursesCount = ApplicationState.TryTakeFromJson<int>(nameof(orderCoursesCount), out var cachedOrderCoursesCount)
         ? cachedOrderCoursesCount
-        : ((await AdminService.GetAllOrderCourseAsync()).Count());
+        : ((await AdminService.GetAllOrderCourseAsync(ReThrowError)).Count());
 
         StateHasChanged();
     }

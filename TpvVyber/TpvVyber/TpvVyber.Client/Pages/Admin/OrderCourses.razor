@@ -96,6 +96,8 @@ else
 
     private List<CourseCln> AvailableCourses = new();
     private List<StudentCln> AvailableStudents = new();
+    [CascadingParameter]
+    public bool ReThrowError { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -103,15 +105,15 @@ else
 
         AvailableCourses = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(AvailableCourses), out var cachedCourses)
             ? cachedCourses?.ToList() ?? new List<CourseCln>()
-            : (await AdminService.GetAllCoursesAsync()).ToList();
+            : (await AdminService.GetAllCoursesAsync(ReThrowError)).ToList();
 
         AvailableStudents = ApplicationState.TryTakeFromJson<IEnumerable<StudentCln>>(nameof(AvailableStudents), out var cachedStudents)
             ? cachedStudents?.ToList() ?? new List<StudentCln>()
-            : (await AdminService.GetAllStudentsAsync()).ToList();
+            : (await AdminService.GetAllStudentsAsync(ReThrowError)).ToList();
 
         OrderCourseData = ApplicationState.TryTakeFromJson<IEnumerable<OrderCourseCln>>(nameof(OrderCourseData), out var cached)
             ? cached?.ToList()
-            : (await AdminService.GetAllOrderCourseAsync(FillOrderCourseExtended.Student | FillOrderCourseExtended.Course)).ToList();
+            : (await AdminService.GetAllOrderCourseAsync(ReThrowError, FillOrderCourseExtended.Student | FillOrderCourseExtended.Course)).ToList();
     }
 
     private Task Persist()
@@ -145,7 +147,7 @@ else
 
         if (!(result?.Canceled ?? true) && retData != null && retData is OrderCourseCln orderCourse)
         {
-            var newOrderCourse = await AdminService.AddOrderCourseAsync(orderCourse, FillOrderCourseExtended.Student | FillOrderCourseExtended.Course);
+            var newOrderCourse = await AdminService.AddOrderCourseAsync(orderCourse, ReThrowError, FillOrderCourseExtended.Student | FillOrderCourseExtended.Course);
             if (newOrderCourse is not null)
             {
                 OrderCourseData?.Insert(0, newOrderCourse);
@@ -155,7 +157,7 @@ else
 
     private async Task DeleteItemAsync(OrderCourseCln item)
     {
-        await AdminService.DeleteOrderCourseAsync(item.Id);
+        await AdminService.DeleteOrderCourseAsync(item.Id, ReThrowError);
         OrderCourseData?.Remove(item);
     }
 
@@ -166,7 +168,7 @@ else
 
     private async Task CommitDataAsync(OrderCourseCln OrderCourse)
     {
-        await AdminService.UpdateOrderCourseAsync(OrderCourse);
+        await AdminService.UpdateOrderCourseAsync(OrderCourse, ReThrowError);
         // Only reload if needed, often unnecessary if your grid binds to OrderCourseData
     }
 

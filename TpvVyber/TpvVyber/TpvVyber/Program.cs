@@ -5,7 +5,6 @@ using BlazorBootstrap;
 using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor.Services;
 using Serilog;
-using TpvVyber.Client.Classes.Client;
 using TpvVyber.Client.Services.Admin;
 using TpvVyber.Client.Services.Select;
 using TpvVyber.Components;
@@ -17,7 +16,6 @@ using TpvVyber.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // builder.Services.AddHttpClient();
-
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
@@ -36,13 +34,16 @@ builder.Services.AddControllers();
 
 builder.Services.AddAntiforgery();
 
-builder.Services.AddScoped<IAdminService, ServerAdminService>();
-builder.Services.AddScoped<ISelectService, ServerSelectService>();
-
 builder.ConfigureTls();
 builder.AddLoggingService();
 builder.AddDatabaseService();
+
 builder.AddAuthService();
+
+builder.Services.AddMemoryCache();
+
+builder.Services.AddScoped<IAdminService, ServerAdminService>();
+builder.Services.AddScoped<ISelectService, ServerSelectService>();
 
 builder.Services.AddBlazorBootstrap();
 
@@ -50,6 +51,7 @@ builder.Services.AddScoped<NotificationService>();
 
 var redirectUri =
     builder.Configuration["RedirectUri"] ?? throw new Exception("Redirect uri was not set.");
+
 
 var app = builder.Build();
 
@@ -93,7 +95,7 @@ app.UseRouting();
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode()
+    .AddInteractiveServerRenderMode(o =>  o.DisableWebSocketCompression = true)
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(TpvVyber.Client._Imports).Assembly);
 
@@ -116,6 +118,8 @@ OrderCourseAdminEndpoints.MapAdminEndpoints(app);
 // Select
 SelectEndpoints.MapSelectEndpoints(app);
 
-Console.WriteLine("Running.");
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+logger.LogInformation("Running.");
 
 app.Run();

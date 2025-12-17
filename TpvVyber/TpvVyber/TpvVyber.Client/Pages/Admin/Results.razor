@@ -41,6 +41,8 @@
 
 @code {
     private PersistingComponentStateSubscription? _subscription;
+    [CascadingParameter]
+    public bool ReThrowError { get; set; }
 
     private Dictionary<CourseCln, List<StudentCln>>? StudentCourses;
     private List<StudentCln>? Students { get; set; }
@@ -64,12 +66,12 @@
 
     private async Task<Dictionary<CourseCln, List<StudentCln>>> ApiCall()
     {
-        var dict = await AdminService.ShowFillCourses(false, FillCourseExtended.Students, null);
+        var dict = await AdminService.ShowFillCourses(false, ReThrowError, FillCourseExtended.Students, null);
         var coursesDict = new Dictionary<CourseCln, List<StudentCln>>();
 
         foreach (var pair in dict)
         {
-            var course = await AdminService.GetCourseByIdAsync(pair.Key, null);
+            var course = await AdminService.GetCourseByIdAsync(pair.Key, ReThrowError, null);
             if (course != null)
             {
                 coursesDict.Add(course, pair.Value.ToList());
@@ -88,12 +90,12 @@
         Students = ApplicationState.TryTakeFromJson<List<StudentCln>>(nameof(Students), out
         var cachedStudents)
         ? cachedStudents
-        : ((await AdminService.GetAllStudentsAsync(FillStudentExtended.Courses | FillStudentExtended.OrderCourses)).ToList());
+        : ((await AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses | FillStudentExtended.OrderCourses)).ToList());
 
         Courses = ApplicationState.TryTakeFromJson<List<CourseCln>>(nameof(Courses), out
         var cachedCourses)
         ? cachedCourses
-        : ((await AdminService.GetAllCoursesAsync(FillCourseExtended.OrderCourses | FillCourseExtended.Students)).ToList());
+        : ((await AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.OrderCourses | FillCourseExtended.Students)).ToList());
 
 
         _xAxisLabels = (StudentCourses?.Select(e => e.Key.Name).ToArray() ?? []).Order().ToArray();
@@ -111,7 +113,7 @@
             );
         }
 
-        var loggingEnd = await AdminService.GetLoggingEndings();
+        var loggingEnd = await AdminService.GetLoggingEndings(ReThrowError);
         if (loggingEnd?.TimeEnding != null)
         {
             LoggingEndTime = loggingEnd.TimeEnding.Date;
@@ -149,7 +151,7 @@
             return;
         }
         loggingEndingCln.TimeEnding = LoggingEndTime.Value.Add(LoggingEndTimeSpan.Value);
-        await AdminService.UpdateLoggingEnding(loggingEndingCln);
+        await AdminService.UpdateLoggingEnding(loggingEndingCln, ReThrowError);
         await AsyncLoad();
     }
 }

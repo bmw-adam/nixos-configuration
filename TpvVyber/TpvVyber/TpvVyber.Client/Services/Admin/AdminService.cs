@@ -13,6 +13,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
     #region Courses
     public async Task<CourseCln> AddCourseAsync(
         CourseCln item,
+        bool reThrowError,
         FillCourseExtended? fillExtended = null
     )
     {
@@ -29,12 +30,12 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            notificationService.Notify("Nepodařilo se přidat kurz", Severity.Error);
+            notificationService.Notify($"Nepodařilo se přidat kurz {ex.Message}", Severity.Error);
             return item;
         }
     }
 
-    public async Task DeleteCourseAsync(int Id)
+    public async Task DeleteCourseAsync(int Id, bool reThrowError)
     {
         try
         {
@@ -44,12 +45,13 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            notificationService.Notify("Nepodařilo se odebrat kurz", Severity.Error);
+            notificationService.Notify($"Nepodařilo se odebrat kurz {ex.Message}", Severity.Error);
             return;
         }
     }
 
     public async Task<IEnumerable<CourseCln>> GetAllCoursesAsync(
+        bool reThrowError,
         FillCourseExtended? fillExtended = null
     )
     {
@@ -64,13 +66,17 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            notificationService.Notify("Nepodařilo se získat kurzy z databáze", Severity.Error);
+            notificationService.Notify(
+                $"Nepodařilo se získat kurzy z databáze {ex.Message}",
+                Severity.Error
+            );
             return [];
         }
     }
 
     public async Task<CourseCln?> GetCourseByIdAsync(
         int Id,
+        bool reThrowError,
         FillCourseExtended? fillExtended = null
     )
     {
@@ -85,12 +91,15 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            notificationService.Notify("Nepodařilo se získat kurz z databáze", Severity.Error);
+            notificationService.Notify(
+                $"Nepodařilo se získat kurz z databáze {ex.Message}",
+                Severity.Error
+            );
             return null;
         }
     }
 
-    public async Task UpdateCourseAsync(CourseCln item)
+    public async Task UpdateCourseAsync(CourseCln item, bool reThrowError)
     {
         try
         {
@@ -101,7 +110,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         {
             Console.WriteLine($"Error: {ex.Message}");
             notificationService.Notify(
-                "Nepodařilo se aktualizovat kurz v databázi",
+                $"Nepodařilo se aktualizovat kurz v databázi",
                 Severity.Error
             );
             return;
@@ -111,6 +120,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
     #region Students
     public async Task<StudentCln> AddStudentAsync(
         StudentCln item,
+        bool reThrowError,
         FillStudentExtended? fillExtended = null
     )
     {
@@ -127,12 +137,15 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            notificationService.Notify("Nepodařilo se přidat kurz do databáze", Severity.Error);
+            notificationService.Notify(
+                $"Nepodařilo se přidat kurz do databáze {ex.Message}",
+                Severity.Error
+            );
             return item;
         }
     }
 
-    public async Task DeleteStudentAsync(int Id)
+    public async Task DeleteStudentAsync(int Id, bool reThrowError)
     {
         try
         {
@@ -142,12 +155,16 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            notificationService.Notify("Nepodařilo se odebrat žáka z databáze", Severity.Error);
+            notificationService.Notify(
+                $"Nepodařilo se odebrat žáka z databáze {ex.Message}",
+                Severity.Error
+            );
             return;
         }
     }
 
     public async Task<IEnumerable<StudentCln>> GetAllStudentsAsync(
+        bool reThrowError,
         FillStudentExtended? fillExtended = null
     )
     {
@@ -162,13 +179,17 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            notificationService.Notify("Nepodařilo se získat žáky z databáze", Severity.Error);
+            notificationService.Notify(
+                $"Nepodařilo se získat žáky z databáze {ex.Message}",
+                Severity.Error
+            );
             return [];
         }
     }
 
     public async Task<StudentCln?> GetStudentByIdAsync(
         int Id,
+        bool reThrowError,
         FillStudentExtended? fillExtended = null
     )
     {
@@ -183,12 +204,15 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            notificationService.Notify("Nepodařilo se získat žáka z databáze", Severity.Error);
+            notificationService.Notify(
+                $"Nepodařilo se získat žáka z databáze {ex.Message}",
+                Severity.Error
+            );
             return null;
         }
     }
 
-    public async Task UpdateStudentAsync(StudentCln item)
+    public async Task UpdateStudentAsync(StudentCln item, bool reThrowError)
     {
         try
         {
@@ -199,7 +223,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         {
             Console.WriteLine($"Error: {ex.Message}");
             notificationService.Notify(
-                "Nepodařilo se aktualizovat žáka v databázi",
+                $"Nepodařilo se aktualizovat žáka v databázi {ex.Message}",
                 Severity.Error
             );
             return;
@@ -209,6 +233,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
     #region OrderCourses
     public async Task<OrderCourseCln> AddOrderCourseAsync(
         OrderCourseCln item,
+        bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     )
     {
@@ -226,14 +251,14 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         {
             Console.WriteLine($"Error: {ex.Message}");
             notificationService.Notify(
-                "Nepodařilo se přidat pořadí kurzu do databáze",
+                $"Nepodařilo se přidat pořadí kurzu do databáze {ex.Message}",
                 Severity.Error
             );
             return item;
         }
     }
 
-    public async Task DeleteOrderCourseAsync(int Id)
+    public async Task DeleteOrderCourseAsync(int Id, bool reThrowError)
     {
         try
         {
@@ -244,7 +269,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         {
             Console.WriteLine($"Error: {ex.Message}");
             notificationService.Notify(
-                "Nepodařilo se odebrat pořadí kurzu z databáze",
+                $"Nepodařilo se odebrat pořadí kurzu z databáze {ex.Message}",
                 Severity.Error
             );
             return;
@@ -252,6 +277,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
     }
 
     public async Task<IEnumerable<OrderCourseCln>> GetAllOrderCourseAsync(
+        bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     )
     {
@@ -267,7 +293,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         {
             Console.WriteLine($"Error: {ex.Message}");
             notificationService.Notify(
-                "Nepodařilo se získat pořadí kurzů z databáze",
+                $"Nepodařilo se získat pořadí kurzů z databáze {ex.Message}",
                 Severity.Error
             );
             return [];
@@ -276,6 +302,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
 
     public async Task<OrderCourseCln?> GetOrderCourseByIdAsync(
         int Id,
+        bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     )
     {
@@ -291,14 +318,14 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         {
             Console.WriteLine($"Error: {ex.Message}");
             notificationService.Notify(
-                "Nepodařilo se získat pořadí kurzu z databáze",
+                $"Nepodařilo se získat pořadí kurzu z databáze {ex.Message}",
                 Severity.Error
             );
             return null;
         }
     }
 
-    public async Task UpdateOrderCourseAsync(OrderCourseCln item)
+    public async Task UpdateOrderCourseAsync(OrderCourseCln item, bool reThrowError)
     {
         try
         {
@@ -309,7 +336,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         {
             Console.WriteLine($"Error: {ex.Message}");
             notificationService.Notify(
-                "Nepodařilo se aktualizovat pořadí kurzu v databázi",
+                $"Nepodařilo se aktualizovat pořadí kurzu v databázi {ex.Message}",
                 Severity.Error
             );
             return;
@@ -318,6 +345,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
 
     public async Task<Dictionary<int, List<StudentCln>>> ShowFillCourses(
         bool? forceRedo,
+        bool reThrowError,
         FillCourseExtended? fillCourse = null,
         FillStudentExtended? fillStudent = null
     )
@@ -332,12 +360,15 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            notificationService.Notify("Nepodařilo se získat dočasné výsledky", Severity.Error);
+            notificationService.Notify(
+                $"Nepodařilo se získat dočasné výsledky {ex.Message}",
+                Severity.Error
+            );
             return [];
         }
     }
 
-    public async Task<LoggingEndingCln?> GetLoggingEndings()
+    public async Task<LoggingEndingCln?> GetLoggingEndings(bool reThrowError)
     {
         try
         {
@@ -349,12 +380,18 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            notificationService.Notify("Nepodařilo se získat konec přihlašování", Severity.Error);
+            notificationService.Notify(
+                $"Nepodařilo se získat konec přihlašování {ex.Message}",
+                Severity.Error
+            );
             return null;
         }
     }
 
-    public async Task<LoggingEndingCln?> UpdateLoggingEnding(LoggingEndingCln loggingEnding)
+    public async Task<LoggingEndingCln?> UpdateLoggingEnding(
+        LoggingEndingCln loggingEnding,
+        bool reThrowError
+    )
     {
         try
         {
@@ -369,7 +406,7 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         {
             Console.WriteLine($"Error: {ex.Message}");
             notificationService.Notify(
-                "Nepodařilo se aktualizovat konec přihlašování",
+                $"Nepodařilo se aktualizovat konec přihlašování {ex.Message}",
                 Severity.Error
             );
             return null;

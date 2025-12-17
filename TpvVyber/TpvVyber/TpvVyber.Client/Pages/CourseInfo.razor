@@ -61,12 +61,15 @@ else
     public int CourseId { get; set; }
     private PersistingComponentStateSubscription? _subscription;
     private CourseCln? Course { get; set; }
+    [CascadingParameter]
+    public bool ReThrowError { get; set; }
+
 
     private async Task InitialLoad()
     {
         Course = ApplicationState.TryTakeFromJson<CourseCln>(nameof(Course), out var cached)
             ? cached
-            : (await selectService.GetCourseInfo(CourseId, FillCourseExtended.Students |
+            : (await selectService.GetCourseInfo(CourseId, ReThrowError, FillCourseExtended.Students |
             FillCourseExtended.Availability));
 
         StateHasChanged();

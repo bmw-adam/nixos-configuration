@@ -15,6 +15,8 @@ public static class DatabaseService
             var startTime = DateTime.UtcNow;
             var migrationApplied = false;
 
+            var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
             while (!migrationApplied && DateTime.UtcNow - startTime < maxWaitTime)
             {
                 try
@@ -28,11 +30,35 @@ public static class DatabaseService
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(
+                    logger.LogError(
                         $"Database not ready yet: {ex.Message}. Retrying in {delay.TotalSeconds}s..."
                     );
                     Thread.Sleep(delay);
                 }
+            }
+
+            Thread.Sleep(delay);
+
+            try
+            {
+                var loggingEnd = db.LoggingEndings.FirstOrDefault();
+
+                if (loggingEnd == null)
+                {
+                    db.LoggingEndings.Add(
+                        new Classes.LoggingEnding
+                        {
+                            TimeEnding = DateTime.Now.AddDays(2).ToUniversalTime(),
+                        }
+                    );
+                    await db.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    $"Nepodařilo se nastavit konec přihlašování v databázi: {ex.Message}"
+                );
             }
 
             if (!migrationApplied)
@@ -43,7 +69,7 @@ public static class DatabaseService
             }
             else
             {
-                Console.WriteLine("Database migrations applied successfully.");
+                logger.LogInformation("Database migrations applied successfully.");
             }
         }
     }

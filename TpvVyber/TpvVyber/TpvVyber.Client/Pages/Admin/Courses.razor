@@ -92,6 +92,8 @@ else
     private List<CourseCln>? CoursesData;
     private MudDataGrid<CourseCln> courseGrid = default!;
     private PersistingComponentStateSubscription? _subscription;
+    [CascadingParameter]
+    public bool ReThrowError { get; set; }
 
     private List<OrderCourseCln>? OrderCourses;
 
@@ -101,13 +103,13 @@ else
 
         CoursesData = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(CoursesData), out var cached)
         ? cached?.ToList()
-        : (await AdminService.GetAllCoursesAsync(FillCourseExtended.Students)).ToList();
+        : (await AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.Students)).ToList();
 
 
         OrderCourses = ApplicationState.TryTakeFromJson<IEnumerable<OrderCourseCln>>(nameof(OrderCourses), out var
         cachedOrderCourses)
         ? cachedOrderCourses?.ToList()
-        : (await AdminService.GetAllOrderCourseAsync(FillOrderCourseExtended.Student |
+        : (await AdminService.GetAllOrderCourseAsync(ReThrowError, FillOrderCourseExtended.Student |
         FillOrderCourseExtended.Course)).ToList();
     }
 
@@ -125,7 +127,7 @@ else
 
     private async Task NewItemAsync()
     {
-        var newCourse = await AdminService.AddCourseAsync(new CourseCln());
+        var newCourse = await AdminService.AddCourseAsync(new CourseCln(), ReThrowError);
         if (newCourse is not null)
         {
             CoursesData?.Insert(0, newCourse);
@@ -134,7 +136,7 @@ else
 
     private async Task DeleteItemAsync(CourseCln item)
     {
-        await AdminService.DeleteCourseAsync(item.Id);
+        await AdminService.DeleteCourseAsync(item.Id, ReThrowError);
         CoursesData?.Remove(item);
     }
 
@@ -145,7 +147,7 @@ else
 
     private async Task CommitDataAsync(CourseCln course)
     {
-        await AdminService.UpdateCourseAsync(course);
+        await AdminService.UpdateCourseAsync(course, ReThrowError);
         // Only reload if needed, often unnecessary if your grid binds to CoursesData
     }
 

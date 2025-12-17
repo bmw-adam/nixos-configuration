@@ -3,22 +3,25 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using MudBlazor;
 using TpvVyber.Classes;
 using TpvVyber.Client.Classes;
 using TpvVyber.Client.Services.Admin;
 using TpvVyber.Data;
 using TpvVyber.Extensions;
+using TpvVyber.Services;
 
 namespace TpvVyber.Endpoints.Admin;
 
 public class ServerAdminService(
     IDbContextFactory<TpvVyberContext> _factory,
     ILogger<ServerAdminService> logger,
-    NotificationService notificationService
+    NotificationService notificationService,
+    IMemoryCache cache
 ) : IAdminService
 {
-    public async Task<LoggingEndingCln?> GetLoggingEndings()
+    public async Task<LoggingEndingCln?> GetLoggingEndings(bool reThrowError)
     {
         try
         {
@@ -27,16 +30,7 @@ public class ServerAdminService(
 
             if (loggingEnding == null)
             {
-                ctx.LoggingEndings.Add(new LoggingEnding { TimeEnding = DateTime.MinValue });
-                await ctx.SaveChangesAsync();
-
-                var loggingEndingNew = ctx.LoggingEndings.FirstOrDefault();
-                if (loggingEndingNew == null)
-                {
-                    return null;
-                }
-
-                return await loggingEndingNew.ToClient(ctx, null, this, null);
+                return null;
             }
 
             return await loggingEnding.ToClient(ctx, null, this, null);
@@ -45,11 +39,18 @@ public class ServerAdminService(
         {
             logger.LogError($"Nepodařilo se získat konec přihlašování {ex.Message}");
             notificationService.Notify("Nepodařilo se získat konec přihlašování", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return null;
         }
     }
 
-    public async Task<LoggingEndingCln?> UpdateLoggingEnding(LoggingEndingCln loggingEnding)
+    public async Task<LoggingEndingCln?> UpdateLoggingEnding(
+        LoggingEndingCln loggingEnding,
+        bool reThrowError
+    )
     {
         try
         {
@@ -71,6 +72,10 @@ public class ServerAdminService(
                 "Nepodařilo se aktualizovat konec přihlašování",
                 Severity.Error
             );
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return null;
         }
     }
@@ -78,6 +83,7 @@ public class ServerAdminService(
     #region Courses
     private async Task<CourseCln> courseAddIntern(
         CourseCln item,
+        bool reThrowError,
         FillCourseExtended? fillExtended = null
     )
     {
@@ -101,11 +107,15 @@ public class ServerAdminService(
         {
             logger.LogError($"Nepodařilo se přidat kurz do databáze {ex.Message}");
             notificationService.Notify("Nepodařilo se přidat kurz do databáze", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return item;
         }
     }
 
-    private async Task courseDeleteIntern(int Id)
+    private async Task courseDeleteIntern(int Id, bool reThrowError)
     {
         try
         {
@@ -125,11 +135,15 @@ public class ServerAdminService(
         {
             logger.LogError($"Nepodařilo se odebrat kurz z databáze {Id} - {ex.Message}");
             notificationService.Notify("Nepodařilo se odebrat kurz z databáze", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return;
         }
     }
 
-    private async Task courseUpdateIntern(CourseCln item)
+    private async Task courseUpdateIntern(CourseCln item, bool reThrowError)
     {
         try
         {
@@ -147,27 +161,36 @@ public class ServerAdminService(
                 "Nepodařilo se aktualizovat kurz v databázi",
                 Severity.Error
             );
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return;
         }
     }
 
-    public Task<CourseCln> AddCourseAsync(CourseCln item, FillCourseExtended? fillExtended = null)
+    public Task<CourseCln> AddCourseAsync(
+        CourseCln item,
+        bool reThrowError,
+        FillCourseExtended? fillExtended = null
+    )
     {
-        return courseAddIntern(item, fillExtended);
+        return courseAddIntern(item, reThrowError, fillExtended);
     }
 
-    public Task DeleteCourseAsync(int Id)
+    public Task DeleteCourseAsync(int Id, bool reThrowError)
     {
-        return courseDeleteIntern(Id);
+        return courseDeleteIntern(Id, reThrowError);
     }
 
-    public Task UpdateCourseAsync(CourseCln item)
+    public Task UpdateCourseAsync(CourseCln item, bool reThrowError)
     {
-        return courseUpdateIntern(item);
+        return courseUpdateIntern(item, reThrowError);
     }
 
     public async Task<CourseCln?> GetCourseByIdAsync(
         int id,
+        bool reThrowError,
         FillCourseExtended? fillExtended = null
     )
     {
@@ -185,11 +208,16 @@ public class ServerAdminService(
         {
             logger.LogError($"Nepodařilo se získat kurz z databáze Id: {id} - {ex.Message}");
             notificationService.Notify("Nepodařilo se získat kurz z databáze", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return null;
         }
     }
 
     public async Task<IEnumerable<CourseCln>> GetAllCoursesAsync(
+        bool reThrowError,
         FillCourseExtended? fillExtended = null
     )
     {
@@ -216,6 +244,10 @@ public class ServerAdminService(
         {
             logger.LogError($"Nepodařilo se získat kurzy z databáze - {ex.Message}");
             notificationService.Notify("Nepodařilo se získat kurzy z databáze", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return [];
         }
     }
@@ -298,24 +330,26 @@ public class ServerAdminService(
 
     public Task<StudentCln> AddStudentAsync(
         StudentCln item,
+        bool reThrowError,
         FillStudentExtended? fillExtended = null
     )
     {
         return studentAddIntern(item, fillExtended);
     }
 
-    public Task DeleteStudentAsync(int Id)
+    public Task DeleteStudentAsync(int Id, bool reThrowError)
     {
         return studentDeleteIntern(Id);
     }
 
-    public Task UpdateStudentAsync(StudentCln item)
+    public Task UpdateStudentAsync(StudentCln item, bool reThrowError)
     {
         return studentUpdateIntern(item);
     }
 
     public async Task<StudentCln?> GetStudentByIdAsync(
         int id,
+        bool reThrowError,
         FillStudentExtended? fillExtended = null
     )
     {
@@ -333,11 +367,16 @@ public class ServerAdminService(
         {
             logger.LogError($"Nepodařilo se získat žáka z databáze Id: {id} - {ex.Message}");
             notificationService.Notify("Nepodařilo se získat žáka z databáze", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return null;
         }
     }
 
     public async Task<IEnumerable<StudentCln>> GetAllStudentsAsync(
+        bool reThrowError,
         FillStudentExtended? fillExtended = null
     )
     {
@@ -364,6 +403,10 @@ public class ServerAdminService(
         {
             logger.LogError($"Nepodařilo se získat žáky z databáze - {ex.Message}");
             notificationService.Notify("Nepodařilo se získat žáky z databáze", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return [];
         }
     }
@@ -450,24 +493,26 @@ public class ServerAdminService(
 
     public Task<OrderCourseCln> AddOrderCourseAsync(
         OrderCourseCln item,
+        bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     )
     {
         return orderCourseAddIntern(item, fillExtended);
     }
 
-    public Task DeleteOrderCourseAsync(int Id)
+    public Task DeleteOrderCourseAsync(int Id, bool reThrowError)
     {
         return orderCourseDeleteIntern(Id);
     }
 
-    public Task UpdateOrderCourseAsync(OrderCourseCln item)
+    public Task UpdateOrderCourseAsync(OrderCourseCln item, bool reThrowError)
     {
         return orderCourseUpdateIntern(item);
     }
 
     public async Task<OrderCourseCln?> GetOrderCourseByIdAsync(
         int id,
+        bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     )
     {
@@ -490,11 +535,16 @@ public class ServerAdminService(
                 "Nepodařilo se získat pořadí kurzu z databáze",
                 Severity.Error
             );
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return null;
         }
     }
 
     public async Task<IEnumerable<OrderCourseCln>> GetAllOrderCourseAsync(
+        bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     )
     {
@@ -522,12 +572,17 @@ public class ServerAdminService(
                 "Nepodařilo se získat pořadí kurzů z databáze",
                 Severity.Error
             );
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return [];
         }
     }
 
-    public async Task<Dictionary<int, List<StudentCln>>> ShowFillCourses(
-        bool? forceRedo,
+    private const string CacheKey = "ShowFillCourses";
+
+    private async Task<Dictionary<int, List<StudentCln>>> ComputeFillCourses(
         FillCourseExtended? fillCourse,
         FillStudentExtended? fillStudent
     )
@@ -579,8 +634,32 @@ public class ServerAdminService(
                 }
             }
         }
-
         return courseContainers;
+    }
+
+    public async Task<Dictionary<int, List<StudentCln>>> ShowFillCourses(
+        bool? forceRedo,
+        bool reThrowError,
+        FillCourseExtended? fillCourse,
+        FillStudentExtended? fillStudent
+    )
+    {
+        if (
+            forceRedo != true
+            && cache.TryGetValue(CacheKey, out Dictionary<int, List<StudentCln>>? cached)
+        )
+        {
+            if (cached != null)
+            {
+                return cached;
+            }
+        }
+
+        var result = await ComputeFillCourses(fillCourse, fillStudent);
+
+        cache.Set(CacheKey, result, TimeSpan.FromSeconds(30));
+
+        return result;
     }
     #endregion
 }

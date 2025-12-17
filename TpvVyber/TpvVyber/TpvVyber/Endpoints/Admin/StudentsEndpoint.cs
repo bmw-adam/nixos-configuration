@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using TpvVyber.Client.Classes;
 using TpvVyber.Client.Services.Admin;
+using TpvVyber.Extensions;
 
 namespace TpvVyber.Endpoints.Admin;
 
@@ -27,7 +28,7 @@ public static class StudentsAdminEndpoints
     {
         try
         {
-            var result = await adminService.GetAllStudentsAsync(fillExtended);
+            var result = await adminService.GetAllStudentsAsync(true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -44,7 +45,7 @@ public static class StudentsAdminEndpoints
     {
         try
         {
-            var result = await adminService.GetStudentByIdAsync(id, fillExtended);
+            var result = await adminService.GetStudentByIdAsync(id, true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -61,7 +62,7 @@ public static class StudentsAdminEndpoints
     {
         try
         {
-            var result = await adminService.AddStudentAsync(item, fillExtended);
+            var result = await adminService.AddStudentAsync(item, true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -74,7 +75,7 @@ public static class StudentsAdminEndpoints
     {
         try
         {
-            await adminService.DeleteStudentAsync(id);
+            await adminService.DeleteStudentAsync(id, true);
             return Results.Ok();
         }
         catch (Exception ex)
@@ -90,7 +91,7 @@ public static class StudentsAdminEndpoints
     {
         try
         {
-            await adminService.UpdateStudentAsync(item);
+            await adminService.UpdateStudentAsync(item, true);
             return Results.Ok();
         }
         catch (Exception ex)

@@ -18,7 +18,10 @@ public class ServerSelectService(
     ILogger<ServerSelectService> logger
 ) : ISelectService
 {
-    public async Task<List<CourseCln>?> GetAllCourses(FillCourseExtended? fillExtended = null)
+    public async Task<List<CourseCln>?> GetAllCourses(
+        bool reThrowError,
+        FillCourseExtended? fillExtended = null
+    )
     {
         try
         {
@@ -41,11 +44,19 @@ public class ServerSelectService(
         {
             logger.LogError($"Nepodařilo se získat kurzy - {ex.Message}");
             notificationService.Notify("Nepodařilo se získat informace o kurzu", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return null;
         }
     }
 
-    public async Task<CourseCln?> GetCourseInfo(int id, FillCourseExtended? fillExtended = null)
+    public async Task<CourseCln?> GetCourseInfo(
+        int id,
+        bool reThrowError,
+        FillCourseExtended? fillExtended = null
+    )
     {
         try
         {
@@ -74,16 +85,28 @@ public class ServerSelectService(
         {
             logger.LogError($"Nepodařilo se získat informace o kurzu - {ex.Message}");
             notificationService.Notify("Nepodařilo se získat informace o kurzu", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return null;
         }
     }
 
     public async Task<Dictionary<int, CourseCln>> GetSortedCoursesAsync(
+        bool reThrowError,
         FillCourseExtended? fillExtended = null
     )
     {
         try
         {
+            var endLogging = await adminService.GetLoggingEndings(reThrowError);
+            // logger.LogInformation($"Logging ends: {endLogging?.TimeEnding}");
+            if (endLogging?.TimeEnding != null && (endLogging.TimeEnding < DateTime.Now))
+            {
+                notificationService.Notify("Už je po termínu přihlašování", Severity.Warning);
+            }
+
             var userInfo = httpContextAccessor.GetCurrentUser();
 
             await using var ctx = _factory.CreateDbContext();
@@ -136,14 +159,24 @@ public class ServerSelectService(
         {
             logger.LogError($"Nepodařilo se získat seřazení kurzů - {ex.Message}");
             notificationService.Notify("Nepodařilo se získat seřazení kurzů", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
             return [];
         }
     }
 
-    public async Task UpdateOrderAsync(Dictionary<int, CourseCln> input)
+    public async Task UpdateOrderAsync(Dictionary<int, CourseCln> input, bool reThrowError)
     {
         try
         {
+            var endLogging = await adminService.GetLoggingEndings(reThrowError);
+            if (endLogging?.TimeEnding != null && (endLogging.TimeEnding < DateTime.Now))
+            {
+                throw new Exception("Na to už je pozdě");
+            }
+
             var userInfo = httpContextAccessor.GetCurrentUser();
 
             await using var ctx = _factory.CreateDbContext();
@@ -176,6 +209,10 @@ public class ServerSelectService(
         {
             logger.LogError($"Nepodařilo se aktualizovat seřazení kurzů - {ex.Message}");
             notificationService.Notify("Nepodařilo se aktualizovat seřazení kurzů", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
         }
     }
 }

@@ -6,6 +6,7 @@ using TpvVyber.Classes;
 using TpvVyber.Client.Classes;
 using TpvVyber.Client.Services.Admin;
 using TpvVyber.Data;
+using TpvVyber.Extensions;
 
 namespace TpvVyber.Endpoints.Admin;
 
@@ -32,7 +33,7 @@ public static class OrderCourseAdminEndpoints
     {
         try
         {
-            var result = await adminService.GetAllOrderCourseAsync(fillExtended);
+            var result = await adminService.GetAllOrderCourseAsync(true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -49,7 +50,7 @@ public static class OrderCourseAdminEndpoints
     {
         try
         {
-            var result = await adminService.GetOrderCourseByIdAsync(id, fillExtended);
+            var result = await adminService.GetOrderCourseByIdAsync(id, true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -66,7 +67,7 @@ public static class OrderCourseAdminEndpoints
     {
         try
         {
-            var result = await adminService.AddOrderCourseAsync(item, fillExtended);
+            var result = await adminService.AddOrderCourseAsync(item, true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -79,7 +80,7 @@ public static class OrderCourseAdminEndpoints
     {
         try
         {
-            await adminService.DeleteOrderCourseAsync(id);
+            await adminService.DeleteOrderCourseAsync(id, true);
             return Results.Ok();
         }
         catch (Exception ex)
@@ -95,7 +96,7 @@ public static class OrderCourseAdminEndpoints
     {
         try
         {
-            await adminService.UpdateOrderCourseAsync(item);
+            await adminService.UpdateOrderCourseAsync(item, true);
             return Results.Ok();
         }
         catch (Exception ex)

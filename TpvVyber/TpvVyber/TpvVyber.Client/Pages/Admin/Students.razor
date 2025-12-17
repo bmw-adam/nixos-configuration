@@ -88,6 +88,9 @@ else
     private MudDataGrid<StudentCln> StudentGrid = default!;
     private PersistingComponentStateSubscription? _subscription;
     private List<OrderCourseCln>? OrderCourses;
+    [CascadingParameter]
+    public bool ReThrowError { get; set; }
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -95,12 +98,12 @@ else
 
         StudentsData = ApplicationState.TryTakeFromJson<IEnumerable<StudentCln>>(nameof(StudentsData), out var cached)
         ? cached?.ToList()
-        : (await AdminService.GetAllStudentsAsync(FillStudentExtended.Courses)).ToList();
+        : (await AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses)).ToList();
 
         OrderCourses = ApplicationState.TryTakeFromJson<IEnumerable<OrderCourseCln>>(nameof(OrderCourses), out var
         cachedOrderCourses)
         ? cachedOrderCourses?.ToList()
-        : (await AdminService.GetAllOrderCourseAsync(FillOrderCourseExtended.Student |
+        : (await AdminService.GetAllOrderCourseAsync(ReThrowError, FillOrderCourseExtended.Student |
         FillOrderCourseExtended.Course)).ToList();
 
     }
@@ -120,7 +123,7 @@ else
 
     private async Task NewItemAsync()
     {
-        var newStudent = await AdminService.AddStudentAsync(new StudentCln(), FillStudentExtended.Courses);
+        var newStudent = await AdminService.AddStudentAsync(new StudentCln(), ReThrowError, FillStudentExtended.Courses);
         if (newStudent is not null)
         {
             StudentsData?.Insert(0, newStudent);
@@ -129,7 +132,7 @@ else
 
     private async Task DeleteItemAsync(StudentCln item)
     {
-        await AdminService.DeleteStudentAsync(item.Id);
+        await AdminService.DeleteStudentAsync(item.Id, ReThrowError);
         StudentsData?.Remove(item);
     }
 
@@ -140,7 +143,7 @@ else
 
     private async Task CommitDataAsync(StudentCln Student)
     {
-        await AdminService.UpdateStudentAsync(Student);
+        await AdminService.UpdateStudentAsync(Student, ReThrowError);
         // Only reload if needed, often unnecessary if your grid binds to StudentsData
     }
 

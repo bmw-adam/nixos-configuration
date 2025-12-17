@@ -79,7 +79,7 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
 
                 var claimingPeople = currentCourse.OrderCourses.Select(r => r.Student).Distinct();
 
-                var courseContainers = await adminService.ShowFillCourses(false, null, null);
+                var courseContainers = await adminService.ShowFillCourses(false, false, null, null);
 
                 // Can I gen in?
                 // Option 1 - no
@@ -113,7 +113,7 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
 
             if (fillExtended.Value.HasFlag(FillCourseExtended.Occupied))
             {
-                var tempResult = await adminService.ShowFillCourses(false, null, null);
+                var tempResult = await adminService.ShowFillCourses(false, false, null, null);
                 var possible = tempResult.TryGetValue(this.Id, out var list);
                 extended.Occupied = possible ? list?.Count() : null;
             }

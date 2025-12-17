@@ -12,6 +12,7 @@ public interface ISelectService
     /// </summary>
     /// <returns>Dictionary <index> <course></returns>
     public Task<Dictionary<int, CourseCln>> GetSortedCoursesAsync(
+        bool reThrowError,
         FillCourseExtended? fillExtended = null
     );
 
@@ -20,7 +21,7 @@ public interface ISelectService
     /// </summary>
     /// <param name="input"></param>
     /// <returns></returns>
-    public Task UpdateOrderAsync(Dictionary<int, CourseCln> input);
+    public Task UpdateOrderAsync(Dictionary<int, CourseCln> input, bool reThrowError);
 
     /// <summary>
     /// Get Course Info
@@ -28,6 +29,13 @@ public interface ISelectService
     /// <param name="id"></param>
     /// <param name="fillExtended"></param>
     /// <returns></returns>
-    public Task<CourseCln?> GetCourseInfo(int id, FillCourseExtended? fillExtended = null);
-    public Task<List<CourseCln>?> GetAllCourses(FillCourseExtended? fillExtended = null);
+    public Task<CourseCln?> GetCourseInfo(
+        int id,
+        bool reThrowError,
+        FillCourseExtended? fillExtended = null
+    );
+    public Task<List<CourseCln>?> GetAllCourses(
+        bool reThrowError,
+        FillCourseExtended? fillExtended = null
+    );
 }

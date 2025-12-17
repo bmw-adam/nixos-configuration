@@ -5,43 +5,49 @@ namespace TpvVyber.Client.Services.Admin;
 
 public interface IAdminService
 {
-    public Task<LoggingEndingCln?> GetLoggingEndings();
-    public Task<LoggingEndingCln?> UpdateLoggingEnding(LoggingEndingCln loggingEnding);
+    public Task<LoggingEndingCln?> GetLoggingEndings(bool reThrowError);
+    public Task<LoggingEndingCln?> UpdateLoggingEnding(LoggingEndingCln loggingEnding, bool reThrowError);
     #region Courses
-    public Task<CourseCln> AddCourseAsync(CourseCln item, FillCourseExtended? fillExtended = null);
-    public Task DeleteCourseAsync(int Id);
-    public Task UpdateCourseAsync(CourseCln item);
-    public Task<CourseCln?> GetCourseByIdAsync(int id, FillCourseExtended? fillExtended = null);
-    public Task<IEnumerable<CourseCln>> GetAllCoursesAsync(FillCourseExtended? fillExtended = null);
+    public Task<CourseCln> AddCourseAsync(CourseCln item, bool reThrowError, FillCourseExtended? fillExtended = null);
+    public Task DeleteCourseAsync(int Id, bool reThrowError);
+    public Task UpdateCourseAsync(CourseCln item, bool reThrowError);
+    public Task<CourseCln?> GetCourseByIdAsync(int id, bool reThrowError, FillCourseExtended? fillExtended = null);
+    public Task<IEnumerable<CourseCln>> GetAllCoursesAsync(bool reThrowError, FillCourseExtended? fillExtended = null);
     #endregion
     #region Students
     public Task<StudentCln> AddStudentAsync(
         StudentCln item,
+        bool reThrowError,
         FillStudentExtended? fillExtended = null
     );
-    public Task DeleteStudentAsync(int Id);
-    public Task UpdateStudentAsync(StudentCln item);
-    public Task<StudentCln?> GetStudentByIdAsync(int id, FillStudentExtended? fillExtended = null);
+    public Task DeleteStudentAsync(int Id, bool reThrowError);
+    public Task UpdateStudentAsync(StudentCln item, bool reThrowError);
+    public Task<StudentCln?> GetStudentByIdAsync(int id, bool reThrowError, FillStudentExtended? fillExtended = null);
     public Task<IEnumerable<StudentCln>> GetAllStudentsAsync(
+        bool reThrowError,
         FillStudentExtended? fillExtended = null
     );
     #endregion
     #region OrderCourses
     public Task<OrderCourseCln> AddOrderCourseAsync(
         OrderCourseCln item,
+        bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     );
-    public Task DeleteOrderCourseAsync(int Id);
-    public Task UpdateOrderCourseAsync(OrderCourseCln item);
+    public Task DeleteOrderCourseAsync(int Id, bool reThrowError);
+    public Task UpdateOrderCourseAsync(OrderCourseCln item, bool reThrowError);
     public Task<OrderCourseCln?> GetOrderCourseByIdAsync(
         int id,
+        bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     );
     public Task<IEnumerable<OrderCourseCln>> GetAllOrderCourseAsync(
+        bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     );
     public Task<Dictionary<int, List<StudentCln>>> ShowFillCourses(
         bool? forceRedo,
+        bool reThrowError,
         FillCourseExtended? fillCourse = null,
         FillStudentExtended? fillStudent = null
     );
