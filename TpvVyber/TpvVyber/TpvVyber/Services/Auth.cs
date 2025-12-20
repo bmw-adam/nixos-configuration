@@ -87,19 +87,21 @@ public static class Auth
                     options.ClientSecret = oauth_key;
 
                     options.TokenValidationParameters.ValidIssuers = [clientIdpUrl, backendIdpUrl];
+                    options.CallbackPath = "/signin-oauth";
 
-                    options.RequireHttpsMetadata = false;
                     options.ResponseType = OpenIdConnectResponseType.Code;
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.SaveTokens = true;
                     options.MapInboundClaims = true;
                     options.ResponseMode = OpenIdConnectResponseMode.FormPost;
 
-                    options.BackchannelHttpHandler = new HttpClientHandler
-                    {
-                        ServerCertificateCustomValidationCallback =
-                            HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
-                    };
+                    options.RequireHttpsMetadata = true;
+
+                    // options.BackchannelHttpHandler = new HttpClientHandler
+                    // {
+                    //     ServerCertificateCustomValidationCallback =
+                    //         HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+                    // };
 
                     // options.Scope.Clear();
                     options.Scope.Add("openid");
@@ -205,11 +207,17 @@ public static class Auth
                     };
                 }
             )
-            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-            {
-                options.ExpireTimeSpan = TimeSpan.FromDays(2);
-                options.SlidingExpiration = true;
-            });
+            .AddCookie(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                options =>
+                {
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.Cookie.HttpOnly = false;
+                    options.Cookie.SameSite = SameSiteMode.None;
+                    options.ExpireTimeSpan = TimeSpan.FromDays(2);
+                    options.SlidingExpiration = false;
+                }
+            );
 
         builder.Services.AddAuthorization();
 

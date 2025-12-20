@@ -1,7 +1,12 @@
 @page "/admin/results"
 @attribute [Authorize(Roles = "Admin")]
+@using System.Text
+@using System.IO
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components
 @inject IAdminService AdminService
 @inject PersistentComponentState ApplicationState
+@inject IJSRuntime JS
 @implements IDisposable
 
 <PageTitle>Výsledky</PageTitle>
@@ -34,10 +39,14 @@
         <MudTd DataLabel="Třída">@GetClassName(context.Class)</MudTd>
         <MudTd DataLabel="Jméno žáka">@context.Name</MudTd>
         <MudTd DataLabel="E-Mail">@context.Email</MudTd>
-        <MudTd DataLabel="Název kurzu">@StudentCourses?.FirstOrDefault(e => e.Value.Select(q =>
-                        q.Id).Contains(context.Id)).Key?.Name</MudTd>
+        <MudTd DataLabel="Název kurzu">@GetCourseNameForStudent(context)</MudTd>
     </RowTemplate>
 </MudTable>
+
+<MudButton StartIcon="@Icons.Material.Outlined.ImportExport" OnClick="ExportCsv" Variant="Variant.Filled"
+    Color="Color.Primary">
+    Export CSV
+</MudButton>
 
 @code {
     private PersistingComponentStateSubscription? _subscription;
@@ -66,7 +75,7 @@
 
     private async Task<Dictionary<CourseCln, List<StudentCln>>> ApiCall()
     {
-        var dict = await AdminService.ShowFillCourses(false, ReThrowError, FillCourseExtended.Students, null);
+        var dict = await AdminService.ShowFillCourses(true, ReThrowError, FillCourseExtended.Students, null);
         var coursesDict = new Dictionary<CourseCln, List<StudentCln>>();
 
         foreach (var pair in dict)
@@ -90,12 +99,14 @@
         Students = ApplicationState.TryTakeFromJson<List<StudentCln>>(nameof(Students), out
         var cachedStudents)
         ? cachedStudents
-        : ((await AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses | FillStudentExtended.OrderCourses)).ToList());
+        : ((await AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses |
+        FillStudentExtended.OrderCourses)).ToList());
 
         Courses = ApplicationState.TryTakeFromJson<List<CourseCln>>(nameof(Courses), out
         var cachedCourses)
         ? cachedCourses
-        : ((await AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.OrderCourses | FillCourseExtended.Students)).ToList());
+        : ((await AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.OrderCourses |
+        FillCourseExtended.Students)).ToList());
 
 
         _xAxisLabels = (StudentCourses?.Select(e => e.Key.Name).ToArray() ?? []).Order().ToArray();
@@ -153,5 +164,47 @@
         loggingEndingCln.TimeEnding = LoggingEndTime.Value.Add(LoggingEndTimeSpan.Value);
         await AdminService.UpdateLoggingEnding(loggingEndingCln, ReThrowError);
         await AsyncLoad();
+    }
+
+    // Helper method to ensure Table and CSV use identical logic
+    private string GetCourseNameForStudent(StudentCln student)
+    {
+        return StudentCourses?.FirstOrDefault(e => e.Value.Select(q => q.Id).Contains(student.Id)).Key?.Name ?? "";
+    }
+    private async Task ExportCsv()
+    {
+        if (Students == null) return;
+
+        // Use Semicolon for Czech Excel compatibility
+        var separator = ";";
+        var sb = new StringBuilder();
+
+        // 1. Header
+        sb.AppendLine($"Třída{separator}Jméno žáka{separator}E-Mail{separator}Název kurzu");
+
+        // 2. Data Rows
+        foreach (var student in Students)
+        {
+            var className = GetClassName(student.Class);
+            var studentName = student.Name;
+            var email = student.Email;
+            var courseName = GetCourseNameForStudent(student);
+
+            // Simple sanitization to prevent CSV breaking if data contains the separator
+            var line =
+            $"{ClassExtensions.EscapeCsv(className)}{separator}{ClassExtensions.EscapeCsv(studentName)}{separator}{ClassExtensions.EscapeCsv(email)}{separator}{ClassExtensions.EscapeCsv(courseName)}";
+            sb.AppendLine(line);
+        }
+
+        // 3. Create Stream with UTF8 BOM (Byte Order Mark) so Excel opens it correctly
+        using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+        await writer.WriteAsync(sb.ToString());
+        await writer.FlushAsync();
+        stream.Position = 0;
+
+        // 4. Trigger Download via JS
+        using var streamRef = new DotNetStreamReference(stream);
+        await JS.InvokeVoidAsync("downloadFileFromStream", "Vysledky.csv", streamRef);
     }
 }

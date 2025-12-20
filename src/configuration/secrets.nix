@@ -12,6 +12,7 @@ let
   yugabyteServerCrtPath = config.sops.secrets.yugabyteServerCrt.path;
   yugabyteServerKeyPath = config.sops.secrets.yugabyteServerKey.path;
   yugabyteClientCrtPath = config.sops.secrets.yugabyteClientCrt.path;
+  gasosSSOCertPath = config.sops.secrets.gasosSSOCert.path;
 in
 {
   sops = {
@@ -33,6 +34,7 @@ in
       yugabyteServerCrt = {};
       yugabyteServerKey = {};
       yugabyteClientCrt = {};
+      gasosSSOCert = { neededForUsers = true; };
     };
 
     templates = {
@@ -179,5 +181,6 @@ in
     YUGABYTE_SERVER_KEY = yugabyteServerKeyPath;
     YUGABYTE_CLIENT_CRT = yugabyteClientCrtPath;
     OIDC_SECRET = oIdcSecretPath;
+    GASOS_SSO_CERT_PATH = gasosSSOCertPath;
   };
 }

@@ -339,6 +339,8 @@ in
     enable = true;
     recommendedProxySettings = true;
     recommendedTlsSettings = true;
+    recommendedGzipSettings = true;
+    recommendedOptimisation = true;
 
     virtualHosts."tpvselect.gasos.cz" = {
       enableACME = true;
@@ -357,10 +359,18 @@ in
 
         # Increase buffer sizes for large OIDC headers
         extraConfig = ''
+          # Force the backend to see the scheme as https
+          proxy_set_header X-Forwarded-Proto https;
+          proxy_set_header X-Forwarded-Port 443;
+
+          # Pass the original host header
+          proxy_set_header X-Forwarded-Host $host;
+
           # Upstream response buffers
           proxy_buffer_size       256k;
           proxy_buffers           8 512k;
           proxy_busy_buffers_size 512k;
+          proxy_headers_hash_max_size 8192;
         '';
       };
     };

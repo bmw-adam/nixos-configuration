@@ -26,7 +26,13 @@ builder
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents()
     .AddAuthenticationStateSerialization(options => options.SerializeAllClaims = true);
-;
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 builder.Services.AddRazorPages();
 
@@ -52,19 +58,16 @@ builder.Services.AddScoped<NotificationService>();
 var redirectUri =
     builder.Configuration["RedirectUri"] ?? throw new Exception("Redirect uri was not set.");
 
-
 var app = builder.Build();
 
-app.Use(
-    (context, next) =>
-    {
-        // Force the app to believe it is running on HTTPS.
-        // This allows Secure cookies to be read even if the proxy sends "http"
-        context.Request.Scheme = "https";
-        return next();
-    }
-);
-app.UseForwardedHeaders();
+var forwardedHeaderOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+forwardedHeaderOptions.KnownNetworks.Clear();
+forwardedHeaderOptions.KnownProxies.Clear();
+
+app.UseForwardedHeaders(forwardedHeaderOptions);
 
 app.UseBlazorFrameworkFiles();
 
@@ -95,7 +98,7 @@ app.UseRouting();
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode(o =>  o.DisableWebSocketCompression = true)
+    .AddInteractiveServerRenderMode(o => o.DisableWebSocketCompression = true)
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(TpvVyber.Client._Imports).Assembly);
 
@@ -104,7 +107,9 @@ app.MapRazorPages();
 await app.UseDatabaseService();
 
 // Minimal login endpoint
+
 app.UseLoginService(redirectUri);
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -120,6 +125,16 @@ SelectEndpoints.MapSelectEndpoints(app);
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
+app.Use(
+    async (ctx, next) =>
+    {
+        Console.WriteLine($"Scheme: {ctx.Request.Scheme}");
+        Console.WriteLine($"Host: {ctx.Request.Host}");
+        Console.WriteLine($"XF-Proto: {ctx.Request.Headers["X-Forwarded-Proto"]}");
+        Console.WriteLine($"XF-Host: {ctx.Request.Headers["X-Forwarded-Host"]}");
+        await next();
+    }
+);
 logger.LogInformation("Running.");
 
 app.Run();

@@ -1,4 +1,10 @@
-{ kubenixconfig, config, pkgs, tpvsel, ... }:
+{
+  kubenixconfig,
+  config,
+  pkgs,
+  tpvsel,
+  ...
+}:
 let
   # defaultPasswordPath = config.sops.secrets.password.path;
   kubeTokenPath = config.sops.secrets."kubernetes/token".path;
@@ -14,10 +20,10 @@ in
 
   # environment.variables.DIST_DIR_PATH = "${tpvsel.packages.${pkgs.system}.default}/bin/dist";
   # environment.variables.TPVSEL_PATH = "${tpvsel.packages.${pkgs.system}.default}/bin/backend";
-    #   DEFAULT_PASSWORD_PATH = defaultPasswordPath;
-    # KUBE_TOKEN_PATH = kubeTokenPath;
-    # TLS_KEY = kubeTokenPath;
-    # TLS_CRT = tlsCrtPath;
+  #   DEFAULT_PASSWORD_PATH = defaultPasswordPath;
+  # KUBE_TOKEN_PATH = kubeTokenPath;
+  # TLS_KEY = kubeTokenPath;
+  # TLS_CRT = tlsCrtPath;
 
   services.k3s = {
     enable = true;
@@ -56,7 +62,7 @@ in
           {
             # The name of the Secret to read from
             name = "grafana-helm-values";
-            
+
             # The 'keys' in the Secret to use as values files.
             # Our systemd service will create a key named 'values.yaml'.
             keys = [ "values.yaml" ];
@@ -173,26 +179,18 @@ in
           pkgs.coreutils
           pkgs.gnugrep
           pkgs.tzdata
+          pkgs.cacert
         ];
         tag = "latest";
-
-        # extraCommands = ''
-        #   # Set the timezone to Europe/Prague
-        #   echo "Europe/Berlin" > /etc/timezone
-
-        #   # Optional: set TZ environment variable for applications
-        #   echo 'export TZ=Europe/Berlin' >> /etc/profile
-        # '';
-
         config = {
           Cmd = [ "$TPVSEL_PATH" ];
-          
-          EntryPoint = ["${pkgs.coreutils}/bin/date"];
-          Env = ["TZDIR=${pkgs.tzdata}/share/zoneinfo"];
+
+          EntryPoint = [ "${pkgs.coreutils}/bin/date" ];
+          Env = [ "TZDIR=${pkgs.tzdata}/share/zoneinfo" ];
 
           ExposedPorts = {
-            "1234/tcp" = {};
-            "1235/tcp" = {};
+            "1234/tcp" = { };
+            "1235/tcp" = { };
           };
         };
       })

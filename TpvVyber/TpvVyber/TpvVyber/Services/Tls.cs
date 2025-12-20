@@ -1,5 +1,7 @@
+using System.Net;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace TpvVyber.Services;
 
@@ -48,7 +50,8 @@ public static class Tls
         {
             builder.WebHost.ConfigureKestrel(options =>
             {
-                options.ListenAnyIP(
+                options.Listen(
+                    new System.Net.IPAddress(new byte[] { 127, 0, 0, 1 }),
                     1234,
                     listenoptions =>
                     {
@@ -62,16 +65,14 @@ public static class Tls
         {
             builder.WebHost.ConfigureKestrel(options =>
             {
-                options.ListenAnyIP(
+                options.Listen(
+                    IPAddress.Any,
                     1234,
                     listenoptions =>
                     {
+                        // listenoptions.UseHttps(pfxFile, pfxKeyPassword);
                         listenoptions.UseConnectionLogging();
                     }
-                // listenOptions =>
-                // {
-                // listenOptions.UseHttps(pfxFile, pfxKeyPassword);
-                // }
                 );
             });
         }

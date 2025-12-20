@@ -13,7 +13,7 @@ public static class LoginService
             (HttpContext context) =>
             {
                 return Results.Challenge(
-                    new AuthenticationProperties { RedirectUri = redirectUri },
+                    new AuthenticationProperties { RedirectUri = "/" },
                     new[] { OpenIdConnectDefaults.AuthenticationScheme }
                 );
             }

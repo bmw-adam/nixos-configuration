@@ -71,6 +71,10 @@
                     value = "/k3sdata/secrets/ysqlPassword";
                   }
                   {
+                    name = "GASOS_SSO_CERT_PATH";
+                    value = "/k3sdata/secrets/gasosSSOCert";
+                  }
+                  {
                     name = "RUNNING_LOCALLY";
                     value = "false";
                   }
@@ -99,6 +103,10 @@
                     mountPath = "/k3sdata";
                   }
                   {
+                    name = "tmp";
+                    mountPath = "/tmp";
+                  }
+                  {
                     name = "localtime";
                     mountPath = "/etc/localtime";
                     readOnly = true;
@@ -111,6 +119,13 @@
                 name = "k3sdata";
                 hostPath = {
                   path = "/k3sdata";
+                  type = "Directory";
+                };
+              }
+              {
+                name = "tmp";
+                hostPath = {
+                  path = "/tmp";
                   type = "Directory";
                 };
               }

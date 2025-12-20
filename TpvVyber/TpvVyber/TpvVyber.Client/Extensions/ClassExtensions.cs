@@ -5,6 +5,16 @@ namespace TpvVyber.Client.Extensions;
 
 public static class ClassExtensions
 {
+    // Wraps data in quotes if it contains the separator
+    public static string EscapeCsv(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        if (value.Contains(";") || value.Contains("\n") || value.Contains("\""))
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+        return value;
+    }
     public static int CalculateClaimStrenght(string claimRole)
     {
         switch (claimRole.ToLower())
