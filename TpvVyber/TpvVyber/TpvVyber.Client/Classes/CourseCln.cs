@@ -9,8 +9,10 @@ public class CourseCln
     public string Description { get; set; } = string.Empty;
     public string PdfUrl { get; set; } = string.Empty;
     public string ForClasses { get; set; } = string.Empty;
-    public decimal Price { get; set; } = 0;
+    public decimal MinPrice { get; set; } = 0;
+    public decimal MaxPrice { get; set; } = 0;
     public uint Capacity { get; set; } = 0;
+    public uint MinCapacity { get; set; } = 0;
     public CourseClnExtended? Extended { get; set; }
 }
 

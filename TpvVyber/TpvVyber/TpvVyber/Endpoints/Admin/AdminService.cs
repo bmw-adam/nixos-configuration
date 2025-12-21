@@ -584,7 +584,53 @@ public class ServerAdminService(
 
     private async Task<Dictionary<int, List<StudentCln>>> ComputeFillCourses(
         FillCourseExtended? fillCourse,
-        FillStudentExtended? fillStudent
+        FillStudentExtended? fillStudent,
+        HashSet<int>? excludedCourseIds = null
+    )
+    {
+        await using var ctx = _factory.CreateDbContext();
+
+        var courses = ctx.Courses.AsNoTracking().ToList();
+
+        // First run (no exclusions)
+        var excludedCourses = excludedCourseIds ?? new HashSet<int>();
+        var firstRun = await ComputeFillCoursesInternal(excludedCourses);
+
+        // Find courses that did not reach MinCapacity
+        foreach (var kvp in firstRun)
+        {
+            var courseId = kvp.Key;
+            var students = kvp.Value;
+
+            var minCapacity = courses.First(r => r.Id == courseId).MinCapacity;
+
+            if (students.Count <= minCapacity)
+            {
+                excludedCourses.Add(courseId);
+            }
+        }
+
+        // If everything is fine, return first run
+        if (excludedCourses.Count == 0)
+        {
+            var dict = new Dictionary<int, List<StudentCln>>();
+            foreach (var keyp in firstRun)
+            {
+                var lst = new List<StudentCln>();
+                foreach (var serverStudent in keyp.Value)
+                {
+                    lst.Add(await serverStudent.ToClient(ctx, null, this, fillStudent));
+                }
+            }
+            return dict;
+        }
+
+        // Rerun without not-fulfilled courses
+        return await ComputeFillCourses(fillCourse, fillStudent, excludedCourses);
+    }
+
+    private async Task<Dictionary<int, List<Student>>> ComputeFillCoursesInternal(
+        HashSet<int> excludedCourseIds
     )
     {
         await using var ctx = _factory.CreateDbContext();
@@ -596,9 +642,12 @@ public class ServerAdminService(
             .GroupBy(e => e.ClaimStrength)
             .OrderByDescending(r => r.Key);
 
-        var courseContainers = new Dictionary<int, List<StudentCln>>(); // CourseId, Student List
+        var courseContainers = new Dictionary<int, List<Student>>(); // CourseId, Student List
 
-        ctx.Courses.ToList().ForEach(a => courseContainers.Add(a.Id, []));
+        ctx.Courses.AsNoTracking()
+            .Where(a => !excludedCourseIds.Contains(a.Id))
+            .ToList()
+            .ForEach(a => courseContainers.Add(a.Id, []));
 
         foreach (var studentGroup in studentGroups)
         {
@@ -609,7 +658,9 @@ public class ServerAdminService(
             {
                 if (student != null)
                 {
-                    var thisStudentsOrderings = student.OrderCourses.OrderBy(r => r.Order);
+                    var thisStudentsOrderings = student
+                        .OrderCourses.Where(w => !excludedCourseIds.Contains(w.CourseId))
+                        .OrderBy(r => r.Order);
                     foreach (var wish in thisStudentsOrderings)
                     {
                         var course = wish.Course;
@@ -625,9 +676,7 @@ public class ServerAdminService(
                         if (studentsNumber < course.Capacity)
                         {
                             // Hooray - got in
-                            courseContainers[course.Id] = container
-                                .Append(await student.ToClient(ctx, null, this))
-                                .ToList();
+                            courseContainers[course.Id] = container.Append(student).ToList();
                             break;
                         }
                     }

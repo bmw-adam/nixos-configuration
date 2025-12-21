@@ -332,7 +332,7 @@ in
   security.acme = {
     acceptTerms = true;
     defaults.email = "baboraka@gasos-ro.cz";
-    defaults.server = "https://acme-staging-v02.api.letsencrypt.org/directory";
+    # defaults.server = "https://acme-staging-v02.api.letsencrypt.org/directory";
   };
 
   services.nginx = {

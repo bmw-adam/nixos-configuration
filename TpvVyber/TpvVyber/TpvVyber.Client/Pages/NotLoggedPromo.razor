@@ -11,7 +11,8 @@
                 <MudTh>Název</MudTh>
                 <MudTh>Popis</MudTh>
                 <MudTh>Url</MudTh>
-                <MudTh>Cena</MudTh>
+                <MudTh>Cena Min</MudTh>
+                <MudTh>Cena Max</MudTh>
                 <MudTh>Kapacita</MudTh>
                 <MudTh>Obsazenost</MudTh>
             </MudTr>
@@ -25,7 +26,8 @@
                     <MudTd>
                         <MudLink Href="@course.PdfUrl">Url</MudLink>
                     </MudTd>
-                    <MudTd>@course.Price</MudTd>
+                    <MudTd>@course.MinPrice</MudTd>
+                    <MudTd>@course.MaxPrice</MudTd>
                     <MudTd>@course.Capacity</MudTd>
                     <MudTd>@course.Extended?.Occupied</MudTd>
                 </MudTr>

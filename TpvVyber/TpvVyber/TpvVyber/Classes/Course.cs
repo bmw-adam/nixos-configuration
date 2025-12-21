@@ -16,8 +16,10 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
     public string Description { get; set; } = string.Empty;
     public string PdfUrl { get; set; } = string.Empty;
     public string ForClasses { get; set; } = string.Empty;
-    public decimal Price { get; set; } = 0;
+    public decimal MinPrice { get; set; } = 0;
+    public decimal MaxPrice { get; set; } = 0;
     public uint Capacity { get; set; } = 0;
+    public uint MinCapacity { get; set; } = 0;
 
     public List<OrderCourse> OrderCourses { get; } = [];
 
@@ -35,8 +37,10 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
             Description = Description,
             PdfUrl = PdfUrl,
             ForClasses = ForClasses,
-            Price = Price,
+            MaxPrice = MaxPrice,
+            MinPrice = MinPrice,
             Capacity = Capacity,
+            MinCapacity = MinCapacity,
         };
 
         if (fillExtended != null)
@@ -138,8 +142,10 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
                 Description = clientObject.Description,
                 PdfUrl = clientObject.PdfUrl,
                 ForClasses = clientObject.ForClasses,
-                Price = clientObject.Price,
+                MinPrice = clientObject.MinPrice,
+                MaxPrice = clientObject.MaxPrice,
                 Capacity = clientObject.Capacity,
+                MinCapacity = clientObject.MinCapacity,
             };
         }
 
@@ -154,7 +160,9 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
         entity.Description = clientObject.Description;
         entity.PdfUrl = clientObject.PdfUrl;
         entity.ForClasses = clientObject.ForClasses;
-        entity.Price = clientObject.Price;
+        entity.MinPrice = clientObject.MinPrice;
+        entity.MaxPrice = clientObject.MaxPrice;
+        entity.MinCapacity = clientObject.MinCapacity;
         entity.Capacity = clientObject.Capacity;
 
         // FIXME check if it breaks things

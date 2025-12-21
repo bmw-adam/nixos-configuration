@@ -147,7 +147,7 @@ public class ServerSelectService(
             foreach (
                 var course in availableCourses
                     .Where(c => !ordering.Any(o => o.CourseId == c.Id))
-                    .OrderBy(a => a.Price)
+                    .OrderBy(a => a.MaxPrice)
             )
             {
                 result[index++] = await course.ToClient(ctx, student, adminService, fillExtended);

@@ -24,12 +24,14 @@ else
         <Columns>
             <HierarchyColumn Hidden />
             <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
-            <PropertyColumn Property="x => x.Name" />
-            <PropertyColumn Property="x => x.Description" />
-            <PropertyColumn Property="x => x.ForClasses" />
-            <PropertyColumn Property="x => x.Capacity" />
-            <PropertyColumn Property="x => x.Price" />
-            <PropertyColumn Property="x => x.PdfUrl" />
+            <PropertyColumn Title="Název" Property="x => x.Name" />
+            <PropertyColumn Title="Popis" Property="x => x.Description" />
+            <PropertyColumn Title="Pro třídy" Property="x => x.ForClasses" />
+            <PropertyColumn Title="Kapacita" Property="x => x.Capacity" />
+            <PropertyColumn Title="Min. Kapacita" Property="x => x.MinCapacity" />
+            <PropertyColumn Title="Min. Napl. Cena" Property="x => x.MinPrice" />
+            <PropertyColumn Title="Max. Napl. Cena" Property="x => x.MaxPrice" />
+            <PropertyColumn Title="Pdf url" Property="x => x.PdfUrl" />
             <TemplateColumn Title="Seznam kurzů">
                 <CellTemplate>
                     <MudButton OnClick="() => ExpandRow(context.Item)" StartIcon="@Icons.Material.Outlined.List"
