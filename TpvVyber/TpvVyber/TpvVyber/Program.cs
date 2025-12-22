@@ -55,9 +55,6 @@ builder.Services.AddBlazorBootstrap();
 
 builder.Services.AddScoped<NotificationService>();
 
-var redirectUri =
-    builder.Configuration["RedirectUri"] ?? throw new Exception("Redirect uri was not set.");
-
 var app = builder.Build();
 
 var forwardedHeaderOptions = new ForwardedHeadersOptions
@@ -108,7 +105,7 @@ await app.UseDatabaseService();
 
 // Minimal login endpoint
 
-app.UseLoginService(redirectUri);
+app.UseLoginService();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -125,16 +122,16 @@ SelectEndpoints.MapSelectEndpoints(app);
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
-app.Use(
-    async (ctx, next) =>
-    {
-        Console.WriteLine($"Scheme: {ctx.Request.Scheme}");
-        Console.WriteLine($"Host: {ctx.Request.Host}");
-        Console.WriteLine($"XF-Proto: {ctx.Request.Headers["X-Forwarded-Proto"]}");
-        Console.WriteLine($"XF-Host: {ctx.Request.Headers["X-Forwarded-Host"]}");
-        await next();
-    }
-);
+// app.Use(
+//     async (ctx, next) =>
+//     {
+//         Console.WriteLine($"Scheme: {ctx.Request.Scheme}");
+//         Console.WriteLine($"Host: {ctx.Request.Host}");
+//         Console.WriteLine($"XF-Proto: {ctx.Request.Headers["X-Forwarded-Proto"]}");
+//         Console.WriteLine($"XF-Host: {ctx.Request.Headers["X-Forwarded-Host"]}");
+//         await next();
+//     }
+// );
 logger.LogInformation("Running.");
 
 app.Run();

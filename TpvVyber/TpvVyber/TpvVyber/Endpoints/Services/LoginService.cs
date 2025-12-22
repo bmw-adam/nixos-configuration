@@ -6,7 +6,7 @@ namespace TpvVyber.Services;
 
 public static class LoginService
 {
-    public static void UseLoginService(this WebApplication app, string redirectUri)
+    public static void UseLoginService(this WebApplication app)
     {
         app.MapGet(
             "/login",

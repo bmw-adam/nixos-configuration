@@ -5,31 +5,29 @@
 
 @if (Courses != null)
 {
-    <MudSimpleTable Dense="true" Hover="true" Bordered="true" Striped="false" Style="overflow-x: auto;">
+    <MudSimpleTable aria-label="mudtable-notloggedpromo" Dense="true" Hover="true" Bordered="true" Striped="false" Style="overflow-x: auto;">
         <thead>
             <MudTr>
-                <MudTh>Název</MudTh>
-                <MudTh>Popis</MudTh>
-                <MudTh>Url</MudTh>
-                <MudTh>Cena Min</MudTh>
-                <MudTh>Cena Max</MudTh>
-                <MudTh>Kapacita</MudTh>
-                <MudTh>Obsazenost</MudTh>
+                <MudTh aria-label="mudtable-notloggedpromo-Název">Název</MudTh>
+                <MudTh aria-label="mudtable-notloggedpromo-Popis">Popis</MudTh>
+                <MudTh aria-label="mudtable-notloggedpromo-Url">Url</MudTh>
+                <MudTh aria-label="mudtable-notloggedpromo-Cena">Cena</MudTh>
+                <MudTh aria-label="mudtable-notloggedpromo-Kapacita">Kapacita</MudTh>
+                <MudTh aria-label="mudtable-notloggedpromo-Obsazenost">Obsazenost</MudTh>
             </MudTr>
         </thead>
         <tbody>
             @foreach (var course in Courses)
             {
-                <MudTr>
-                    <MudTd>@course.Name</MudTd>
-                    <MudTd>@course.Description</MudTd>
+                <MudTr aria-label="@($"mudtable-notloggedpromo-row-{course.Name}")">
+                    <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Name")">@course.Name</MudTd>
+                    <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Description")">@course.Description</MudTd>
                     <MudTd>
-                        <MudLink Href="@course.PdfUrl">Url</MudLink>
+                        <MudLink aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Url")" Href="@course.PdfUrl">Url</MudLink>
                     </MudTd>
-                    <MudTd>@course.MinPrice</MudTd>
-                    <MudTd>@course.MaxPrice</MudTd>
-                    <MudTd>@course.Capacity</MudTd>
-                    <MudTd>@course.Extended?.Occupied</MudTd>
+                    <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Price")">@course.MaxPrice - @course.MinPrice</MudTd>
+                    <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Capacity")">@course.Capacity</MudTd>
+                    <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Occupied")">@course.Extended?.Occupied</MudTd>
                 </MudTr>
             }
         </tbody>
@@ -40,7 +38,7 @@ else
     <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
 }
 
-<MudButton StartIcon="@Icons.Material.Outlined.Login"
+<MudButton aria-label="loginBtn" StartIcon="@Icons.Material.Outlined.Login"
     OnClick="@(() => navigationManager.NavigateTo("/login", forceLoad: true))">Přihlásit se</MudButton>
 
 @code {

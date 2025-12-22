@@ -21,14 +21,14 @@ public static class StudentsAdminEndpoints
         studentsGroup.MapPut("update", HandlerUpdateStudent);
     }
 
-    private static async Task<IResult> HandlerGetAllStudents(
+    private static IResult HandlerGetAllStudents(
         IAdminService adminService,
         FillStudentExtended? fillExtended
     )
     {
         try
         {
-            var result = await adminService.GetAllStudentsAsync(true, fillExtended);
+            var result = adminService.GetAllStudentsAsync(true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)

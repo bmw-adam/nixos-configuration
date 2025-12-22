@@ -6,13 +6,27 @@ namespace TpvVyber.Client.Services.Admin;
 public interface IAdminService
 {
     public Task<LoggingEndingCln?> GetLoggingEndings(bool reThrowError);
-    public Task<LoggingEndingCln?> UpdateLoggingEnding(LoggingEndingCln loggingEnding, bool reThrowError);
+    public Task<LoggingEndingCln?> UpdateLoggingEnding(
+        LoggingEndingCln loggingEnding,
+        bool reThrowError
+    );
     #region Courses
-    public Task<CourseCln> AddCourseAsync(CourseCln item, bool reThrowError, FillCourseExtended? fillExtended = null);
+    public Task<CourseCln> AddCourseAsync(
+        CourseCln item,
+        bool reThrowError,
+        FillCourseExtended? fillExtended = null
+    );
     public Task DeleteCourseAsync(int Id, bool reThrowError);
     public Task UpdateCourseAsync(CourseCln item, bool reThrowError);
-    public Task<CourseCln?> GetCourseByIdAsync(int id, bool reThrowError, FillCourseExtended? fillExtended = null);
-    public Task<IEnumerable<CourseCln>> GetAllCoursesAsync(bool reThrowError, FillCourseExtended? fillExtended = null);
+    public Task<CourseCln?> GetCourseByIdAsync(
+        int id,
+        bool reThrowError,
+        FillCourseExtended? fillExtended = null
+    );
+    public IAsyncEnumerable<CourseCln> GetAllCoursesAsync(
+        bool reThrowError,
+        FillCourseExtended? fillExtended = null
+    );
     #endregion
     #region Students
     public Task<StudentCln> AddStudentAsync(
@@ -22,8 +36,12 @@ public interface IAdminService
     );
     public Task DeleteStudentAsync(int Id, bool reThrowError);
     public Task UpdateStudentAsync(StudentCln item, bool reThrowError);
-    public Task<StudentCln?> GetStudentByIdAsync(int id, bool reThrowError, FillStudentExtended? fillExtended = null);
-    public Task<IEnumerable<StudentCln>> GetAllStudentsAsync(
+    public Task<StudentCln?> GetStudentByIdAsync(
+        int id,
+        bool reThrowError,
+        FillStudentExtended? fillExtended = null
+    );
+    public IAsyncEnumerable<StudentCln> GetAllStudentsAsync(
         bool reThrowError,
         FillStudentExtended? fillExtended = null
     );
@@ -41,7 +59,7 @@ public interface IAdminService
         bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     );
-    public Task<IEnumerable<OrderCourseCln>> GetAllOrderCourseAsync(
+    public IAsyncEnumerable<OrderCourseCln> GetAllOrderCourseAsync(
         bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     );

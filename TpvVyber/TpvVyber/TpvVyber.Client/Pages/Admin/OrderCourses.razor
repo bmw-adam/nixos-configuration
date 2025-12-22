@@ -1,4 +1,5 @@
 @page "/admin/ordercourses"
+@using System.Runtime.InteropServices
 @attribute [Authorize(Roles = "Admin")]
 @inject NavigationManager NavigationManager
 @inject PersistentComponentState ApplicationState
@@ -12,7 +13,7 @@
 }
 else
 {
-    <MudDataGrid @ref="StudentGrid" T="OrderCourseCln" Items="@OrderCourseData" ReadOnly="false"
+    <MudDataGrid @ref="OrderCourseGrid" T="OrderCourseCln" Items="@OrderCourseData" ReadOnly="false"
                  EditMode="DataGridEditMode.Cell" CommittedItemChanges="@CommittedItemChanges"
                  Bordered="true" Dense="true" EditTrigger="DataGridEditTrigger.OnRowClick">
         <ToolBarContent>
@@ -34,8 +35,10 @@ else
                 <EditTemplate>
                     @if (context.Item.Extended != null)
                     {
-                        <MudSelect Style="display: block;" T="CourseCln" Value="context.Item.Extended.Course" ValueChanged="(value) => ChangeValueCourse(context.Item, value)" ToStringFunc="s => s.Name" Required="true"
-                               RequiredError="Kurz je povinný!" HelperText="Vyberte kurz">
+                        <MudSelect Style="display: block;" T="CourseCln" Value="context.Item.Extended.Course" 
+                                   ValueChanged="(value) => ChangeValueCourse(context.Item, value)" 
+                                   ToStringFunc="s => s.Name" Required="true"
+                                   RequiredError="Kurz je povinný!" HelperText="Vyberte kurz">
                         @foreach (var course in AvailableCourses)
                         {
                             <MudSelectItem T="CourseCln" Value="course">@course.Name</MudSelectItem>
@@ -59,8 +62,10 @@ else
                 <EditTemplate>
                     @if (context.Item.Extended != null)
                     {
-                        <MudSelect Style="display: block;" T="StudentCln" Value="context.Item.Extended.Student" ValueChanged="(value) => ChangeValueStudent(context.Item, value)" ToStringFunc="s => s.Name" Required="true"
-                               RequiredError="Žák je povinný!" HelperText="Vyberte žáka">
+                        <MudSelect Style="display: block;" T="StudentCln" Value="context.Item.Extended.Student" 
+                                   ValueChanged="(value) => ChangeValueStudent(context.Item, value)" 
+                                   ToStringFunc="s => s.Name" Required="true"
+                                   RequiredError="Žák je povinný!" HelperText="Vyberte žáka">
                         @foreach (var student in AvailableStudents)
                         {
                             <MudSelectItem T="StudentCln" Value="student">@student.Name</MudSelectItem>
@@ -73,7 +78,6 @@ else
                     }
                 </EditTemplate>
             </TemplateColumn>
-
 
             <TemplateColumn>
                 <CellTemplate>
@@ -90,30 +94,28 @@ else
 }
 
 @code {
-    private List<OrderCourseCln>? OrderCourseData;
-    private MudDataGrid<OrderCourseCln> StudentGrid = default!;
-    private PersistingComponentStateSubscription? _subscription;
+    private List<OrderCourseCln>? OrderCourseData; // Keep this null initially to show spinner
+    private MudDataGrid<OrderCourseCln> OrderCourseGrid = default!;
 
     private List<CourseCln> AvailableCourses = new();
     private List<StudentCln> AvailableStudents = new();
+private PersistingComponentStateSubscription? _subscription;
     [CascadingParameter]
     public bool ReThrowError { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
+        _ = LoadData();
+    }
 
-        AvailableCourses = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(AvailableCourses), out var cachedCourses)
-            ? cachedCourses?.ToList() ?? new List<CourseCln>()
-            : (await AdminService.GetAllCoursesAsync(ReThrowError)).ToList();
-
-        AvailableStudents = ApplicationState.TryTakeFromJson<IEnumerable<StudentCln>>(nameof(AvailableStudents), out var cachedStudents)
-            ? cachedStudents?.ToList() ?? new List<StudentCln>()
-            : (await AdminService.GetAllStudentsAsync(ReThrowError)).ToList();
-
-        OrderCourseData = ApplicationState.TryTakeFromJson<IEnumerable<OrderCourseCln>>(nameof(OrderCourseData), out var cached)
-            ? cached?.ToList()
-            : (await AdminService.GetAllOrderCourseAsync(ReThrowError, FillOrderCourseExtended.Student | FillOrderCourseExtended.Course)).ToList();
+    private async Task LoadData() {
+        // Load dependencies first
+        await LoadCoursesAsync();
+        await LoadStudentsAsync();
+        
+        // Then load the main grid data
+        await LoadOrdersAsync();
     }
 
     private Task Persist()
@@ -121,16 +123,85 @@ else
         if (OrderCourseData is not null)
             ApplicationState.PersistAsJson(nameof(OrderCourseData), OrderCourseData);
 
-        if (AvailableCourses is not null)
+        if (AvailableCourses.Any())
             ApplicationState.PersistAsJson(nameof(AvailableCourses), AvailableCourses);
 
-        if (AvailableStudents is not null)
+        if (AvailableStudents.Any())
             ApplicationState.PersistAsJson(nameof(AvailableStudents), AvailableStudents);
 
         return Task.CompletedTask;
     }
 
     public void Dispose() => _subscription?.Dispose();
+
+    private async Task LoadCoursesAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(AvailableCourses), out var cached))
+        {
+            AvailableCourses = cached?.ToList() ?? new();
+        }
+        if(AvailableCourses == null || AvailableCourses.Count == 0)
+        {
+            var tempList = new List<CourseCln>();
+            await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError))
+            {
+                tempList.Add(course);
+            }
+            AvailableCourses = tempList;
+        }
+    }
+
+    private async Task LoadStudentsAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<IEnumerable<StudentCln>>(nameof(AvailableStudents), out var cached))
+        {
+            AvailableStudents = cached?.ToList() ?? new();
+        }
+        if (AvailableStudents == null || AvailableStudents.Count == 0)
+        {
+            var tempList = new List<StudentCln>();
+            await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError))
+            {
+                tempList.Add(student);
+            }
+            AvailableStudents = tempList;
+        }
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<IEnumerable<OrderCourseCln>>(nameof(OrderCourseData), out var cached))
+        {
+            OrderCourseData = cached?.ToList();
+        }
+        if (OrderCourseData == null || OrderCourseData.Count == 0)
+        {
+            OrderCourseData = new();
+            _ = InvokeAsync(StateHasChanged);
+
+            var orderCoursesStream = AdminService.GetAllOrderCourseAsync(ReThrowError, FillOrderCourseExtended.Student | FillOrderCourseExtended.Course);
+            
+            if (orderCoursesStream != null)
+            {
+                await foreach (var item in orderCoursesStream)
+                {
+                    if (RendererInfo.Name == "WebAssembly")
+                    {
+                        OrderCourseData.Add(item);
+                        StateHasChanged();
+                        await Task.Delay(1);
+                    }
+                    else
+                    {
+                        OrderCourseData.Add(item);
+                        _ = InvokeAsync(StateHasChanged);
+                    }
+                }
+            }
+
+        }
+        StateHasChanged(); 
+    }
 
     private async Task NewItemAsync()
     {
@@ -143,14 +214,16 @@ else
         var dialog = await DialogService.ShowAsync<AddOrderCourseDialog>("Přidat pořadí kurzu", parameters, options);
 
         var result = await dialog.Result;
-        var retData = result?.Data;
-
-        if (!(result?.Canceled ?? true) && retData != null && retData is OrderCourseCln orderCourse)
+        
+        if (result != null && !result.Canceled && result.Data is OrderCourseCln orderCourse)
         {
             var newOrderCourse = await AdminService.AddOrderCourseAsync(orderCourse, ReThrowError, FillOrderCourseExtended.Student | FillOrderCourseExtended.Course);
             if (newOrderCourse is not null)
             {
-                OrderCourseData?.Insert(0, newOrderCourse);
+                if (OrderCourseData == null) OrderCourseData = new List<OrderCourseCln>();
+                
+                OrderCourseData.Insert(0, newOrderCourse);
+                StateHasChanged(); 
             }
         }
     }
@@ -159,6 +232,7 @@ else
     {
         await AdminService.DeleteOrderCourseAsync(item.Id, ReThrowError);
         OrderCourseData?.Remove(item);
+        StateHasChanged(); 
     }
 
     private void CommittedItemChanges(OrderCourseCln item)
@@ -169,33 +243,21 @@ else
     private async Task CommitDataAsync(OrderCourseCln OrderCourse)
     {
         await AdminService.UpdateOrderCourseAsync(OrderCourse, ReThrowError);
-        // Only reload if needed, often unnecessary if your grid binds to OrderCourseData
-    }
-
-    private void ExpandRow(OrderCourseCln item)
-    {
-        _ = StudentGrid.ToggleHierarchyVisibilityAsync(item);
     }
 
     private void ChangeValueCourse(OrderCourseCln item, CourseCln value)
     {
-        if (item.Extended == null)
-            return;
-
+        if (item.Extended == null) return;
         item.Extended.Course = value;
         item.CourseId = value.Id;
-
         CommittedItemChanges(item);
     }
 
     private void ChangeValueStudent(OrderCourseCln item, StudentCln value)
     {
-        if (item.Extended == null)
-            return;
-            
+        if (item.Extended == null) return;
         item.Extended.Student = value;
         item.StudentId = value.Id;
-
         CommittedItemChanges(item);
     }
 }

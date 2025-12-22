@@ -11,46 +11,52 @@
 }
 else
 {
-    <MudDataGrid @ref="courseGrid" T="CourseCln" Items="@CoursesData" ReadOnly="false" EditMode="DataGridEditMode.Cell"
-        CommittedItemChanges="@CommittedItemChanges" Bordered="true" Dense="true"
-        EditTrigger="DataGridEditTrigger.OnRowClick">
+    <MudDataGrid aria-label="grid-adm-courses" @ref="courseGrid" Context="context" T="CourseCln" Items="@CoursesData"
+        ReadOnly="false" EditMode="DataGridEditMode.Cell" CommittedItemChanges="@CommittedItemChanges" Bordered="true"
+        Dense="true" EditTrigger="DataGridEditTrigger.OnRowClick">
         <ToolBarContent>
-            <MudText Typo="Typo.h6">Kurzy</MudText>
+            <MudText aria-label="grid-adm-courses-lbl-kurzy" Typo="Typo.h6">Kurzy</MudText>
             <MudSpacer />
             <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Outlined">
-                <MudButton OnClick="NewItemAsync">Přidat nový kurz</MudButton>
+                <MudButton aria-label="grid-adm-courses-add-course" OnClick="NewItemAsync">Přidat nový kurz</MudButton>
             </MudButtonGroup>
         </ToolBarContent>
         <Columns>
             <HierarchyColumn Hidden />
             <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
-            <PropertyColumn Title="Název" Property="x => x.Name" />
-            <PropertyColumn Title="Popis" Property="x => x.Description" />
-            <PropertyColumn Title="Pro třídy" Property="x => x.ForClasses" />
-            <PropertyColumn Title="Kapacita" Property="x => x.Capacity" />
-            <PropertyColumn Title="Min. Kapacita" Property="x => x.MinCapacity" />
-            <PropertyColumn Title="Min. Napl. Cena" Property="x => x.MinPrice" />
-            <PropertyColumn Title="Max. Napl. Cena" Property="x => x.MaxPrice" />
-            <PropertyColumn Title="Pdf url" Property="x => x.PdfUrl" />
+            <PropertyColumn aria-label="@($"grid-adm-courses-grid-Name-val")" Title="Název" Property="x => x.Name" />
+            <PropertyColumn aria-label="@($"grid-adm-courses-grid-Description-val")" Title="Popis"
+                Property="x => x.Description" />
+            <PropertyColumn aria-label="@($"grid-adm-courses-grid-ForClasses-val")" Title="Pro třídy"
+                Property="x => x.ForClasses" />
+            <PropertyColumn aria-label="@($"grid-adm-courses-grid-Capacity-val")" Title="Kapacita"
+                Property="x => x.Capacity" />
+            <PropertyColumn aria-label="@($"grid-adm-courses-grid-MinCapacity-val")" Title="Min. Kapacita"
+                Property="x => x.MinCapacity" />
+            <PropertyColumn aria-label="@($"grid-adm-courses-grid-MinPrice-val")" Title="Min. Napl. Cena"
+                Property="x => x.MinPrice" />
+            <PropertyColumn aria-label="@($"grid-adm-courses-grid-MaxPrice-val")" Title="Max. Napl. Cena"
+                Property="x => x.MaxPrice" />
+            <PropertyColumn aria-label="@($"grid-adm-courses-grid-PdfUrl-val")" Title="Pdf url" Property="x => x.PdfUrl" />
             <TemplateColumn Title="Seznam kurzů">
                 <CellTemplate>
-                    <MudButton OnClick="() => ExpandRow(context.Item)" StartIcon="@Icons.Material.Outlined.List"
-                        Size="Size.Small">Seznam žáků</MudButton>
+                    <MudButton aria-label="@($"grid-adm-courses-grid-StuList-val")" OnClick="() => ExpandRow(context.Item)"
+                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Seznam žáků</MudButton>
                 </CellTemplate>
                 <EditTemplate>
-                    <MudButton OnClick="() => ExpandRow(context.Item)" StartIcon="@Icons.Material.Outlined.List"
-                        Size="Size.Small">Seznam žáků</MudButton>
+                    <MudButton aria-label="@($"grid-adm-courses-grid-StuList-val")" OnClick="() => ExpandRow(context.Item)"
+                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Seznam žáků</MudButton>
                 </EditTemplate>
             </TemplateColumn>
 
             <TemplateColumn>
                 <CellTemplate>
-                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
-                        OnClick="@(() => DeleteItemAsync(context.Item))" />
+                    <MudIconButton aria-label="@($"grid-adm-courses-grid-delStu-val")" Size="Size.Small"
+                        Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteItemAsync(context.Item))" />
                 </CellTemplate>
                 <EditTemplate>
-                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
-                        OnClick="@(() => DeleteItemAsync(context.Item))" />
+                    <MudIconButton aria-label="@($"grid-adm-courses-grid-delStu-val")" Size="Size.Small"
+                        Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteItemAsync(context.Item))" />
                 </EditTemplate>
             </TemplateColumn>
         </Columns>
@@ -58,7 +64,8 @@ else
             <MudCard>
                 <MudCardHeader>
                     <CardHeaderContent>
-                        <MudText Typo="Typo.h6">Seznam žáků - @context.Item.Name</MudText>
+                        <MudText aria-label="@($"grid-adm-courses-grid-StuList-val-nested-Name")" Typo="Typo.h6">Seznam žáků
+                            - @context.Item.Name</MudText>
                     </CardHeaderContent>
                 </MudCardHeader>
                 <MudCardContent>
@@ -67,13 +74,20 @@ else
                         <MudDataGrid T="StudentCln" Items="context.Item.Extended.Students" ReadOnly="true" Bordered="true"
                             Dense="true">
                             <Columns>
-                                <PropertyColumn Property="x => x.Id" Title="Id" />
-                                <PropertyColumn Property="x => x.Name" Title="Jméno" />
-                                <PropertyColumn Property="x => x.Email" Title="Email" />
-                                <TemplateColumn Title="Pořadí" Editable="false">
+                                <PropertyColumn aria-label="@($"grid-adm-courses-grid-StuList-val-nested-Id")"
+                                    Property="x => x.Id" Title="Id" />
+                                <PropertyColumn aria-label="@($"grid-adm-courses-grid-StuList-val-nested-Jméno")"
+                                    Property="x => x.Name" Title="Jméno" />
+                                <PropertyColumn aria-label="@($"grid-adm-courses-grid-StuList-val-nested-Email")"
+                                    Property="x => x.Email" Title="Email" />
+                                <TemplateColumn aria-label="@($"grid-adm-courses-grid-StuList-val-nested-Pořadí")"
+                                    Title="Pořadí" Editable="false">
                                     <CellTemplate Context="student">
-                                        <MudText>@string.Join(", ", OrderCourses?.Where(oc => oc.StudentId == student.Item.Id &&
-                                                                                oc.CourseId == context.Item.Id).Select(oc => oc.Order) ?? [])</MudText>
+                                        <MudText>
+                                            @string.Join(", ", context.Item.Extended.OrderCourses?.Where(oc => oc.StudentId ==
+                                            student.Item.Id)
+                                                                        .Select(oc => oc.Order) ?? [])
+                                </MudText>
                             </CellTemplate>
                         </TemplateColumn>
                     </Columns>
@@ -97,22 +111,40 @@ else
     [CascadingParameter]
     public bool ReThrowError { get; set; }
 
-    private List<OrderCourseCln>? OrderCourses;
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
+        _ = LoadData();
+    }
 
-        CoursesData = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(CoursesData), out var cached)
-        ? cached?.ToList()
-        : (await AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.Students)).ToList();
+    private async Task LoadData()
+    {
+        if (ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(CoursesData), out var cached))
+        {
+            CoursesData = cached?.ToList();
+        }
+        if (CoursesData == null || CoursesData.Count == 0)
+        {
+            CoursesData = new List<CourseCln>();
+            _ = InvokeAsync(StateHasChanged);
 
-
-        OrderCourses = ApplicationState.TryTakeFromJson<IEnumerable<OrderCourseCln>>(nameof(OrderCourses), out var
-        cachedOrderCourses)
-        ? cachedOrderCourses?.ToList()
-        : (await AdminService.GetAllOrderCourseAsync(ReThrowError, FillOrderCourseExtended.Student |
-        FillOrderCourseExtended.Course)).ToList();
+            // Stream items one by one
+            await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.Students |
+            FillCourseExtended.OrderCourses))
+            {
+                if (RendererInfo.Name == "WebAssembly")
+                {
+                    CoursesData.Add(course);
+                    StateHasChanged();
+                    await Task.Delay(1);
+                }
+                else
+                {
+                    CoursesData.Add(course);
+                    _ = InvokeAsync(StateHasChanged);
+                }
+            }
+        }
     }
 
     private Task Persist()
@@ -120,8 +152,6 @@ else
         if (CoursesData is not null)
             ApplicationState.PersistAsJson(nameof(CoursesData), CoursesData);
 
-        if (OrderCourses is not null)
-            ApplicationState.PersistAsJson(nameof(OrderCourses), OrderCourses);
         return Task.CompletedTask;
     }
 
@@ -150,7 +180,6 @@ else
     private async Task CommitDataAsync(CourseCln course)
     {
         await AdminService.UpdateCourseAsync(course, ReThrowError);
-        // Only reload if needed, often unnecessary if your grid binds to CoursesData
     }
 
     private void ExpandRow(CourseCln item)

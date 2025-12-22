@@ -28,14 +28,14 @@ public static class CoursesAdminEndpoints
         coursesGroupNoAdmin.MapGet("get_logging_ending", HandlerGetLoggingEnding);
     }
 
-    private static async Task<IResult> HandlerGetAllCourses(
+    private static IResult HandlerGetAllCourses(
         IAdminService adminService,
         FillCourseExtended? fillExtended
     )
     {
         try
         {
-            var result = await adminService.GetAllCoursesAsync(true, fillExtended);
+            var result = adminService.GetAllCoursesAsync(true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)

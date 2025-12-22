@@ -9,10 +9,10 @@ public class TpvVyberContext : DbContext
     public TpvVyberContext(DbContextOptions<TpvVyberContext> options)
         : base(options) { }
 
-    public required DbSet<Student> Students { get; set; }
-    public required DbSet<Course> Courses { get; set; }
-    public required DbSet<OrderCourse> OrderCourses { get; set; }
-    public required DbSet<LoggingEnding> LoggingEndings { get; set; }
+    public DbSet<Student> Students { get; set; } = null!;
+    public DbSet<Course> Courses { get; set; } = null!;
+    public DbSet<OrderCourse> OrderCourses { get; set; } = null!;
+    public DbSet<LoggingEnding> LoggingEndings { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

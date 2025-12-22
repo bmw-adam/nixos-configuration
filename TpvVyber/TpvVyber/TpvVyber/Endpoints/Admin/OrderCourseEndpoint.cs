@@ -26,14 +26,14 @@ public static class OrderCourseAdminEndpoints
         coursesOrdersGroup.MapPut("update", HandlerUpdateOrderCourse);
     }
 
-    private static async Task<IResult> HandlerGetAllOrderCourses(
+    private static IResult HandlerGetAllOrderCourses(
         IAdminService adminService,
         FillOrderCourseExtended? fillExtended
     )
     {
         try
         {
-            var result = await adminService.GetAllOrderCourseAsync(true, fillExtended);
+            var result = adminService.GetAllOrderCourseAsync(true, fillExtended);
             return Results.Ok(result);
         }
         catch (Exception ex)

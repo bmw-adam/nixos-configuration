@@ -9,48 +9,48 @@
     <MudSimpleTable Dense="true" Hover="true" Bordered="true" Striped="false" Style="overflow-x: auto;">
         <thead>
             <MudTr>
-                <MudTh><b>Vlastnost</b></MudTh>
-                <MudTh><b>Hodnota</b></MudTh>
+                <MudTh><b aria-label="MudSimpleTable-vlastnost">Vlastnost</b></MudTh>
+                <MudTh><b aria-label="MudSimpleTable-hodnota">Hodnota</b></MudTh>
             </MudTr>
         </thead>
         <tbody>
             <MudTr>
-                <MudTd>Id</MudTd>
-                <MudTd>@Course.Id</MudTd>
+                <MudTd aria-label="MudSimpleTable-id">Id</MudTd>
+                <MudTd aria-label="MudSimpleTable-id-val">@Course.Id</MudTd>
             </MudTr>
             <MudTr>
-                <MudTd>Jméno</MudTd>
-                <MudTd>@Course.Name</MudTd>
+                <MudTd aria-label="MudSimpleTable-jmeno">Jméno</MudTd>
+                <MudTd aria-label="MudSimpleTable-jmeno-val">@Course.Name</MudTd>
             </MudTr>
             <MudTr>
-                <MudTd>Popis</MudTd>
-                <MudTd>@Course.Description</MudTd>
+                <MudTd aria-label="MudSimpleTable-popis">Popis</MudTd>
+                <MudTd aria-label="MudSimpleTable-popis-val">@Course.Description</MudTd>
             </MudTr>
             <MudTr>
-                <MudTd>Pdf Url</MudTd>
+                <MudTd aria-label="MudSimpleTable-Pdf">Pdf Url</MudTd>
                 <MudTd>
-                    <MudLink Href="@Course.PdfUrl">@Course.PdfUrl</MudLink>
+                    <MudLink aria-label="MudSimpleTable-Pdf-val" Href="@Course.PdfUrl">@Course.PdfUrl</MudLink>
                 </MudTd>
             </MudTr>
             <MudTr>
-                <MudTd>Pro třídy</MudTd>
-                <MudTd>@string.Join(", ", Course.ForClasses.Split(";"))</MudTd>
+                <MudTd aria-label="MudSimpleTable-ForClasses">Pro třídy</MudTd>
+                <MudTd aria-label="MudSimpleTable-ForClasses-val">@string.Join(", ", Course.ForClasses.Split(";"))</MudTd>
             </MudTr>
             <MudTr>
-                <MudTd>Cena Min</MudTd>
-                <MudTd>@Course.MinPrice</MudTd>
+                <MudTd aria-label="MudSimpleTable-PriceMin">Cena Min. Obsazenost</MudTd>
+                <MudTd aria-label="MudSimpleTable-PriceMin-val">@Course.MinPrice</MudTd>
             </MudTr>
             <MudTr>
-                <MudTd>Cena Max</MudTd>
-                <MudTd>@Course.MaxPrice</MudTd>
+                <MudTd aria-label="MudSimpleTable-PriceMax">Cena Max. Obsazenost</MudTd>
+                <MudTd aria-label="MudSimpleTable-PriceMax-val">@Course.MaxPrice</MudTd>
             </MudTr>
             <MudTr>
-                <MudTd>Kapacita</MudTd>
-                <MudTd>@Course.Capacity</MudTd>
+                <MudTd aria-label="MudSimpleTable-Capa">Kapacita</MudTd>
+                <MudTd aria-label="MudSimpleTable-Capa-val">@Course.Capacity</MudTd>
             </MudTr>
             <MudTr>
-                <MudTd>Dostupnost pro mě</MudTd>
-                <MudTd><b>@Course?.Extended?.Availability?.GetDescription()</b></MudTd>
+                <MudTd aria-label="MudSimpleTable-Availability">Dostupnost pro mě</MudTd>
+                <MudTd aria-label="MudSimpleTable-Availability-val"><b>@Course?.Extended?.Availability?.GetDescription()</b></MudTd>
             </MudTr>
         </tbody>
     </MudSimpleTable>

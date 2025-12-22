@@ -20,8 +20,15 @@
 </MudStack>
 <div style="height: 20px;"></div>
 <MudPaper Class="doc-section-component-container">
-    <MudChart ChartType="MudBlazor.ChartType.StackedBar" ChartSeries="@_series" @bind-SelectedIndex="_index"
-        XAxisLabels="@_xAxisLabels" Width="100%" Height="auto" AxisChartOptions="_axisChartOptions"></MudChart>
+    @if (_series.Count > 0)
+    {
+        <MudChart ChartType="MudBlazor.ChartType.StackedBar" ChartSeries="@_series" @bind-SelectedIndex="_index"
+            XAxisLabels="@_xAxisLabels" Width="100%" Height="auto" AxisChartOptions="_axisChartOptions"></MudChart>
+    }
+    else
+    {
+        <MudText Align="Align.Center" Class="pa-4">Načítám graf...</MudText>
+    }
 </MudPaper>
 <MudText Typo="Typo.caption"><i>Kolik lidí si dalo kurz na kolikáté pořadí?</i></MudText>
 
@@ -41,10 +48,13 @@
         <MudTd DataLabel="E-Mail">@context.Email</MudTd>
         <MudTd DataLabel="Název kurzu">@GetCourseNameForStudent(context)</MudTd>
     </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
 </MudTable>
 
 <MudButton StartIcon="@Icons.Material.Outlined.ImportExport" OnClick="ExportCsv" Variant="Variant.Filled"
-    Color="Color.Primary">
+    Color="Color.Primary" Disabled="@(Students == null)">
     Export CSV
 </MudButton>
 
@@ -60,7 +70,7 @@
     private TimeSpan? LoggingEndTimeSpan;
     private LoggingEndingCln? loggingEndingCln;
 
-    private int _index = -1; //default value cannot be 0 -> first selectedindex is 0.
+    private int _index = -1; 
     private AxisChartOptions _axisChartOptions = new AxisChartOptions();
 
     private List<ChartSeries> _series = new List<ChartSeries>();
@@ -68,62 +78,65 @@
 
     protected override void OnInitialized()
     {
-        base.OnInitialized();
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
         _ = AsyncLoad();
     }
 
-    private async Task<Dictionary<CourseCln, List<StudentCln>>> ApiCall()
-    {
-        var dict = await AdminService.ShowFillCourses(true, ReThrowError, FillCourseExtended.Students, null);
-        var coursesDict = new Dictionary<CourseCln, List<StudentCln>>();
-
-        foreach (var pair in dict)
-        {
-            var course = await AdminService.GetCourseByIdAsync(pair.Key, ReThrowError, null);
-            if (course != null)
-            {
-                coursesDict.Add(course, pair.Value.ToList());
-            }
-        }
-        return coursesDict;
-    }
-
     private async Task AsyncLoad()
     {
-        StudentCourses = ApplicationState.TryTakeFromJson<Dictionary<CourseCln, List<StudentCln>>>(nameof(StudentCourses), out
-        var cached)
-        ? cached
-        : (await ApiCall());
+        // 1. Start loading independent data streams in parallel
+        var t1 = LoadStudentsAsync();
+        var t2 = LoadCoursesAsync();
+        var t3 = LoadLoggingEndAsync();
 
-        Students = ApplicationState.TryTakeFromJson<List<StudentCln>>(nameof(Students), out
-        var cachedStudents)
-        ? cachedStudents
-        : ((await AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses |
-        FillStudentExtended.OrderCourses)).ToList());
+        // Wait for basic data to arrive
+        await Task.WhenAll(t1, t2, t3);
 
-        Courses = ApplicationState.TryTakeFromJson<List<CourseCln>>(nameof(Courses), out
-        var cachedCourses)
-        ? cachedCourses
-        : ((await AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.OrderCourses |
-        FillCourseExtended.Students)).ToList());
+        // 2. Build the Dictionary 
+        // We do this AFTER courses are loaded so we can look up Course objects in memory 
+        // instead of calling the API N times.
+        await LoadStudentCoursesDictionaryAsync();
 
+        // 3. Prepare Chart Data
+        PrepareChartData();
+        
+        StateHasChanged();
+    }
 
-        _xAxisLabels = (StudentCourses?.Select(e => e.Key.Name).ToArray() ?? []).Order().ToArray();
-
-        foreach (var order in (Students?.SelectMany(e => e.Extended?.OrderCourses ?? [])?.Where(r => r is not null) ??
-        []).Select(r => r.Order).Distinct())
+    private async Task LoadStudentsAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<List<StudentCln>>(nameof(Students), out var cached))
         {
-            _series.Add(
-            new ChartSeries()
-            {
-                Name = $"Pořadí {order}",
-                Data = _xAxisLabels.Select(a => Courses?.FirstOrDefault(s => s.Name == a)).Select(r =>
-    r?.Extended?.OrderCourses?.Where(d => d.Order == order)).Select(q => q?.Count() ?? 0).Select(r => (double)r).ToArray()
-            }
-            );
+            Students = cached;
         }
+        else
+        {
+            Students = new List<StudentCln>();
+            await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses | FillStudentExtended.OrderCourses))
+            {
+                Students.Add(student);
+            }
+        }
+    }
 
+    private async Task LoadCoursesAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<List<CourseCln>>(nameof(Courses), out var cached))
+        {
+            Courses = cached;
+        }
+        else
+        {
+            Courses = new List<CourseCln>();
+            await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.OrderCourses | FillCourseExtended.Students))
+            {
+                Courses.Add(course);
+            }
+        }
+    }
+
+    private async Task LoadLoggingEndAsync()
+    {
         var loggingEnd = await AdminService.GetLoggingEndings(ReThrowError);
         if (loggingEnd?.TimeEnding != null)
         {
@@ -131,8 +144,66 @@
             LoggingEndTimeSpan = loggingEnd.TimeEnding - loggingEnd.TimeEnding.Date;
         }
         loggingEndingCln = loggingEnd;
-        StateHasChanged();
     }
+
+    private async Task LoadStudentCoursesDictionaryAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<Dictionary<CourseCln, List<StudentCln>>>(nameof(StudentCourses), out var cached))
+        {
+            StudentCourses = cached;
+            return;
+        }
+
+        // Fetch the raw allocation (assuming Key is CourseId (int))
+        // Note: Assuming ShowFillCourses returns Dictionary<int, IEnumerable<StudentCln>>
+        var rawDict = await AdminService.ShowFillCourses(true, ReThrowError, FillCourseExtended.Students, null);
+        
+        StudentCourses = new Dictionary<CourseCln, List<StudentCln>>();
+
+        if (Courses != null)
+        {
+            foreach (var pair in rawDict)
+            {
+                // Optimization: Find the course object in the already loaded list
+                // This avoids calling GetCourseByIdAsync inside a loop (N+1 problem)
+                var courseObj = Courses.FirstOrDefault(c => c.Id == pair.Key);
+                
+                if (courseObj != null)
+                {
+                    StudentCourses.Add(courseObj, pair.Value.ToList());
+                }
+            }
+        }
+    }
+
+    private void PrepareChartData()
+    {
+        if (StudentCourses == null || Students == null || Courses == null) return;
+
+        _xAxisLabels = (StudentCourses.Select(e => e.Key.Name).ToArray() ?? []).Order().ToArray();
+        _series.Clear();
+
+        var distinctOrders = Students
+            .SelectMany(e => e.Extended?.OrderCourses ?? [])
+            .Where(r => r is not null)
+            .Select(r => r.Order)
+            .Distinct()
+            .OrderBy(o => o);
+
+        foreach (var order in distinctOrders)
+        {
+            _series.Add(new ChartSeries()
+            {
+                Name = $"Pořadí {order}",
+                Data = _xAxisLabels
+                    .Select(label => Courses.FirstOrDefault(s => s.Name == label))
+                    .Select(course => course?.Extended?.OrderCourses?.Count(d => d.Order == order) ?? 0)
+                    .Select(count => (double)count)
+                    .ToArray()
+            });
+        }
+    }
+
     public void Dispose() => _subscription?.Dispose();
 
     private Task Persist()
@@ -151,6 +222,7 @@
 
     private string GetClassName(string classRoles)
     {
+        if (string.IsNullOrEmpty(classRoles)) return "";
         var roles = classRoles.Split(";");
         return roles.OrderByDescending(e => ClassExtensions.CalculateClaimStrenght(e)).FirstOrDefault() ?? "";
     }
@@ -163,26 +235,28 @@
         }
         loggingEndingCln.TimeEnding = LoggingEndTime.Value.Add(LoggingEndTimeSpan.Value);
         await AdminService.UpdateLoggingEnding(loggingEndingCln, ReThrowError);
-        await AsyncLoad();
+        await AsyncLoad(); // Reloads data to confirm update
     }
 
-    // Helper method to ensure Table and CSV use identical logic
     private string GetCourseNameForStudent(StudentCln student)
     {
-        return StudentCourses?.FirstOrDefault(e => e.Value.Select(q => q.Id).Contains(student.Id)).Key?.Name ?? "";
+        if (StudentCourses == null) return "";
+        
+        // Find which course list contains this student
+        return StudentCourses
+            .FirstOrDefault(e => e.Value.Any(s => s.Id == student.Id))
+            .Key?.Name ?? "";
     }
+
     private async Task ExportCsv()
     {
         if (Students == null) return;
 
-        // Use Semicolon for Czech Excel compatibility
         var separator = ";";
         var sb = new StringBuilder();
 
-        // 1. Header
         sb.AppendLine($"Třída{separator}Jméno žáka{separator}E-Mail{separator}Název kurzu");
 
-        // 2. Data Rows
         foreach (var student in Students)
         {
             var className = GetClassName(student.Class);
@@ -190,20 +264,16 @@
             var email = student.Email;
             var courseName = GetCourseNameForStudent(student);
 
-            // Simple sanitization to prevent CSV breaking if data contains the separator
-            var line =
-            $"{ClassExtensions.EscapeCsv(className)}{separator}{ClassExtensions.EscapeCsv(studentName)}{separator}{ClassExtensions.EscapeCsv(email)}{separator}{ClassExtensions.EscapeCsv(courseName)}";
+            var line = $"{ClassExtensions.EscapeCsv(className)}{separator}{ClassExtensions.EscapeCsv(studentName)}{separator}{ClassExtensions.EscapeCsv(email)}{separator}{ClassExtensions.EscapeCsv(courseName)}";
             sb.AppendLine(line);
         }
 
-        // 3. Create Stream with UTF8 BOM (Byte Order Mark) so Excel opens it correctly
         using var stream = new MemoryStream();
         using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
         await writer.WriteAsync(sb.ToString());
         await writer.FlushAsync();
         stream.Position = 0;
 
-        // 4. Trigger Download via JS
         using var streamRef = new DotNetStreamReference(stream);
         await JS.InvokeVoidAsync("downloadFileFromStream", "Vysledky.csv", streamRef);
     }

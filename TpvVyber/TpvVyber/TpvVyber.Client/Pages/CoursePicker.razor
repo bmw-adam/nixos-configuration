@@ -12,16 +12,16 @@
 
 @if (SortableCourses != null)
 {
-    <SortableList Style="width: 100%" Handle=".drag-handle" TItem="CourseCln" @ref="SortableListRef" Data="SortableCourses"
+    <SortableList aria-label="SortableList-CoursePicker" Style="width: 100%" Handle=".drag-handle" TItem="CourseCln" @ref="SortableListRef" Data="SortableCourses"
         Context="item" AllowSorting OnUpdate="@OnListUpdate">
         <ItemTemplate>
-            <MudStack StretchItems="StretchItems.Middle" Row>
-                <MudIconButton Icon="@Icons.Material.Outlined.DragIndicator" class="drag-handle"></MudIconButton>
-                <MudButton OnClick="@(() => navigationManager.NavigateTo($"/course_info/{item.Id}"))"
+            <MudStack aria-label="@($"SortableList-CoursePicker-{item.Name}")" StretchItems="StretchItems.Middle" Row>
+                <MudIconButton aria-label="@($"SortableList-CoursePicker-{item.Name}-drag")" Icon="@Icons.Material.Outlined.DragIndicator" class="drag-handle"></MudIconButton>
+                <MudButton aria-label="@($"SortableList-CoursePicker-{item.Name}-btn")" OnClick="@(() => navigationManager.NavigateTo($"/course_info/{item.Name}"))"
                     EndIcon="@Icons.Material.Outlined.Info">
-                    @item.Name
+                    <MudLink aria-label="@($"SortableList-CoursePicker-{item.Name}-link")" Href="@($"/course_info/{item.Name}")">@item.Name</MudLink>
                 </MudButton>
-                <MudChip T="string" Variant="Variant.Outlined" Color="AvailabilityBadge(item.Extended?.Availability)">
+                <MudChip aria-label="@($"SortableList-CoursePicker-{item.Name}-avail")" T="string" Variant="Variant.Outlined" Color="AvailabilityBadge(item.Extended?.Availability)">
                     @item.Extended?.Availability?.GetDescription()</MudChip>
             </MudStack>
         </ItemTemplate>
@@ -33,10 +33,10 @@ else
 }
 
 <MudStack Justify="Justify.FlexEnd" Row Spacing="5">
-    <MudButton OnClick="InitialLoadSort" Color="Color.Secondary" Variant="Variant.Outlined"
+    <MudButton aria-label="cancelBtn" OnClick="InitialLoadSort" Color="Color.Secondary" Variant="Variant.Outlined"
         StartIcon="@Icons.Material.Outlined.Cancel">Zrušit
     </MudButton>
-    <MudButton OnClick="AsyncUpdate" Color="Color.Info" Variant="Variant.Outlined"
+    <MudButton aria-label="okBtn" OnClick="AsyncUpdate" Color="Color.Info" Variant="Variant.Outlined"
         StartIcon="@Icons.Material.Outlined.Save">Ok</MudButton>
 </MudStack>
 

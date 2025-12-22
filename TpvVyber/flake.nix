@@ -24,6 +24,7 @@
 
         pkgs = import nixpkgs {
           inherit system;
+          config.allowUnfree = true;
           overlays = [ dotnetWasmOverlay ];
         };
 
@@ -45,6 +46,11 @@
             echo "Error: flake.nix not found." >&2
             exit 1
           fi
+
+          echo "Restoring Test..."
+          dotnet restore ./TpvVyber/TpvVyber.Tests/TpvVyber.Tests.csproj --packages ./.nuget-packages
+          nuget-to-json ./.nuget-packages > ./TpvVyber/TpvVyber.Tests/deps.test.json
+          rm -rf ./.nuget-packages
 
           echo "Restoring Server..."
           dotnet restore ./TpvVyber/TpvVyber/TpvVyber.csproj --packages ./.nuget-packages
@@ -183,15 +189,27 @@
         packages.default = self.packages.${system}.server;
 
         devShells.default = pkgs.mkShell {
+          buildInputs = [
+            pkgs.chromedriver
+            pkgs.playwright
+          ];
           packages = [
             pkgs.dotnet-sdk-wasm
             pkgs.nuget-to-json
             genDeps
+            pkgs.playwright
           ];
           shellHook = ''
             export DOTNET_ROOT=${pkgs.dotnet-sdk-wasm}
             mkdir -p .nuget-packages
             export NUGET_PACKAGES="$PWD/.nuget-packages"
+
+            # 2. Tell Playwright to use the Nix store browsers
+            export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright-driver.browsers}
+            
+            # 3. Stop it from trying to download things at runtime
+            export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+            export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true
           '';
         };
       }

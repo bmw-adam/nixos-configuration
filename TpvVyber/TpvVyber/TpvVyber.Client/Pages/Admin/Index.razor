@@ -1,27 +1,48 @@
 @page "/admin"
+@using System.Security.Cryptography
+@using System.Linq
 @attribute [Authorize(Roles = "Admin")]
 @inject IAdminService AdminService
 @inject PersistentComponentState ApplicationState
 @implements IDisposable
 
 <PageTitle>Admin</PageTitle>
-<MudText Typo="Typo.h4" Class="my-4">Administrační rozhraní</MudText>
-<p>Vítejte v administračním rozhraní aplikace Tpv Výběr. Zde můžete spravovat různé aspekty aplikace, včetně kurzů a
+<MudText aria-label="admin-rozhrani" Typo="Typo.h4" Class="my-4">Administrační rozhraní</MudText>
+<p aria-label="admin-paragraf">Vítejte v administračním rozhraní aplikace Tpv Výběr. Zde můžete spravovat různé aspekty
+    aplikace, včetně kurzů a
     žáků.</p>
 <br />
 
-<MudText Typo="Typo.h6">Správa kurzů (@(coursesCount?.ToString() ?? "Načítání")) <MudLink Href="/admin/courses">Kurzy
+<MudText aria-label="Správa kurzů" Typo="Typo.h6">Správa kurzů (@(coursesCount?.ToString() ?? "Načítání")) <MudLink
+        Href="/admin/courses">Kurzy
         TPV</MudLink>
 </MudText>
 
-<MudText Typo="Typo.h6">Správa žáků (@(studentsCount?.ToString() ?? "Načítání")) <MudLink Href="/admin/students">Žáci
+<MudText aria-label="Správa žáků" Typo="Typo.h6">Správa žáků (@(studentsCount?.ToString() ?? "Načítání")) <MudLink
+        Href="/admin/students">Žáci
     </MudLink>
 </MudText>
 
-<MudText Typo="Typo.h6">Pořadí kurzů (@(orderCoursesCount?.ToString() ?? "Načítání")) <MudLink
+<MudText aria-label="Pořadí kurzů" Typo="Typo.h6">Pořadí kurzů (@(orderCoursesCount?.ToString() ?? "Načítání")) <MudLink
         Href="/admin/ordercourses">Pořadí
         kurzů</MudLink>
 </MudText>
+<br />
+<br />
+<MudAlert aria-label="DebugAlert" Severity="Severity.Warning">Pozor - debug sekce (může docela pokazit pátek večer)
+</MudAlert>
+<br />
+<MudStack Row>
+    <MudButton OnClick="DeleteAllData" aria-label="delete-btn" Variant="Variant.Outlined"
+        StartIcon="@Icons.Material.Outlined.DeleteForever">
+        Smazat všechna data (kurzy, žáky a pořadí kurzů)</MudButton>
+    <MudButton OnClick="AddCourseAsync" aria-label="add-course-btn" Variant="Variant.Outlined"
+        StartIcon="@Icons.Material.Outlined.Add">Přidat
+        kurz s náhodně generovanými hodnotami</MudButton>
+    <MudButton OnClick="AddStudentAsync" aria-label="add-course-btn" Variant="Variant.Outlined"
+        StartIcon="@Icons.Material.Outlined.Add">Přidat
+        Žáka s náhodně generovanými hodnotami a pořadím kurzů</MudButton>
+</MudStack>
 <br />
 
 @code {
@@ -34,28 +55,102 @@
     [CascadingParameter]
     public bool ReThrowError { get; set; }
 
-    protected override Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
 
         _ = AsyncLoad();
-        return Task.CompletedTask;
     }
 
     private async Task AsyncLoad()
     {
-        coursesCount = ApplicationState.TryTakeFromJson<int>(nameof(coursesCount), out var cachedCoursesCount)
-        ? cachedCoursesCount
-        : ((await AdminService.GetAllCoursesAsync(ReThrowError)).Count());
+        var loadCoursesTask = LoadCoursesCountAsync();
+        var loadStudentsTask = LoadStudentsCountAsync();
+        var loadOrdersTask = LoadOrdersCountAsync();
 
-        studentsCount = ApplicationState.TryTakeFromJson<int>(nameof(studentsCount), out var cachedStudentsCount)
-        ? cachedStudentsCount
-        : ((await AdminService.GetAllStudentsAsync(ReThrowError)).Count());
+        await Task.WhenAll(loadCoursesTask, loadStudentsTask, loadOrdersTask);
+        StateHasChanged();
+    }
 
-        orderCoursesCount = ApplicationState.TryTakeFromJson<int>(nameof(orderCoursesCount), out var cachedOrderCoursesCount)
-        ? cachedOrderCoursesCount
-        : ((await AdminService.GetAllOrderCourseAsync(ReThrowError)).Count());
+    private async Task LoadCoursesCountAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<int>(nameof(coursesCount), out var cached))
+        {
+            coursesCount = cached;
+        }
+        if (coursesCount == null || coursesCount == 0)
+        {
+            coursesCount = 0;
+            await foreach (var _ in AdminService.GetAllCoursesAsync(ReThrowError))
+            {
+                if (RendererInfo.Name == "WebAssembly")
+                {
+                    coursesCount++;
+                    StateHasChanged();
+                    await Task.Delay(1);
+                }
+                else
+                {
+                    coursesCount++;
+                    var invoke = InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        StateHasChanged();
+    }
 
+    private async Task LoadStudentsCountAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<int>(nameof(studentsCount), out var cached))
+        {
+            studentsCount = cached;
+        }
+        if (studentsCount == null || studentsCount == 0)
+        {
+            studentsCount = 0;
+            await foreach (var _ in AdminService.GetAllStudentsAsync(ReThrowError))
+            {
+                if (RendererInfo.Name == "WebAssembly")
+                {
+                    studentsCount++;
+
+                    StateHasChanged();
+                    await Task.Delay(1);
+                }
+                else
+                {
+                    studentsCount++;
+                    var invoke = InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task LoadOrdersCountAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<int>(nameof(orderCoursesCount), out var cached))
+        {
+            orderCoursesCount = cached;
+        }
+        if (orderCoursesCount == null || orderCoursesCount == 0)
+        {
+            orderCoursesCount = 0;
+            await foreach (var _ in AdminService.GetAllOrderCourseAsync(ReThrowError))
+            {
+                if (RendererInfo.Name == "WebAssembly")
+                {
+                    orderCoursesCount++;
+                    StateHasChanged();
+                    await Task.Delay(1);
+                }
+                else
+                {
+                    orderCoursesCount++;
+                    var invoke = InvokeAsync(StateHasChanged);
+                }
+            }
+        }
         StateHasChanged();
     }
 
@@ -74,4 +169,118 @@
     }
 
     public void Dispose() => _subscription?.Dispose();
+
+    private async Task DeleteAllData()
+    {
+        await foreach (var ordering in AdminService.GetAllOrderCourseAsync(ReThrowError))
+        {
+            await AdminService.DeleteOrderCourseAsync(ordering.Id, ReThrowError);
+        }
+
+        await AsyncLoad();
+
+        await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError))
+        {
+            await AdminService.DeleteCourseAsync(course.Id, ReThrowError);
+        }
+
+        await AsyncLoad();
+
+        await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError))
+        {
+            await AdminService.DeleteStudentAsync(student.Id, ReThrowError);
+        }
+
+        await AsyncLoad();
+    }
+    string[] classes = { "Septima", "Sexta", "Kvinta", "Kvarta", "Tercie", "Sekunda", "Prima", "1. B", "2. B", "3. B" };
+
+    private async Task AddCourseAsync()
+    {
+        // 1. Calculate the count by iterating the stream
+        int currentCount = 0;
+        await foreach (var _ in AdminService.GetAllCoursesAsync(ReThrowError))
+        {
+            currentCount++;
+        }
+
+        // 2. Prepare random classes (unchanged)
+        Random random = new Random();
+        int randomClassCount = random.Next(1, classes.Length + 1);
+
+        string[] randomCourses = classes
+        .OrderBy(_ => random.Next())
+        .Take(randomClassCount)
+        .ToArray();
+
+        // 3. Create the new course using the calculated count
+        var newCourse = new CourseCln()
+        {
+            Name = $"Kurz {currentCount + 1}",
+            Description = $"Kurz {currentCount + 1}",
+            Capacity = 10,
+            ForClasses = string.Join(";", randomCourses)
+        };
+
+        // 4. Send to API
+        var course = await AdminService.AddCourseAsync(newCourse, ReThrowError);
+
+        // 5. Refresh UI
+        await AsyncLoad();
+    }
+
+    private async Task AddStudentAsync()
+    {
+        int studentCount = 0;
+        await foreach (var _ in AdminService.GetAllStudentsAsync(ReThrowError))
+        {
+            studentCount++;
+        }
+
+        string[] names = { "Jarda", "Adam", "Jirka", "Pavel", "Tonda", "Tim", "Tomas" };
+        Random random = new Random();
+
+        string randomClass = classes[random.Next(classes.Length)];
+        string randomName = names[random.Next(names.Length)];
+        int nextId = studentCount + 1;
+
+        var newStudent = new StudentCln()
+        {
+            Class = randomClass,
+            Email = $"student{nextId}@email.example.com",
+            Name = $"{randomName}-{nextId}"
+        };
+
+        var student = await AdminService.AddStudentAsync(newStudent, ReThrowError);
+
+        var availableCourses = new List<CourseCln>();
+
+        await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError))
+        {
+            if (course.ForClasses.Split(";").Contains(student.Class))
+            {
+                availableCourses.Add(course);
+            }
+        }
+
+        for (int i = availableCourses.Count - 1; i > 0; i--)
+        {
+            int j = random.Next(i + 1);
+            (availableCourses[i], availableCourses[j]) = (availableCourses[j], availableCourses[i]);
+        }
+
+        for (int i = 0; i < availableCourses.Count; i++)
+        {
+            var newOrderCourse = new OrderCourseCln()
+            {
+                CourseId = availableCourses[i].Id,
+                StudentId = student.Id,
+                Order = i
+            };
+
+            await AdminService.AddOrderCourseAsync(newOrderCourse, ReThrowError);
+        }
+
+        await AsyncLoad();
+    }
 }

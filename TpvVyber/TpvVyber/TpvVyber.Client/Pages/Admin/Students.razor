@@ -66,8 +66,10 @@ else
                                 <PropertyColumn Property="x => x.Description" Title="Popis" />
                                 <TemplateColumn Title="Pořadí" Editable="false">
                                     <CellTemplate Context="course">
-                                        <MudText>@string.Join(", ", OrderCourses?.Where(oc => oc.CourseId == course.Item.Id &&
-                                                                                oc.StudentId == context.Item.Id).Select(oc => oc.Order) ?? [])</MudText>
+                                        <MudText>
+                                            @string.Join(", ", context.Item.Extended?.OrderCourses?.Where(oc => oc.CourseId ==
+                                            course.Item.Id).Select(oc => oc.Order) ?? [])
+                                </MudText>
                             </CellTemplate>
                         </TemplateColumn>
                     </Columns>
@@ -87,34 +89,56 @@ else
     private List<StudentCln>? StudentsData;
     private MudDataGrid<StudentCln> StudentGrid = default!;
     private PersistingComponentStateSubscription? _subscription;
-    private List<OrderCourseCln>? OrderCourses;
     [CascadingParameter]
     public bool ReThrowError { get; set; }
 
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
+        _ = LoadData();
+    }
 
-        StudentsData = ApplicationState.TryTakeFromJson<IEnumerable<StudentCln>>(nameof(StudentsData), out var cached)
-        ? cached?.ToList()
-        : (await AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses)).ToList();
+    private async Task LoadData()
+    {
+        await LoadStudentsAsync();
+        StateHasChanged();
+    }
 
-        OrderCourses = ApplicationState.TryTakeFromJson<IEnumerable<OrderCourseCln>>(nameof(OrderCourses), out var
-        cachedOrderCourses)
-        ? cachedOrderCourses?.ToList()
-        : (await AdminService.GetAllOrderCourseAsync(ReThrowError, FillOrderCourseExtended.Student |
-        FillOrderCourseExtended.Course)).ToList();
+    private async Task LoadStudentsAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<IEnumerable<StudentCln>>(nameof(StudentsData), out var cached))
+        {
+            StudentsData = cached?.ToList();
+        }
+        if (StudentsData == null || StudentsData.Count == 0)
+        {
+            // Initialize immediately to remove spinner
+            StudentsData = new List<StudentCln>();
+            _ = InvokeAsync(StateHasChanged);
 
+            await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses |
+            FillStudentExtended.OrderCourses))
+            {
+                if (RendererInfo.Name == "WebAssembly")
+                {
+                    StudentsData.Add(student);
+                    StateHasChanged();
+                    await Task.Delay(1);
+                }
+                else
+                {
+                    StudentsData.Add(student);
+                    _ = InvokeAsync(StateHasChanged);
+                }
+            }
+        }
     }
 
     private Task Persist()
     {
         if (StudentsData is not null)
             ApplicationState.PersistAsJson(nameof(StudentsData), StudentsData);
-
-        if (OrderCourses is not null)
-            ApplicationState.PersistAsJson(nameof(OrderCourses), OrderCourses);
 
         return Task.CompletedTask;
     }
@@ -144,7 +168,6 @@ else
     private async Task CommitDataAsync(StudentCln Student)
     {
         await AdminService.UpdateStudentAsync(Student, ReThrowError);
-        // Only reload if needed, often unnecessary if your grid binds to StudentsData
     }
 
     private void ExpandRow(StudentCln item)

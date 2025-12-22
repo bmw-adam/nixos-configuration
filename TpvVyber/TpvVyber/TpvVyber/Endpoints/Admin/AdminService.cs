@@ -216,39 +216,59 @@ public class ServerAdminService(
         }
     }
 
-    public async Task<IEnumerable<CourseCln>> GetAllCoursesAsync(
+    public async IAsyncEnumerable<CourseCln> GetAllCoursesAsync(
         bool reThrowError,
         FillCourseExtended? fillExtended = null
     )
     {
-        try
+        await using var ctx = _factory.CreateDbContext();
+
+        // 1. Prepare the query (No execution yet)
+        var coursesQuery = ctx
+            .Courses.Include(r => r.OrderCourses)
+                .ThenInclude(oc => oc.Student)
+            .AsAsyncEnumerable();
+
+        // 2. Use manual enumeration to allow error handling around DB calls
+        await using var enumerator = coursesQuery.GetAsyncEnumerator();
+        bool hasNext = true;
+
+        while (hasNext)
         {
-            await using var ctx = _factory.CreateDbContext();
+            CourseCln? resultItem = null;
 
-            // Load courses and related entities into memory
-            var courses = await ctx
-                .Courses.Include(r => r.OrderCourses)
-                    .ThenInclude(oc => oc.Student)
-                .ToListAsync();
-
-            var result = new List<CourseCln>();
-            foreach (var course in courses)
+            try
             {
-                // Sequentially await ToClient for safety
-                result.Add(await course.ToClient(ctx, null, this, fillExtended));
+                // Execute DB fetch for the next item
+                hasNext = await enumerator.MoveNextAsync();
+
+                if (hasNext)
+                {
+                    var course = enumerator.Current;
+                    // Execute conversion logic
+                    resultItem = await course.ToClient(ctx, null, this, fillExtended);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError($"Nepodařilo se získat kurzy z databáze - {ex.Message}");
+                notificationService.Notify("Nepodařilo se získat kurzy z databáze", Severity.Error);
+
+                if (reThrowError)
+                {
+                    throw new Exception(ex.Message);
+                }
+
+                // If an error occurs (DB or Mapping), we stop the stream here.
+                // Items yielded previously are preserved.
+                yield break;
             }
 
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError($"Nepodařilo se získat kurzy z databáze - {ex.Message}");
-            notificationService.Notify("Nepodařilo se získat kurzy z databáze", Severity.Error);
-            if (reThrowError)
+            // 3. Yield result (Must be outside try/catch)
+            if (resultItem != null)
             {
-                throw new Exception(ex.Message);
+                yield return resultItem;
             }
-            return [];
         }
     }
     #endregion
@@ -375,39 +395,51 @@ public class ServerAdminService(
         }
     }
 
-    public async Task<IEnumerable<StudentCln>> GetAllStudentsAsync(
+    public async IAsyncEnumerable<StudentCln> GetAllStudentsAsync(
         bool reThrowError,
         FillStudentExtended? fillExtended = null
     )
     {
-        try
+        await using var ctx = _factory.CreateDbContext();
+
+        var studentsQuery = ctx
+            .Students.Include(s => s.OrderCourses)
+                .ThenInclude(oc => oc.Course)
+            .AsAsyncEnumerable();
+
+        await using var enumerator = studentsQuery.GetAsyncEnumerator();
+
+        bool hasNext = true;
+        while (hasNext)
         {
-            await using var ctx = _factory.CreateDbContext();
-
-            // Load students and related entities into memory
-            var students = ctx
-                .Students.Include(s => s.OrderCourses)
-                    .ThenInclude(oc => oc.Course)
-                .AsEnumerable();
-
-            var result = new List<StudentCln>();
-            foreach (var student in students)
+            StudentCln? clientItem = null;
+            try
             {
-                // Sequentially await ToClient for safety
-                result.Add(await student.ToClient(ctx, null, this, fillExtended));
+                hasNext = await enumerator.MoveNextAsync();
+
+                if (hasNext)
+                {
+                    var student = enumerator.Current;
+                    clientItem = await student.ToClient(ctx, null, this, fillExtended);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError($"Nepodařilo se získat žáky z databáze - {ex.Message}");
+                notificationService.Notify("Nepodařilo se získat žáky z databáze", Severity.Error);
+
+                if (reThrowError)
+                {
+                    throw new Exception(ex.Message);
+                }
+
+                yield break;
             }
 
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError($"Nepodařilo se získat žáky z databáze - {ex.Message}");
-            notificationService.Notify("Nepodařilo se získat žáky z databáze", Severity.Error);
-            if (reThrowError)
+            if (clientItem != null)
             {
-                throw new Exception(ex.Message);
+                yield return clientItem;
             }
-            return [];
         }
     }
     #endregion
@@ -543,40 +575,50 @@ public class ServerAdminService(
         }
     }
 
-    public async Task<IEnumerable<OrderCourseCln>> GetAllOrderCourseAsync(
+    public async IAsyncEnumerable<OrderCourseCln> GetAllOrderCourseAsync(
         bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     )
     {
-        try
-        {
-            await using var ctx = _factory.CreateDbContext();
+        await using var ctx = _factory.CreateDbContext();
 
-            var orderCourses = await ctx
+        await foreach (
+            var orderCourse in ctx
                 .OrderCourses.Include(oc => oc.Course)
                 .Include(oc => oc.Student)
-                .ToListAsync();
+                .AsAsyncEnumerable()
+        )
+        {
+            OrderCourseCln? resultItem = null;
 
-            var result = new List<OrderCourseCln>();
-            foreach (var orderCourse in orderCourses)
+            try
             {
-                result.Add(await orderCourse.ToClient(ctx, null, this, fillExtended));
+                resultItem = await orderCourse.ToClient(ctx, null, this, fillExtended);
+            }
+            catch (Exception ex)
+            {
+                HandleError(ex, reThrowError);
+                yield break;
             }
 
-            return result;
+            if (resultItem != null)
+            {
+                yield return resultItem;
+            }
         }
-        catch (Exception ex)
+
+        void HandleError(Exception ex, bool shouldThrow)
         {
             logger.LogError($"Nepodařilo se získat pořadí kurzů z databáze - {ex.Message}");
             notificationService.Notify(
                 "Nepodařilo se získat pořadí kurzů z databáze",
                 Severity.Error
             );
-            if (reThrowError)
+
+            if (shouldThrow)
             {
                 throw new Exception(ex.Message);
             }
-            return [];
         }
     }
 

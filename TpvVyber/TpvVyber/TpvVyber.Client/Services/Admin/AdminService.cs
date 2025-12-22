@@ -50,27 +50,72 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         }
     }
 
-    public async Task<IEnumerable<CourseCln>> GetAllCoursesAsync(
+    public async IAsyncEnumerable<CourseCln> GetAllCoursesAsync(
         bool reThrowError,
         FillCourseExtended? fillExtended = null
     )
     {
+        // Construct the URL
+        var url =
+            $"api/admin/courses/get_all{(fillExtended == null ? "" : $"?fillExtended={fillExtended}")}";
+
+        // We declare the stream variable outside the loop
+        IAsyncEnumerable<CourseCln?>? courseStream = null;
+
         try
         {
-            var response = await httpClient.GetAsync(
-                $"api/admin/courses/get_all{(fillExtended == null ? "" : $"?fillExtended={fillExtended}")}"
-            );
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<IEnumerable<CourseCln>>() ?? [];
+            // This method initiates the stream but does not download the whole body yet.
+            // It maps to the JSON array coming from the server.
+            courseStream = httpClient.GetFromJsonAsAsyncEnumerable<CourseCln>(url);
         }
         catch (Exception ex)
         {
+            // This catches immediate connection errors (e.g., server down)
+            HandleError(ex);
+            if (reThrowError)
+                throw;
+            yield break;
+        }
+
+        if (courseStream is not null)
+        {
+            // We must iterate here to trigger the actual data flow and catch
+            // network interruptions mid-stream within this method's context.
+            await using var enumerator = courseStream.GetAsyncEnumerator();
+            bool hasNext = true;
+
+            while (hasNext)
+            {
+                CourseCln? course = null;
+                try
+                {
+                    // Downloads the next JSON object in the array
+                    hasNext = await enumerator.MoveNextAsync();
+                    if (hasNext)
+                    {
+                        course = enumerator.Current;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // This catches errors that happen mid-stream (e.g. WiFi drops)
+                    HandleError(ex);
+                    if (reThrowError)
+                        throw;
+                    yield break; // Stop streaming
+                }
+
+                if (course != null)
+                {
+                    yield return course;
+                }
+            }
+        }
+
+        void HandleError(Exception ex)
+        {
             Console.WriteLine($"Error: {ex.Message}");
-            notificationService.Notify(
-                $"Nepodařilo se získat kurzy z databáze {ex.Message}",
-                Severity.Error
-            );
-            return [];
+            notificationService.Notify($"Nepodařilo se získat kurzy: {ex.Message}", Severity.Error);
         }
     }
 
@@ -163,27 +208,76 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         }
     }
 
-    public async Task<IEnumerable<StudentCln>> GetAllStudentsAsync(
+    public async IAsyncEnumerable<StudentCln> GetAllStudentsAsync(
         bool reThrowError,
         FillStudentExtended? fillExtended = null
     )
     {
+        // 1. Construct the URL
+        var url =
+            $"api/admin/students/get_all{(fillExtended == null ? "" : $"?fillExtended={fillExtended}")}";
+
+        IAsyncEnumerable<StudentCln?>? studentStream = null;
+
+        // 2. Start the request
         try
         {
-            var response = await httpClient.GetAsync(
-                $"api/admin/students/get_all{(fillExtended == null ? "" : $"?fillExtended={fillExtended}")}"
-            );
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<IEnumerable<StudentCln>>() ?? [];
+            // GetFromJsonAsAsyncEnumerable initiates the stream without buffering the whole list.
+            studentStream = httpClient.GetFromJsonAsAsyncEnumerable<StudentCln>(url);
         }
         catch (Exception ex)
         {
+            // Catch immediate errors (e.g. DNS failure, Server 500 immediately)
+            HandleError(ex);
+            if (reThrowError)
+                throw;
+            yield break;
+        }
+
+        // 3. Iterate and Yield
+        if (studentStream is not null)
+        {
+            // We use a manual enumerator to wrap the network activity in a try/catch
+            await using var enumerator = studentStream.GetAsyncEnumerator();
+            bool hasNext = true;
+
+            while (hasNext)
+            {
+                StudentCln? student = null;
+                try
+                {
+                    // Reads the next item from the network stream
+                    hasNext = await enumerator.MoveNextAsync();
+
+                    if (hasNext)
+                    {
+                        student = enumerator.Current;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Catch streaming errors (e.g. Connection lost halfway)
+                    HandleError(ex);
+                    if (reThrowError)
+                        throw;
+                    yield break;
+                }
+
+                if (student != null)
+                {
+                    yield return student;
+                }
+            }
+        }
+
+        // Helper for consistent error handling
+        void HandleError(Exception ex)
+        {
             Console.WriteLine($"Error: {ex.Message}");
             notificationService.Notify(
-                $"Nepodařilo se získat žáky z databáze {ex.Message}",
+                $"Nepodařilo se získat žáky z databáze: {ex.Message}",
                 Severity.Error
             );
-            return [];
         }
     }
 
@@ -276,27 +370,74 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         }
     }
 
-    public async Task<IEnumerable<OrderCourseCln>> GetAllOrderCourseAsync(
+    public async IAsyncEnumerable<OrderCourseCln> GetAllOrderCourseAsync(
         bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     )
     {
+        // 1. Construct the URL
+        var url =
+            $"api/admin/order_courses/get_all{(fillExtended == null ? "" : $"?fillExtended={fillExtended}")}";
+
+        IAsyncEnumerable<OrderCourseCln?>? stream = null;
+
+        // 2. Initiate the stream
         try
         {
-            var response = await httpClient.GetAsync(
-                $"api/admin/order_courses/get_all{(fillExtended == null ? "" : $"?fillExtended={fillExtended}")}"
-            );
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<IEnumerable<OrderCourseCln>>() ?? [];
+            // This starts the request but does not wait for the whole body
+            stream = httpClient.GetFromJsonAsAsyncEnumerable<OrderCourseCln>(url);
         }
         catch (Exception ex)
         {
+            // Handle connection start failures (e.g. 404, 500, DNS)
+            HandleError(ex);
+            if (reThrowError)
+                throw;
+            yield break;
+        }
+
+        // 3. Process the stream
+        if (stream is not null)
+        {
+            await using var enumerator = stream.GetAsyncEnumerator();
+            bool hasNext = true;
+
+            while (hasNext)
+            {
+                OrderCourseCln? item = null;
+                try
+                {
+                    // Pull the next item from the network
+                    hasNext = await enumerator.MoveNextAsync();
+
+                    if (hasNext)
+                    {
+                        item = enumerator.Current;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Handle mid-stream failures (e.g. network drop)
+                    HandleError(ex);
+                    if (reThrowError)
+                        throw;
+                    yield break;
+                }
+
+                if (item != null)
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        void HandleError(Exception ex)
+        {
             Console.WriteLine($"Error: {ex.Message}");
             notificationService.Notify(
-                $"Nepodařilo se získat pořadí kurzů z databáze {ex.Message}",
+                $"Nepodařilo se získat pořadí kurzů z databáze: {ex.Message}",
                 Severity.Error
             );
-            return [];
         }
     }
 
