@@ -85,33 +85,42 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
 
                 var courseContainers = await adminService.ShowFillCourses(false, false, null, null);
 
-                // Can I gen in?
-                // Option 1 - no
-                if (
-                    courseContainers[this.Id]
-                        .All(e =>
-                            Student.ToServer(e, context, false).ClaimStrength
-                            > currentUser.ClaimStrength
-                        )
-                    && courseContainers[this.Id].Count >= this.Capacity
-                )
+                // 1. First, check if the key exists
+                if (!courseContainers.ContainsKey(this.Id))
                 {
-                    extended.Availability = Availability.Occupied;
-                }
-                // Option 2 - maybe
-                else if (
-                    courseContainers[this.Id].Count >= this.Capacity
-                    && courseContainers[this.Id]
-                        .Select(r => Student.ToServer(r, context, false).ClaimStrength)
-                        .Min() == currentUser.ClaimStrength
-                    && claimingPeople.Count() > this.Capacity
-                )
-                {
-                    extended.Availability = Availability.Rullette;
+                    // REQUIRED LOGIC: If not in containers, set to NotHappening
+                    extended.Availability = Availability.NotHappening;
                 }
                 else
                 {
-                    extended.Availability = Availability.Free;
+                    // 2. Safe to access the dictionary now
+                    var currentEnrollments = courseContainers[this.Id];
+
+                    if (
+                        currentEnrollments.All(e =>
+                            Student.ToServer(e, context, false).ClaimStrength
+                            > currentUser.ClaimStrength
+                        )
+                        && currentEnrollments.Count >= this.Capacity
+                    )
+                    {
+                        extended.Availability = Availability.Occupied;
+                    }
+                    // Option 2 - maybe
+                    else if (
+                        currentEnrollments.Count >= this.Capacity
+                        && currentEnrollments
+                            .Select(r => Student.ToServer(r, context, false).ClaimStrength)
+                            .Min() == currentUser.ClaimStrength
+                        && claimingPeople.Count() > this.Capacity
+                    )
+                    {
+                        extended.Availability = Availability.Rullette;
+                    }
+                    else
+                    {
+                        extended.Availability = Availability.Free;
+                    }
                 }
             }
 

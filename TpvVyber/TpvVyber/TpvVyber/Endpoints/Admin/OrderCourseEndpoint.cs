@@ -24,6 +24,7 @@ public static class OrderCourseAdminEndpoints
         coursesOrdersGroup.MapPost("add", HandlerAddOrderCourse);
         coursesOrdersGroup.MapDelete("delete/{id}", HandlerDeleteOrderCourse);
         coursesOrdersGroup.MapPut("update", HandlerUpdateOrderCourse);
+        coursesOrdersGroup.MapGet("get_all_count", HandlerGetCount);
     }
 
     private static IResult HandlerGetAllOrderCourses(
@@ -98,6 +99,19 @@ public static class OrderCourseAdminEndpoints
         {
             await adminService.UpdateOrderCourseAsync(item, true);
             return Results.Ok();
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+
+    private static async Task<IResult> HandlerGetCount(IAdminService adminService)
+    {
+        try
+        {
+            var result = await adminService.GetAllOrderCourseCountAsync(true);
+            return Results.Ok(result);
         }
         catch (Exception ex)
         {

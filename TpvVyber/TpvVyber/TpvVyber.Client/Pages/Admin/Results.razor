@@ -48,9 +48,6 @@
         <MudTd DataLabel="E-Mail">@context.Email</MudTd>
         <MudTd DataLabel="Název kurzu">@GetCourseNameForStudent(context)</MudTd>
     </RowTemplate>
-    <PagerContent>
-        <MudTablePager />
-    </PagerContent>
 </MudTable>
 
 <MudButton StartIcon="@Icons.Material.Outlined.ImportExport" OnClick="ExportCsv" Variant="Variant.Filled"
@@ -70,8 +67,8 @@
     private TimeSpan? LoggingEndTimeSpan;
     private LoggingEndingCln? loggingEndingCln;
 
-    private int _index = -1; 
-    private AxisChartOptions _axisChartOptions = new AxisChartOptions();
+    private int _index = -1;
+    private AxisChartOptions _axisChartOptions = new AxisChartOptions() { XAxisLabelRotation = 90, MatchBoundsToSize = true};
 
     private List<ChartSeries> _series = new List<ChartSeries>();
     private string[] _xAxisLabels = { };
@@ -92,14 +89,14 @@
         // Wait for basic data to arrive
         await Task.WhenAll(t1, t2, t3);
 
-        // 2. Build the Dictionary 
-        // We do this AFTER courses are loaded so we can look up Course objects in memory 
+        // 2. Build the Dictionary
+        // We do this AFTER courses are loaded so we can look up Course objects in memory
         // instead of calling the API N times.
         await LoadStudentCoursesDictionaryAsync();
 
         // 3. Prepare Chart Data
         PrepareChartData();
-        
+
         StateHasChanged();
     }
 
@@ -109,10 +106,11 @@
         {
             Students = cached;
         }
-        else
+        if (Students == null || Students.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(Students), out var _))
         {
             Students = new List<StudentCln>();
-            await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses | FillStudentExtended.OrderCourses))
+            await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses |
+            FillStudentExtended.OrderCourses))
             {
                 Students.Add(student);
             }
@@ -125,10 +123,11 @@
         {
             Courses = cached;
         }
-        else
+        if (Courses == null || Courses.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(Courses), out var _))
         {
             Courses = new List<CourseCln>();
-            await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.OrderCourses | FillCourseExtended.Students))
+            await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.OrderCourses |
+            FillCourseExtended.Students))
             {
                 Courses.Add(course);
             }
@@ -151,26 +150,29 @@
         if (ApplicationState.TryTakeFromJson<Dictionary<CourseCln, List<StudentCln>>>(nameof(StudentCourses), out var cached))
         {
             StudentCourses = cached;
-            return;
         }
 
-        // Fetch the raw allocation (assuming Key is CourseId (int))
-        // Note: Assuming ShowFillCourses returns Dictionary<int, IEnumerable<StudentCln>>
-        var rawDict = await AdminService.ShowFillCourses(true, ReThrowError, FillCourseExtended.Students, null);
-        
-        StudentCourses = new Dictionary<CourseCln, List<StudentCln>>();
-
-        if (Courses != null)
+        if (StudentCourses == null || StudentCourses.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(StudentCourses),
+        out var _))
         {
-            foreach (var pair in rawDict)
+            // Fetch the raw allocation (assuming Key is CourseId (int))
+            // Note: Assuming ShowFillCourses returns Dictionary<int, IEnumerable<StudentCln>>
+            var rawDict = await AdminService.ShowFillCourses(true, ReThrowError, FillCourseExtended.Students, null);
+
+            StudentCourses = new Dictionary<CourseCln, List<StudentCln>>();
+
+            if (Courses != null)
             {
-                // Optimization: Find the course object in the already loaded list
-                // This avoids calling GetCourseByIdAsync inside a loop (N+1 problem)
-                var courseObj = Courses.FirstOrDefault(c => c.Id == pair.Key);
-                
-                if (courseObj != null)
+                foreach (var pair in rawDict)
                 {
-                    StudentCourses.Add(courseObj, pair.Value.ToList());
+                    // Optimization: Find the course object in the already loaded list
+                    // This avoids calling GetCourseByIdAsync inside a loop (N+1 problem)
+                    var courseObj = Courses.FirstOrDefault(c => c.Id == pair.Key);
+
+                    if (courseObj != null)
+                    {
+                        StudentCourses.Add(courseObj, pair.Value.ToList());
+                    }
                 }
             }
         }
@@ -184,11 +186,11 @@
         _series.Clear();
 
         var distinctOrders = Students
-            .SelectMany(e => e.Extended?.OrderCourses ?? [])
-            .Where(r => r is not null)
-            .Select(r => r.Order)
-            .Distinct()
-            .OrderBy(o => o);
+        .SelectMany(e => e.Extended?.OrderCourses ?? [])
+        .Where(r => r is not null)
+        .Select(r => r.Order)
+        .Distinct()
+        .OrderBy(o => o);
 
         foreach (var order in distinctOrders)
         {
@@ -196,10 +198,10 @@
             {
                 Name = $"Pořadí {order}",
                 Data = _xAxisLabels
-                    .Select(label => Courses.FirstOrDefault(s => s.Name == label))
-                    .Select(course => course?.Extended?.OrderCourses?.Count(d => d.Order == order) ?? 0)
-                    .Select(count => (double)count)
-                    .ToArray()
+            .Select(label => Courses.FirstOrDefault(s => s.Name == label))
+            .Select(course => course?.Extended?.OrderCourses?.Count(d => d.Order == order) ?? 0)
+            .Select(count => (double)count)
+            .ToArray()
             });
         }
     }
@@ -241,11 +243,11 @@
     private string GetCourseNameForStudent(StudentCln student)
     {
         if (StudentCourses == null) return "";
-        
+
         // Find which course list contains this student
         return StudentCourses
-            .FirstOrDefault(e => e.Value.Any(s => s.Id == student.Id))
-            .Key?.Name ?? "";
+        .FirstOrDefault(e => e.Value.Any(s => s.Id == student.Id))
+        .Key?.Name ?? "";
     }
 
     private async Task ExportCsv()
@@ -264,7 +266,8 @@
             var email = student.Email;
             var courseName = GetCourseNameForStudent(student);
 
-            var line = $"{ClassExtensions.EscapeCsv(className)}{separator}{ClassExtensions.EscapeCsv(studentName)}{separator}{ClassExtensions.EscapeCsv(email)}{separator}{ClassExtensions.EscapeCsv(courseName)}";
+            var line =
+            $"{ClassExtensions.EscapeCsv(className)}{separator}{ClassExtensions.EscapeCsv(studentName)}{separator}{ClassExtensions.EscapeCsv(email)}{separator}{ClassExtensions.EscapeCsv(courseName)}";
             sb.AppendLine(line);
         }
 

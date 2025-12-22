@@ -32,7 +32,7 @@
 <MudAlert aria-label="DebugAlert" Severity="Severity.Warning">Pozor - debug sekce (může docela pokazit pátek večer)
 </MudAlert>
 <br />
-<MudStack Row>
+<MudStack Row Wrap="Wrap.Wrap">
     <MudButton OnClick="DeleteAllData" aria-label="delete-btn" Variant="Variant.Outlined"
         StartIcon="@Icons.Material.Outlined.DeleteForever">
         Smazat všechna data (kurzy, žáky a pořadí kurzů)</MudButton>
@@ -46,9 +46,9 @@
 <br />
 
 @code {
-    private int? coursesCount;
-    private int? studentsCount;
-    private int? orderCoursesCount;
+    private uint? coursesCount;
+    private uint? studentsCount;
+    private uint? orderCoursesCount;
 
     private PersistingComponentStateSubscription? _subscription;
 
@@ -74,82 +74,39 @@
 
     private async Task LoadCoursesCountAsync()
     {
-        if (ApplicationState.TryTakeFromJson<int>(nameof(coursesCount), out var cached))
+        if (ApplicationState.TryTakeFromJson<uint>(nameof(coursesCount), out var cached))
         {
             coursesCount = cached;
         }
-        if (coursesCount == null || coursesCount == 0)
+        if (coursesCount == null || coursesCount == 0 || !ApplicationState.TryTakeFromJson<uint>(nameof(coursesCount), out var _))
         {
-            coursesCount = 0;
-            await foreach (var _ in AdminService.GetAllCoursesAsync(ReThrowError))
-            {
-                if (RendererInfo.Name == "WebAssembly")
-                {
-                    coursesCount++;
-                    StateHasChanged();
-                    await Task.Delay(1);
-                }
-                else
-                {
-                    coursesCount++;
-                    var invoke = InvokeAsync(StateHasChanged);
-                }
-            }
+            coursesCount = await AdminService.GetAllCoursesCountAsync(ReThrowError);
         }
         StateHasChanged();
     }
 
     private async Task LoadStudentsCountAsync()
     {
-        if (ApplicationState.TryTakeFromJson<int>(nameof(studentsCount), out var cached))
+        if (ApplicationState.TryTakeFromJson<uint>(nameof(studentsCount), out var cached))
         {
             studentsCount = cached;
         }
-        if (studentsCount == null || studentsCount == 0)
+        if (studentsCount == null || studentsCount == 0 || !ApplicationState.TryTakeFromJson<uint>(nameof(studentsCount), out var _))
         {
-            studentsCount = 0;
-            await foreach (var _ in AdminService.GetAllStudentsAsync(ReThrowError))
-            {
-                if (RendererInfo.Name == "WebAssembly")
-                {
-                    studentsCount++;
-
-                    StateHasChanged();
-                    await Task.Delay(1);
-                }
-                else
-                {
-                    studentsCount++;
-                    var invoke = InvokeAsync(StateHasChanged);
-                }
-            }
+            studentsCount = await AdminService.GetAllStudentsCountAsync(ReThrowError);
         }
         StateHasChanged();
     }
 
     private async Task LoadOrdersCountAsync()
     {
-        if (ApplicationState.TryTakeFromJson<int>(nameof(orderCoursesCount), out var cached))
+        if (ApplicationState.TryTakeFromJson<uint>(nameof(orderCoursesCount), out var cached))
         {
             orderCoursesCount = cached;
         }
-        if (orderCoursesCount == null || orderCoursesCount == 0)
+        if (orderCoursesCount == null || orderCoursesCount == 0 || !ApplicationState.TryTakeFromJson<uint>(nameof(orderCoursesCount), out var _))
         {
-            orderCoursesCount = 0;
-            await foreach (var _ in AdminService.GetAllOrderCourseAsync(ReThrowError))
-            {
-                if (RendererInfo.Name == "WebAssembly")
-                {
-                    orderCoursesCount++;
-                    StateHasChanged();
-                    await Task.Delay(1);
-                }
-                else
-                {
-                    orderCoursesCount++;
-                    var invoke = InvokeAsync(StateHasChanged);
-                }
-            }
+            orderCoursesCount = await AdminService.GetAllOrderCourseCountAsync(ReThrowError);
         }
         StateHasChanged();
     }

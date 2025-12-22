@@ -90,6 +90,9 @@ else
                 </EditTemplate>
             </TemplateColumn>
         </Columns>
+        <PagerContent>
+            <MudDataGridPager T="OrderCourseCln" />
+        </PagerContent>
     </MudDataGrid>
 }
 
@@ -174,7 +177,7 @@ private PersistingComponentStateSubscription? _subscription;
         {
             OrderCourseData = cached?.ToList();
         }
-        if (OrderCourseData == null || OrderCourseData.Count == 0)
+        if (OrderCourseData == null || OrderCourseData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(OrderCourseData), out var _))
         {
             OrderCourseData = new();
             _ = InvokeAsync(StateHasChanged);
@@ -188,8 +191,14 @@ private PersistingComponentStateSubscription? _subscription;
                     if (RendererInfo.Name == "WebAssembly")
                     {
                         OrderCourseData.Add(item);
-                        StateHasChanged();
-                        await Task.Delay(1);
+                        var maxIndex = OrderCourseGrid.CurrentPage * OrderCourseGrid.RowsPerPage;
+                        var minIndex = (OrderCourseGrid.CurrentPage == 0 ? 0 : OrderCourseGrid.CurrentPage - 1) * OrderCourseGrid.RowsPerPage;
+
+                        if ((OrderCourseData.Count <= maxIndex && OrderCourseData.Count >= minIndex) || (OrderCourseGrid.CurrentPage == 0 && OrderCourseData.Count <= OrderCourseGrid.RowsPerPage))
+                        {
+                            StateHasChanged();
+                            await Task.Delay(1);
+                        }
                     }
                     else
                     {

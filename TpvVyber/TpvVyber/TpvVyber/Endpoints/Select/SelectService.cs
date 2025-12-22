@@ -124,11 +124,20 @@ public class ServerSelectService(
             var ordering = await ctx
                 .OrderCourses.Where(o => o.StudentId == student.Id)
                 .ToListAsync();
+            ordering ??= [];
 
             // dostupné kurzy podle role
             var availableCourses = ctx
                 .Courses.ToList()
-                .Where(c => c.ForClasses.Split(";").Any(r => userInfo.UserRoles.Contains(r)));
+                .Where(c =>
+                    c.ForClasses.Split(";")
+                        .Any(r =>
+                            student
+                                .Class.Split(";")
+                                .Where(q => !string.IsNullOrWhiteSpace(q))
+                                .Contains(r)
+                        )
+                );
 
             var result = new Dictionary<int, CourseCln>();
             int index = 0;
@@ -188,6 +197,27 @@ public class ServerSelectService(
                 throw new NullReferenceException(
                     $"Nenašel jsem aktuálního uživatele. (userEmail: {userInfo.UserEmail})"
                 );
+            }
+
+            // TODO zkontrolovat jesti uzivatel muze na kazdy z tehdle kurzu
+            foreach (var ordering in input)
+            {
+                var dbCourse = ctx.Courses.Find(ordering.Value.Id);
+                if (dbCourse == null)
+                {
+                    throw new Exception(
+                        "Nenašel jsem minimálně jeden z poskytnutých kurzů v databázi"
+                    );
+                }
+
+                if (
+                    !dbCourse
+                        .ForClasses.Split(";")
+                        .Any(r => actualStudent.Class.Split(";").Contains(r))
+                )
+                {
+                    throw new Exception("Minimálně na jeden kurz nemáte nárok");
+                }
             }
 
             ctx.OrderCourses.RemoveRange(

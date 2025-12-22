@@ -19,6 +19,7 @@ public static class StudentsAdminEndpoints
         studentsGroup.MapPost("add", HandlerAddStudent);
         studentsGroup.MapDelete("delete/{id}", HandlerDeleteStudent);
         studentsGroup.MapPut("update", HandlerUpdateStudent);
+        studentsGroup.MapGet("get_all_count", HandlerGetCount);
     }
 
     private static IResult HandlerGetAllStudents(
@@ -93,6 +94,19 @@ public static class StudentsAdminEndpoints
         {
             await adminService.UpdateStudentAsync(item, true);
             return Results.Ok();
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+
+    private static async Task<IResult> HandlerGetCount(IAdminService adminService)
+    {
+        try
+        {
+            var result = await adminService.GetAllStudentsCountAsync(true);
+            return Results.Ok(result);
         }
         catch (Exception ex)
         {

@@ -27,6 +27,7 @@ public interface IAdminService
         bool reThrowError,
         FillCourseExtended? fillExtended = null
     );
+    public Task<uint?> GetAllCoursesCountAsync(bool reThrowError);
     #endregion
     #region Students
     public Task<StudentCln> AddStudentAsync(
@@ -45,6 +46,7 @@ public interface IAdminService
         bool reThrowError,
         FillStudentExtended? fillExtended = null
     );
+    public Task<uint?> GetAllStudentsCountAsync(bool reThrowError);
     #endregion
     #region OrderCourses
     public Task<OrderCourseCln> AddOrderCourseAsync(
@@ -63,6 +65,7 @@ public interface IAdminService
         bool reThrowError,
         FillOrderCourseExtended? fillExtended = null
     );
+    public Task<uint?> GetAllOrderCourseCountAsync(bool reThrowError);
     public Task<Dictionary<int, List<StudentCln>>> ShowFillCourses(
         bool? forceRedo,
         bool reThrowError,

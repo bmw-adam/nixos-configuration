@@ -22,6 +22,7 @@ public static class CoursesAdminEndpoints
         coursesGroup.MapPut("update", HandlerUpdateCourse);
         coursesGroup.MapGet("show_fill_courses", HandlerShowFillCourses);
         coursesGroup.MapPut("update_logging_ending", HandlerUpdateLoggingEnding);
+        coursesGroup.MapGet("get_all_count", HandlerGetCount);
 
         var coursesGroupNoAdmin = app.MapGroup($"{baseAdminPath}/courses");
 
@@ -151,6 +152,19 @@ public static class CoursesAdminEndpoints
         try
         {
             var result = await adminService.UpdateLoggingEnding(loggingEndingCln, true);
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+
+    private static async Task<IResult> HandlerGetCount(IAdminService adminService)
+    {
+        try
+        {
+            var result = await adminService.GetAllCoursesCountAsync(true);
             return Results.Ok(result);
         }
         catch (Exception ex)

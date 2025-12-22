@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using TpvVyber.Client.Classes.Attributes;
 
 namespace TpvVyber.Client.Classes;
 
@@ -34,12 +35,19 @@ public enum FillCourseExtended
 
 public enum Availability
 {
-    [Description("Volno")]
+    [Description("Volno - Bude se konat")]
+    [Tooltip("Volno")]
     Free = 1,
 
-    [Description("Ruleta")]
+    [Description("Ruleta - O vaše místo se bude losovat")]
+    [Tooltip("Ruleta")]
     Rullette = 2,
 
-    [Description("Obsazeno")]
+    [Description("Obsazeno - Nemáte šanci")]
+    [Tooltip("Obsazeno")]
     Occupied = 3,
+
+    [Description("Volno - Ale nezaplněno minimální množství žáků")]
+    [Tooltip("Volno")]
+    NotHappening = 4,
 }

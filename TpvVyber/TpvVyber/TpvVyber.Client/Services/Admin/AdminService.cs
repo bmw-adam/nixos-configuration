@@ -119,6 +119,26 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         }
     }
 
+    public async Task<uint?> GetAllCoursesCountAsync(bool reThrowError)
+    {
+        try
+        {
+            var response = await httpClient.GetAsync("api/admin/courses/get_all_count");
+            response.EnsureSuccessStatusCode();
+            var deserialized = await response.Content.ReadFromJsonAsync<uint?>();
+            return deserialized;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            notificationService.Notify(
+                $"Nepodařilo se získat kurz z databáze {ex.Message}",
+                Severity.Error
+            );
+            return null;
+        }
+    }
+
     public async Task<CourseCln?> GetCourseByIdAsync(
         int Id,
         bool reThrowError,
@@ -281,6 +301,26 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
         }
     }
 
+    public async Task<uint?> GetAllStudentsCountAsync(bool reThrowError)
+    {
+        try
+        {
+            var response = await httpClient.GetAsync("api/admin/students/get_all_count");
+            response.EnsureSuccessStatusCode();
+            var deserialized = await response.Content.ReadFromJsonAsync<uint?>();
+            return deserialized;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            notificationService.Notify(
+                $"Nepodařilo se získat kurz z databáze {ex.Message}",
+                Severity.Error
+            );
+            return null;
+        }
+    }
+
     public async Task<StudentCln?> GetStudentByIdAsync(
         int Id,
         bool reThrowError,
@@ -438,6 +478,26 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
                 $"Nepodařilo se získat pořadí kurzů z databáze: {ex.Message}",
                 Severity.Error
             );
+        }
+    }
+
+    public async Task<uint?> GetAllOrderCourseCountAsync(bool reThrowError)
+    {
+        try
+        {
+            var response = await httpClient.GetAsync("api/admin/order_courses/get_all_count");
+            response.EnsureSuccessStatusCode();
+            var deserialized = await response.Content.ReadFromJsonAsync<uint?>();
+            return deserialized;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            notificationService.Notify(
+                $"Nepodařilo se získat kurz z databáze {ex.Message}",
+                Severity.Error
+            );
+            return null;
         }
     }
 

@@ -82,6 +82,10 @@ else
                 </MudCardContent>
             </MudCard>
         </ChildRowContent>
+        <PagerContent>
+            <MudDataGridPager T="StudentCln" />
+        </PagerContent>
+
     </MudDataGrid>
 }
 
@@ -111,7 +115,8 @@ else
         {
             StudentsData = cached?.ToList();
         }
-        if (StudentsData == null || StudentsData.Count == 0)
+        if (StudentsData == null || StudentsData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(StudentsData), out
+        var _))
         {
             // Initialize immediately to remove spinner
             StudentsData = new List<StudentCln>();
@@ -123,8 +128,14 @@ else
                 if (RendererInfo.Name == "WebAssembly")
                 {
                     StudentsData.Add(student);
-                    StateHasChanged();
-                    await Task.Delay(1);
+                    var maxIndex = StudentGrid.CurrentPage * StudentGrid.RowsPerPage;
+                    var minIndex = (StudentGrid.CurrentPage == 0 ? 0 : StudentGrid.CurrentPage - 1) * StudentGrid.RowsPerPage;
+
+                    if ((StudentsData.Count <= maxIndex && StudentsData.Count >= minIndex) || (StudentGrid.CurrentPage == 0 && StudentsData.Count <= StudentGrid.RowsPerPage))
+                    {
+                        StateHasChanged();
+                        await Task.Delay(1);
+                    }
                 }
                 else
                 {

@@ -271,6 +271,26 @@ public class ServerAdminService(
             }
         }
     }
+
+    public async Task<uint?> GetAllCoursesCountAsync(bool reThrowError)
+    {
+        try
+        {
+            await using var ctx = _factory.CreateDbContext();
+            var count = ctx.Courses.Count();
+            return (uint)Math.Abs(count);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Nepodařilo se počet kurzů z databáze - {ex.Message}");
+            notificationService.Notify("Nepodařilo se počet kurzů z databáze", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
+            return null;
+        }
+    }
     #endregion
     #region Students
     private async Task<StudentCln> studentAddIntern(
@@ -440,6 +460,26 @@ public class ServerAdminService(
             {
                 yield return clientItem;
             }
+        }
+    }
+
+    public async Task<uint?> GetAllStudentsCountAsync(bool reThrowError)
+    {
+        try
+        {
+            await using var ctx = _factory.CreateDbContext();
+            var count = ctx.Students.Count();
+            return (uint)Math.Abs(count);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Nepodařilo se počet kurzů z databáze - {ex.Message}");
+            notificationService.Notify("Nepodařilo se počet kurzů z databáze", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
+            return null;
         }
     }
     #endregion
@@ -622,111 +662,27 @@ public class ServerAdminService(
         }
     }
 
+    public async Task<uint?> GetAllOrderCourseCountAsync(bool reThrowError)
+    {
+        try
+        {
+            await using var ctx = _factory.CreateDbContext();
+            var count = ctx.OrderCourses.Count();
+            return (uint)Math.Abs(count);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Nepodařilo se počet kurzů z databáze - {ex.Message}");
+            notificationService.Notify("Nepodařilo se počet kurzů z databáze", Severity.Error);
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
+            return null;
+        }
+    }
+
     private const string CacheKey = "ShowFillCourses";
-
-    private async Task<Dictionary<int, List<StudentCln>>> ComputeFillCourses(
-        FillCourseExtended? fillCourse,
-        FillStudentExtended? fillStudent,
-        HashSet<int>? excludedCourseIds = null
-    )
-    {
-        await using var ctx = _factory.CreateDbContext();
-
-        var courses = ctx.Courses.AsNoTracking().ToList();
-
-        // First run (no exclusions)
-        var excludedCourses = excludedCourseIds ?? new HashSet<int>();
-        var firstRun = await ComputeFillCoursesInternal(excludedCourses);
-
-        // Find courses that did not reach MinCapacity
-        foreach (var kvp in firstRun)
-        {
-            var courseId = kvp.Key;
-            var students = kvp.Value;
-
-            var minCapacity = courses.First(r => r.Id == courseId).MinCapacity;
-
-            if (students.Count <= minCapacity)
-            {
-                excludedCourses.Add(courseId);
-            }
-        }
-
-        // If everything is fine, return first run
-        if (excludedCourses.Count == 0)
-        {
-            var dict = new Dictionary<int, List<StudentCln>>();
-            foreach (var keyp in firstRun)
-            {
-                var lst = new List<StudentCln>();
-                foreach (var serverStudent in keyp.Value)
-                {
-                    lst.Add(await serverStudent.ToClient(ctx, null, this, fillStudent));
-                }
-            }
-            return dict;
-        }
-
-        // Rerun without not-fulfilled courses
-        return await ComputeFillCourses(fillCourse, fillStudent, excludedCourses);
-    }
-
-    private async Task<Dictionary<int, List<Student>>> ComputeFillCoursesInternal(
-        HashSet<int> excludedCourseIds
-    )
-    {
-        await using var ctx = _factory.CreateDbContext();
-
-        var studentGroups = ctx
-            .Students.Include(r => r.OrderCourses)
-                .ThenInclude(r => r.Course)
-            .AsEnumerable()
-            .GroupBy(e => e.ClaimStrength)
-            .OrderByDescending(r => r.Key);
-
-        var courseContainers = new Dictionary<int, List<Student>>(); // CourseId, Student List
-
-        ctx.Courses.AsNoTracking()
-            .Where(a => !excludedCourseIds.Contains(a.Id))
-            .ToList()
-            .ForEach(a => courseContainers.Add(a.Id, []));
-
-        foreach (var studentGroup in studentGroups)
-        {
-            var shuffledGroup = studentGroup.ToList();
-            shuffledGroup.ShuffleList();
-
-            foreach (var student in shuffledGroup.ToList())
-            {
-                if (student != null)
-                {
-                    var thisStudentsOrderings = student
-                        .OrderCourses.Where(w => !excludedCourseIds.Contains(w.CourseId))
-                        .OrderBy(r => r.Order);
-                    foreach (var wish in thisStudentsOrderings)
-                    {
-                        var course = wish.Course;
-                        if (course == null)
-                        {
-                            continue;
-                        }
-
-                        var container = courseContainers[course.Id];
-
-                        var studentsNumber = container.Count;
-
-                        if (studentsNumber < course.Capacity)
-                        {
-                            // Hooray - got in
-                            courseContainers[course.Id] = container.Append(student).ToList();
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        return courseContainers;
-    }
 
     public async Task<Dictionary<int, List<StudentCln>>> ShowFillCourses(
         bool? forceRedo,
@@ -735,22 +691,185 @@ public class ServerAdminService(
         FillStudentExtended? fillStudent
     )
     {
+        // 1. Single Database Context for the entire operation
+        await using var ctx = _factory.CreateDbContext();
+
+        // Check Cache
         if (
             forceRedo != true
             && cache.TryGetValue(CacheKey, out Dictionary<int, List<StudentCln>>? cached)
         )
         {
-            if (cached != null)
+            if (cached != null && false) // FIXME caching value
             {
                 return cached;
             }
         }
 
-        var result = await ComputeFillCourses(fillCourse, fillStudent);
+        // 2. Fetch all data ONCE (Reduce I/O)
+        // Create a Dictionary for O(1) lookup of Course metadata (Capacity, MinCapacity)
+        var allCoursesDict = await ctx.Courses.AsNoTracking().ToDictionaryAsync(c => c.Id);
 
-        cache.Set(CacheKey, result, TimeSpan.FromSeconds(30));
+        // Fetch students with included orders
+        var allStudents = await ctx
+            .Students.AsNoTracking() // Faster if we aren't modifying them
+            .Include(r => r.OrderCourses)
+            .ToListAsync();
 
-        return result;
+        // 3. Pre-process Students
+        // Group them once. We will iterate this structure multiple times in memory.
+        // Note: We materialize the groups to avoid re-evaluating the GroupBy logic.
+        var studentGroups = allStudents
+            .GroupBy(e => e.ClaimStrength)
+            .OrderByDescending(r => r.Key)
+            .Select(g =>
+            {
+                // Shuffle once per request, or re-shuffle every retry?
+                // Usually, standard algorithm behavior dictates re-shuffling only if inputs change,
+                // but to match your original logic exactly, we can shuffle inside the loop.
+                // For performance, let's keep the group object ready.
+                return g.ToList();
+            })
+            .ToList();
+
+        // 4. Algorithm Loop (Replace Recursion)
+        var excludedCourseIds = new HashSet<int>();
+        Dictionary<int, List<Student>>? finalAllocation = null;
+        bool isStable = false;
+
+        // Safety break to prevent infinite loops if logic is flawed
+        int maxIterations = allCoursesDict.Count + 1;
+        int currentIteration = 0;
+
+        while (!isStable && currentIteration < maxIterations)
+        {
+            currentIteration++;
+
+            // Run the allocation logic in-memory
+            finalAllocation = RunAllocationInMemory(
+                studentGroups,
+                allCoursesDict,
+                excludedCourseIds
+            );
+
+            // Check MinCapacity constraints
+            var coursesToExclude = new List<int>();
+
+            foreach (var kvp in finalAllocation)
+            {
+                var courseId = kvp.Key;
+                var assignedStudents = kvp.Value;
+
+                // Fast lookup
+                if (allCoursesDict.TryGetValue(courseId, out var courseMeta))
+                {
+                    if (assignedStudents.Count < courseMeta.MinCapacity)
+                    {
+                        coursesToExclude.Add(courseId);
+                    }
+                }
+            }
+
+            if (coursesToExclude.Count == 0)
+            {
+                // Logic satisfied
+                isStable = true;
+            }
+            else
+            {
+                // Add failed courses to exclusion list and RERUN loop
+                foreach (var id in coursesToExclude)
+                {
+                    excludedCourseIds.Add(id);
+                }
+            }
+        }
+
+        // 5. Convert to Client Objects (Final Result Construction)
+        var resultDict = new Dictionary<int, List<StudentCln>>();
+
+        // If finalAllocation is somehow null (no students), handle gracefully
+        if (finalAllocation != null)
+        {
+            foreach (var kvp in finalAllocation)
+            {
+                // Only return courses that actually have students
+                if (kvp.Value.Count > 0)
+                {
+                    var clientList = new List<StudentCln>(kvp.Value.Count);
+                    foreach (var student in kvp.Value)
+                    {
+                        // Pass the existing Context to ToClient to avoid creating new connections
+                        clientList.Add(await student.ToClient(ctx, null, this, fillStudent));
+                    }
+                    resultDict.Add(kvp.Key, clientList);
+                }
+            }
+        }
+
+        cache.Set(CacheKey, resultDict, TimeSpan.FromSeconds(30));
+        return resultDict;
+    }
+
+    // Pure in-memory logic. No DB calls here.
+    private Dictionary<int, List<Student>> RunAllocationInMemory(
+        List<List<Student>> groupedStudents,
+        Dictionary<int, Course> allCourses,
+        HashSet<int> excludedCourseIds
+    )
+    {
+        // Initialize containers for valid courses
+        var courseContainers = new Dictionary<int, List<Student>>();
+
+        foreach (var courseId in allCourses.Keys)
+        {
+            if (!excludedCourseIds.Contains(courseId))
+            {
+                // Pre-allocate List capacity if possible to avoid resizing,
+                // though exact size is unknown, standard default is fine.
+                courseContainers.Add(
+                    courseId,
+                    new List<Student>(groupedStudents.SelectMany(r => r).Count())
+                );
+                // courseContainers[courseId] = new List<Student>();
+            }
+        }
+
+        foreach (var group in groupedStudents)
+        {
+            // Shuffle the list in-place (avoid creating new lists if possible)
+            // Assuming ShuffleList() is an extension method you have.
+            // We create a copy to shuffle so we don't mess up the original order for the next iteration
+            var currentGroupProcessing = new List<Student>(group);
+            currentGroupProcessing.ShuffleList();
+
+            foreach (var student in currentGroupProcessing)
+            {
+                // Filter orders in memory
+                var validOrders = student
+                    .OrderCourses.Where(w => !excludedCourseIds.Contains(w.CourseId))
+                    .OrderBy(r => r.Order);
+
+                foreach (var wish in validOrders)
+                {
+                    // Verify course exists in our scope (it should)
+                    if (courseContainers.TryGetValue(wish.CourseId, out var container))
+                    {
+                        var capacity = allCourses[wish.CourseId].Capacity;
+
+                        if (container.Count < capacity)
+                        {
+                            // Optimization: .Add is O(1).
+                            // Your previous .Append(..).ToList() was O(N).
+                            container.Add(student);
+                            break; // Student placed, move to next student
+                        }
+                    }
+                }
+            }
+        }
+
+        return courseContainers;
     }
     #endregion
 }

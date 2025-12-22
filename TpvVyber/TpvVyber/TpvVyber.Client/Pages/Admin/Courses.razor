@@ -100,7 +100,9 @@ else
                 </MudCardContent>
             </MudCard>
         </ChildRowContent>
-
+        <PagerContent>
+            <MudDataGridPager T="CourseCln" />
+        </PagerContent>
     </MudDataGrid>
 }
 
@@ -123,7 +125,8 @@ else
         {
             CoursesData = cached?.ToList();
         }
-        if (CoursesData == null || CoursesData.Count == 0)
+        if (CoursesData == null || CoursesData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(CoursesData), out var
+        _))
         {
             CoursesData = new List<CourseCln>();
             _ = InvokeAsync(StateHasChanged);
@@ -135,8 +138,14 @@ else
                 if (RendererInfo.Name == "WebAssembly")
                 {
                     CoursesData.Add(course);
-                    StateHasChanged();
-                    await Task.Delay(1);
+                    var maxIndex = courseGrid.CurrentPage * courseGrid.RowsPerPage;
+                    var minIndex = (courseGrid.CurrentPage == 0 ? 0 : courseGrid.CurrentPage - 1) * courseGrid.RowsPerPage;
+
+                    if ((CoursesData.Count <= maxIndex && CoursesData.Count >= minIndex) || (courseGrid.CurrentPage == 0 && CoursesData.Count <= courseGrid.RowsPerPage))
+                    {
+                        StateHasChanged();
+                        await Task.Delay(1);
+                    }
                 }
                 else
                 {
@@ -145,6 +154,7 @@ else
                 }
             }
         }
+        StateHasChanged();
     }
 
     private Task Persist()
