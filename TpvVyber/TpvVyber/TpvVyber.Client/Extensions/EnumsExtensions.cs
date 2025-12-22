@@ -23,6 +23,7 @@ public static class EnumsExtensions
         // Fallback if no [Description] attribute is present
         return e.ToString();
     }
+
     public static string GetTooltip(this Enum e)
     {
         var type = e.GetType();
