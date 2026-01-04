@@ -10,6 +10,8 @@ public static class DatabaseService
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<TpvVyberContext>();
+
+            // await using var db = factory.CreateDbContext();
             var maxWaitTime = TimeSpan.FromMinutes(5); // maximum total wait
             var delay = TimeSpan.FromSeconds(15); // wait between retries
             var startTime = DateTime.UtcNow;

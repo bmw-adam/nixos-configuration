@@ -17,31 +17,31 @@ else
                  EditMode="DataGridEditMode.Cell" CommittedItemChanges="@CommittedItemChanges"
                  Bordered="true" Dense="true" EditTrigger="DataGridEditTrigger.OnRowClick">
         <ToolBarContent>
-            <MudText Typo="Typo.h6">Pořadí kurzů</MudText>
+            <MudText aria-label="admin-ordercourses-table-header" Typo="Typo.h6">Pořadí kurzů</MudText>
             <MudSpacer />
             <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Outlined">
-                <MudButton OnClick="NewItemAsync">Přidat pořadí kurzu</MudButton>
+                <MudButton aria-label="admin-ordercourses-table-header-btn-add" OnClick="NewItemAsync">Přidat pořadí kurzu</MudButton>
             </MudButtonGroup>
         </ToolBarContent>
         <Columns>
-            <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
-            <PropertyColumn Property="x => x.Order" Title="Order" />
-            <PropertyColumn Editable="false" Property="x => x.CourseId" Title="Course Id" />
+            <PropertyColumn aria-label="admin-ordercourses-table-value-id" Property="x => x.Id" Title="Id" Editable="false" />
+            <PropertyColumn aria-label="admin-ordercourses-table-value-order" Property="x => x.Order" Title="Order" />
+            <PropertyColumn aria-label="admin-ordercourses-table-value-courseid" Editable="false" Property="x => x.CourseId" Title="Course Id" />
 
             <TemplateColumn Title="Kurz" CellClass="d-flex">
                 <CellTemplate>
-                    <MudText>@context.Item.Extended?.Course?.Name</MudText>
+                    <MudText aria-label="admin-ordercourses-table-value-kurz">@context.Item.Extended?.Course?.Name</MudText>
                 </CellTemplate>
                 <EditTemplate>
                     @if (context.Item.Extended != null)
                     {
-                        <MudSelect Style="display: block;" T="CourseCln" Value="context.Item.Extended.Course" 
+                        <MudSelect aria-label="admin-ordercourses-table-value-kurz" Style="display: block;" T="CourseCln" Value="context.Item.Extended.Course" 
                                    ValueChanged="(value) => ChangeValueCourse(context.Item, value)" 
                                    ToStringFunc="s => s.Name" Required="true"
                                    RequiredError="Kurz je povinný!" HelperText="Vyberte kurz">
                         @foreach (var course in AvailableCourses)
                         {
-                            <MudSelectItem T="CourseCln" Value="course">@course.Name</MudSelectItem>
+                            <MudSelectItem aria-label="@($"admin-ordercourses-table-value-kurz-select-item-{course.Name}")" T="CourseCln" Value="course">@course.Name</MudSelectItem>
                         }
                         </MudSelect>
                     }
@@ -53,22 +53,22 @@ else
 
             </TemplateColumn>
             
-            <PropertyColumn Editable="false" Property="x => x.StudentId" Title="Žák Id" />
+            <PropertyColumn aria-label="admin-ordercourses-table-value-studentid" Editable="false" Property="x => x.StudentId" Title="Žák Id" />
             
             <TemplateColumn Title="Žák">
                 <CellTemplate>
-                    <MudText>@context.Item.Extended?.Student?.Name</MudText>
+                    <MudText aria-label="admin-ordercourses-table-value-student">@context.Item.Extended?.Student?.Name</MudText>
                 </CellTemplate>
                 <EditTemplate>
                     @if (context.Item.Extended != null)
                     {
-                        <MudSelect Style="display: block;" T="StudentCln" Value="context.Item.Extended.Student" 
+                        <MudSelect aria-label="admin-ordercourses-table-value-student" Style="display: block;" T="StudentCln" Value="context.Item.Extended.Student" 
                                    ValueChanged="(value) => ChangeValueStudent(context.Item, value)" 
                                    ToStringFunc="s => s.Name" Required="true"
                                    RequiredError="Žák je povinný!" HelperText="Vyberte žáka">
                         @foreach (var student in AvailableStudents)
                         {
-                            <MudSelectItem T="StudentCln" Value="student">@student.Name</MudSelectItem>
+                            <MudSelectItem aria-label="@($"admin-ordercourses-table-value-student-select-value-{student.Name}")" T="StudentCln" Value="student">@student.Name</MudSelectItem>
                         }
                         </MudSelect>
                     }
@@ -81,11 +81,11 @@ else
 
             <TemplateColumn>
                 <CellTemplate>
-                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
+                    <MudIconButton aria-label="admin-ordercourses-table-delete-btn" Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
                                    OnClick="@(() => DeleteItemAsync(context.Item))" />
                 </CellTemplate>
                 <EditTemplate>
-                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
+                    <MudIconButton aria-label="admin-ordercourses-table-delete-btn" Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
                                    OnClick="@(() => DeleteItemAsync(context.Item))" />
                 </EditTemplate>
             </TemplateColumn>
@@ -102,7 +102,7 @@ else
 
     private List<CourseCln> AvailableCourses = new();
     private List<StudentCln> AvailableStudents = new();
-private PersistingComponentStateSubscription? _subscription;
+    private PersistingComponentStateSubscription? _subscription;
     [CascadingParameter]
     public bool ReThrowError { get; set; }
 

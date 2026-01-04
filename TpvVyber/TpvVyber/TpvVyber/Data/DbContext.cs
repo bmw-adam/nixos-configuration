@@ -13,6 +13,7 @@ public class TpvVyberContext : DbContext
     public DbSet<Course> Courses { get; set; } = null!;
     public DbSet<OrderCourse> OrderCourses { get; set; } = null!;
     public DbSet<LoggingEnding> LoggingEndings { get; set; } = null!;
+    public DbSet<HistoryStudentCourse> HistoryStudentCourses { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,6 +49,25 @@ public class TpvVyberContext : DbContext
             entity
                 .HasOne(oc => oc.Course)
                 .WithMany(c => c.OrderCourses)
+                .HasForeignKey(oc => oc.CourseId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<HistoryStudentCourse>(entity =>
+        {
+            entity.ToTable("HistoryStudentCourses");
+            entity.HasKey(e => e.Id);
+            entity
+                .HasOne(oc => oc.Student)
+                .WithMany(c => c.HistoryStudentCourses)
+                .HasForeignKey(oc => oc.StudentId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity
+                .HasOne(oc => oc.Course)
+                .WithMany(c => c.HistoryStudentCourses)
                 .HasForeignKey(oc => oc.CourseId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Restrict);

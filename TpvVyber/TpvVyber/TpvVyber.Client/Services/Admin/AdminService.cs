@@ -613,5 +613,184 @@ public class ClientAdminService(HttpClient httpClient, NotificationService notif
             return null;
         }
     }
+
+    public async Task<HistoryStudentCourseCln> AddHistoryStudentCourseAsync(
+        HistoryStudentCourseCln item,
+        bool reThrowError,
+        FillHistoryStudentCourseExtended? fillExtended = null
+    )
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync(
+                $"api/admin/history_students/add{(fillExtended == null ? "" : $"?fillExtended={fillExtended}")}",
+                item
+            );
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<HistoryStudentCourseCln>()
+                ?? throw new Exception("Nepodařilo se načíst pořadí kurzů");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            notificationService.Notify(
+                $"Nepodařilo se přidat pořadí kurzu do databáze {ex.Message}",
+                Severity.Error
+            );
+            return item;
+        }
+    }
+
+    public async Task DeleteHistoryStudentCourseAsync(int Id, bool reThrowError)
+    {
+        try
+        {
+            var response = await httpClient.DeleteAsync($"api/admin/history_students/delete/{Id}");
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            notificationService.Notify(
+                $"Nepodařilo se odebrat pořadí kurzu z databáze {ex.Message}",
+                Severity.Error
+            );
+            return;
+        }
+    }
+
+    public async Task UpdateHistoryStudentCourseAsync(
+        HistoryStudentCourseCln item,
+        bool reThrowError
+    )
+    {
+        try
+        {
+            var response = await httpClient.PutAsJsonAsync(
+                "api/admin/history_students/update",
+                item
+            );
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            notificationService.Notify(
+                $"Nepodařilo se aktualizovat pořadí kurzu v databázi {ex.Message}",
+                Severity.Error
+            );
+            return;
+        }
+    }
+
+    public async Task<HistoryStudentCourseCln?> GetHistoryStudentCourseByIdAsync(
+        int id,
+        bool reThrowError,
+        FillHistoryStudentCourseExtended? fillExtended = null
+    )
+    {
+        try
+        {
+            var response = await httpClient.GetAsync(
+                $"api/admin/history_students/get_by_id?id={id}{(fillExtended == null ? "" : $"&fillExtended={fillExtended}")}"
+            );
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<HistoryStudentCourseCln?>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            notificationService.Notify(
+                $"Nepodařilo se získat pořadí kurzu z databáze {ex.Message}",
+                Severity.Error
+            );
+            return null;
+        }
+    }
+
+    public async IAsyncEnumerable<HistoryStudentCourseCln> GetAllHistoryStudentCourseAsync(
+        bool reThrowError,
+        FillHistoryStudentCourseExtended? fillExtended = null
+    )
+    {
+        var url =
+            $"api/admin/history_students/get_all{(fillExtended == null ? "" : $"?fillExtended={fillExtended}")}";
+
+        IAsyncEnumerable<HistoryStudentCourseCln?>? stream = null;
+
+        try
+        {
+            stream = httpClient.GetFromJsonAsAsyncEnumerable<HistoryStudentCourseCln>(url);
+        }
+        catch (Exception ex)
+        {
+            HandleError(ex);
+            if (reThrowError)
+                throw;
+            yield break;
+        }
+
+        if (stream is not null)
+        {
+            await using var enumerator = stream.GetAsyncEnumerator();
+            bool hasNext = true;
+
+            while (hasNext)
+            {
+                HistoryStudentCourseCln? item = null;
+                try
+                {
+                    hasNext = await enumerator.MoveNextAsync();
+
+                    if (hasNext)
+                    {
+                        item = enumerator.Current;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    HandleError(ex);
+                    if (reThrowError)
+                        throw;
+                    yield break;
+                }
+
+                if (item != null)
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        void HandleError(Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            notificationService.Notify(
+                $"Nepodařilo se získat pořadí kurzů z databáze: {ex.Message}",
+                Severity.Error
+            );
+        }
+        ;
+    }
+
+    public async Task<uint?> GetAllHistoryStudentCourseCountAsync(bool reThrowError)
+    {
+        try
+        {
+            var response = await httpClient.GetAsync("api/admin/history_students/get_all_count");
+            response.EnsureSuccessStatusCode();
+            var deserialized = await response.Content.ReadFromJsonAsync<uint?>();
+            return deserialized;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            notificationService.Notify(
+                $"Nepodařilo se získat kurz z databáze {ex.Message}",
+                Severity.Error
+            );
+            return null;
+        }
+    }
     #endregion
 }

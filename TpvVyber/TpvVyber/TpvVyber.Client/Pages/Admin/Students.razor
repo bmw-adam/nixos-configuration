@@ -4,6 +4,7 @@
 @inject PersistentComponentState ApplicationState
 @inject IAdminService AdminService
 @implements IDisposable
+@inject IJSRuntime jSRuntime
 
 @if (StudentsData is null)
 {
@@ -15,36 +16,36 @@ else
         CommittedItemChanges="@CommittedItemChanges" Bordered="true" Dense="true"
         EditTrigger="DataGridEditTrigger.OnRowClick">
         <ToolBarContent>
-            <MudText Typo="Typo.h6">Žáci</MudText>
+            <MudText aria-label="admin-students-table-header" Typo="Typo.h6">Žáci</MudText>
             <MudSpacer />
             <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Outlined">
-                <MudButton OnClick="NewItemAsync">Přidat žáka</MudButton>
+                <MudButton aria-label="admin-students-table-btn-add" OnClick="NewItemAsync">Přidat žáka</MudButton>
             </MudButtonGroup>
         </ToolBarContent>
         <Columns>
             <HierarchyColumn Hidden />
-            <PropertyColumn Property="x => x.Id" Title="Id" Editable="false" />
-            <PropertyColumn Property="x => x.Name" />
-            <PropertyColumn Property="x => x.Email" />
-            <PropertyColumn Property="x => x.Class" />
+            <PropertyColumn aria-label="admin-students-table-value-id" Property="x => x.Id" Title="Id" Editable="false" />
+            <PropertyColumn aria-label="admin-students-table-value-name" Property="x => x.Name" />
+            <PropertyColumn aria-label="admin-students-table-value-email" Property="x => x.Email" />
+            <PropertyColumn aria-label="admin-students-table-value-class" Property="x => x.Class" />
             <TemplateColumn Title="Seznam kurzů">
                 <CellTemplate>
-                    <MudButton OnClick="() => ExpandRow(context.Item)" StartIcon="@Icons.Material.Outlined.List"
-                        Size="Size.Small">Seznam kurzů</MudButton>
+                    <MudButton aria-label="admin-students-table-value-list-expand" OnClick="() => ExpandRow(context.Item)"
+                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Seznam kurzů</MudButton>
                 </CellTemplate>
                 <EditTemplate>
-                    <MudButton OnClick="() => ExpandRow(context.Item)" StartIcon="@Icons.Material.Outlined.List"
-                        Size="Size.Small">Seznam kurzů</MudButton>
+                    <MudButton aria-label="admin-students-table-value-list-expand" OnClick="() => ExpandRow(context.Item)"
+                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Seznam kurzů</MudButton>
                 </EditTemplate>
             </TemplateColumn>
             <TemplateColumn>
                 <CellTemplate>
-                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
-                        OnClick="@(() => DeleteItemAsync(context.Item))" />
+                    <MudIconButton aria-label="admin-students-table-value-delete" Size="Size.Small"
+                        Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteItemAsync(context.Item))" />
                 </CellTemplate>
                 <EditTemplate>
-                    <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
-                        OnClick="@(() => DeleteItemAsync(context.Item))" />
+                    <MudIconButton aria-label="admin-students-table-value-delete" Size="Size.Small"
+                        Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteItemAsync(context.Item))" />
                 </EditTemplate>
             </TemplateColumn>
         </Columns>
@@ -52,7 +53,8 @@ else
             <MudCard>
                 <MudCardHeader>
                     <CardHeaderContent>
-                        <MudText Typo="Typo.h6">Seznam kurzů - @context.Item.Name</MudText>
+                        <MudText aria-label="admin-students-table-value-lst-header" Typo="Typo.h6">Seznam kurzů -
+                            @context.Item.Name</MudText>
                     </CardHeaderContent>
                 </MudCardHeader>
                 <MudCardContent>
@@ -61,12 +63,15 @@ else
                         <MudDataGrid T="CourseCln" Items="context.Item.Extended.Courses" ReadOnly="true" Bordered="true"
                             Dense="true">
                             <Columns>
-                                <PropertyColumn Property="x => x.Id" Title="Id" />
-                                <PropertyColumn Property="x => x.Name" Title="Jméno" />
-                                <PropertyColumn Property="x => x.Description" Title="Popis" />
+                                <PropertyColumn aria-label="admin-students-table-value-lst-value-id" Property="x => x.Id"
+                                    Title="Id" />
+                                <PropertyColumn aria-label="admin-students-table-value-lst-value-name" Property="x => x.Name"
+                                    Title="Jméno" />
+                                <PropertyColumn aria-label="admin-students-table-value-lst-value-desc"
+                                    Property="x => x.Description" Title="Popis" />
                                 <TemplateColumn Title="Pořadí" Editable="false">
                                     <CellTemplate Context="course">
-                                        <MudText>
+                                        <MudText aria-label="admin-students-table-value-lst-value-poradi">
                                             @string.Join(", ", context.Item.Extended?.OrderCourses?.Where(oc => oc.CourseId ==
                                             course.Item.Id).Select(oc => oc.Order) ?? [])
                                 </MudText>
@@ -85,8 +90,20 @@ else
         <PagerContent>
             <MudDataGridPager T="StudentCln" />
         </PagerContent>
-
     </MudDataGrid>
+
+    <MudButtonGroup Color="Color.Info" Variant="Variant.Outlined">
+        <MudFileUpload T="IBrowserFile" Accept=".csv" FilesChanged="UploadCsv" MaximumFileCount="100">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Nahrát csv
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+        <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown" Style="align-self: auto;">
+            <MudMenuItem OnClick="DownloadCsv">Stáhnout vzorové csv</MudMenuItem>
+        </MudMenu>
+    </MudButtonGroup>
 }
 
 @code {
@@ -131,7 +148,8 @@ else
                     var maxIndex = StudentGrid.CurrentPage * StudentGrid.RowsPerPage;
                     var minIndex = (StudentGrid.CurrentPage == 0 ? 0 : StudentGrid.CurrentPage - 1) * StudentGrid.RowsPerPage;
 
-                    if ((StudentsData.Count <= maxIndex && StudentsData.Count >= minIndex) || (StudentGrid.CurrentPage == 0 && StudentsData.Count <= StudentGrid.RowsPerPage))
+                    if ((StudentsData.Count <= maxIndex && StudentsData.Count >= minIndex) || (StudentGrid.CurrentPage == 0 &&
+                    StudentsData.Count <= StudentGrid.RowsPerPage))
                     {
                         StateHasChanged();
                         await Task.Delay(1);
@@ -184,5 +202,58 @@ else
     private void ExpandRow(StudentCln item)
     {
         _ = StudentGrid.ToggleHierarchyVisibilityAsync(item);
+    }
+
+    private async Task UploadCsv(IBrowserFile file)
+    {
+        var students = new List<StudentCln>();
+        using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream);
+
+        bool isHeader = true;
+
+        var line = string.Empty;
+        while ((line = await reader.ReadLineAsync()) != null)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            if (isHeader)
+            {
+                isHeader = false;
+                continue;
+            }
+
+            var columns = line.Split(";");
+
+            if (columns.Length != 3)
+            {
+                continue;
+            }
+
+            students.Add(new StudentCln
+            {
+                Name = columns[0].Trim(),
+                Class = columns[1].Trim().Replace("-", ";"),
+                Email = columns[2].Trim(),
+            });
+        }
+
+        foreach (var student in students)
+        {
+            var newStud = AdminService.AddStudentAsync(student, ReThrowError);
+        }
+
+        await LoadData();
+        StateHasChanged();
+        _ = InvokeAsync(StateHasChanged);
+        Thread.Sleep(1);
+    }
+
+    private async Task DownloadCsv()
+    {
+        await jSRuntime.InvokeVoidAsync("downloadFile", "Example-Students.csv");
     }
 }

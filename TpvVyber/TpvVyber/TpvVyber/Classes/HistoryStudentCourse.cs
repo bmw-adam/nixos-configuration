@@ -1,54 +1,58 @@
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using TpvVyber.Classes.Interfaces;
 using TpvVyber.Client.Classes;
 using TpvVyber.Client.Services.Admin;
 using TpvVyber.Data;
+using TpvVyber.Extensions;
 
 namespace TpvVyber.Classes;
 
-public class OrderCourse : IClientConvertible<OrderCourseCln, OrderCourse, FillOrderCourseExtended>
+public class HistoryStudentCourse
+    : IClientConvertible<
+        HistoryStudentCourseCln,
+        HistoryStudentCourse,
+        FillHistoryStudentCourseExtended
+    >
 {
     public int Id { get; set; }
-    public int Order { get; set; }
-
+    public int StudentId { get; set; }
+    public Student? Student { get; set; }
     public int CourseId { get; set; }
     public Course? Course { get; set; }
 
-    public int StudentId { get; set; }
-    public Student? Student { get; set; }
-
-    public async Task<OrderCourseCln> ToClient(
+    public async Task<HistoryStudentCourseCln> ToClient(
         TpvVyberContext context,
         Student? currentUser,
         IAdminService adminService,
-        FillOrderCourseExtended? fillExtended = null
+        FillHistoryStudentCourseExtended? fillExtended = null
     )
     {
-        var clientObject = new OrderCourseCln
+        var clientObject = new HistoryStudentCourseCln
         {
             Id = Id,
-            Order = Order,
             CourseId = CourseId,
             StudentId = StudentId,
         };
 
         if (fillExtended != null)
         {
-            var extended = new OrderCourseClnExtended();
+            var extended = new HistoryStudentCourseClnExtended();
 
-            if (fillExtended.Value.HasFlag(FillOrderCourseExtended.Student))
+            if (
+                fillExtended.Value.HasFlag(FillHistoryStudentCourseExtended.Student)
+                && Student is not null
+            )
             {
-                if (Student is not null)
-                {
-                    extended.Student = await Student.ToClient(context, currentUser, adminService);
-                }
+                extended.Student = await Student.ToClient(context, currentUser, adminService);
             }
-            if (fillExtended.Value.HasFlag(FillOrderCourseExtended.Course))
+            if (
+                fillExtended.Value.HasFlag(FillHistoryStudentCourseExtended.Course)
+                && Course is not null
+            )
             {
-                if (Course is not null)
-                {
-                    extended.Course = await Course.ToClient(context, currentUser, adminService);
-                }
+                extended.Course = await Course.ToClient(context, currentUser, adminService);
             }
 
             clientObject.Extended = extended;
@@ -57,17 +61,16 @@ public class OrderCourse : IClientConvertible<OrderCourseCln, OrderCourse, FillO
         return clientObject;
     }
 
-    public static OrderCourse ToServer(
-        OrderCourseCln clientObject,
+    public static HistoryStudentCourse ToServer(
+        HistoryStudentCourseCln clientObject,
         TpvVyberContext context,
         bool createNew = false
     )
     {
         if (createNew)
         {
-            return new OrderCourse
+            return new HistoryStudentCourse
             {
-                Order = clientObject.Order,
                 CourseId = clientObject.CourseId,
                 StudentId = clientObject.StudentId,
                 Course =
@@ -81,14 +84,13 @@ public class OrderCourse : IClientConvertible<OrderCourseCln, OrderCourse, FillO
             };
         }
 
-        var entity = context.OrderCourses.Find(clientObject.Id);
+        var entity = context.HistoryStudentCourses.Find(clientObject.Id);
         // Apply potentional changes
         if (entity == null)
         {
-            throw new Exception("Nepodařilo se najít poradi kurzu v databázi");
+            throw new Exception("Nepodařilo se najít kurz v databázi");
         }
 
-        entity.Order = clientObject.Order;
         entity.CourseId = clientObject.CourseId;
         entity.StudentId = clientObject.StudentId;
 

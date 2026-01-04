@@ -39,7 +39,7 @@
     <MudButton OnClick="AddCourseAsync" aria-label="add-course-btn" Variant="Variant.Outlined"
         StartIcon="@Icons.Material.Outlined.Add">Přidat
         kurz s náhodně generovanými hodnotami</MudButton>
-    <MudButton OnClick="AddStudentAsync" aria-label="add-course-btn" Variant="Variant.Outlined"
+    <MudButton OnClick="AddStudentAsync" aria-label="add-student-btn" Variant="Variant.Outlined"
         StartIcon="@Icons.Material.Outlined.Add">Přidat
         Žáka s náhodně generovanými hodnotami a pořadím kurzů</MudButton>
 </MudStack>
@@ -149,9 +149,9 @@
         }
 
         await AsyncLoad();
-    }
-    string[] classes = { "Septima", "Sexta", "Kvinta", "Kvarta", "Tercie", "Sekunda", "Prima", "1. B", "2. B", "3. B" };
 
+        Console.WriteLine("Finished deleting!");
+    }
     private async Task AddCourseAsync()
     {
         // 1. Calculate the count by iterating the stream
@@ -163,9 +163,9 @@
 
         // 2. Prepare random classes (unchanged)
         Random random = new Random();
-        int randomClassCount = random.Next(1, classes.Length + 1);
+        int randomClassCount = random.Next(1, Extensions.ClassExtensions.GetAllClasses().Length + 1);
 
-        string[] randomCourses = classes
+        string[] randomCourses = Extensions.ClassExtensions.GetAllClasses()
         .OrderBy(_ => random.Next())
         .Take(randomClassCount)
         .ToArray();
@@ -184,6 +184,7 @@
 
         // 5. Refresh UI
         await AsyncLoad();
+        Console.WriteLine("Finished Adding Course!");
     }
 
     private async Task AddStudentAsync()
@@ -197,7 +198,7 @@
         string[] names = { "Jarda", "Adam", "Jirka", "Pavel", "Tonda", "Tim", "Tomas" };
         Random random = new Random();
 
-        string randomClass = classes[random.Next(classes.Length)];
+        string randomClass = Extensions.ClassExtensions.GetAllClasses()[random.Next(Extensions.ClassExtensions.GetAllClasses().Length)];
         string randomName = names[random.Next(names.Length)];
         int nextId = studentCount + 1;
 
@@ -239,5 +240,6 @@
         }
 
         await AsyncLoad();
+        Console.WriteLine("Finished Adding Student!");
     }
 }

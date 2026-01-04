@@ -681,6 +681,7 @@ public class ServerAdminService(
             return null;
         }
     }
+    #endregion
 
     private const string CacheKey = "ShowFillCourses";
 
@@ -871,5 +872,205 @@ public class ServerAdminService(
 
         return courseContainers;
     }
-    #endregion
+
+    private async Task<HistoryStudentCourseCln> historyStudentAddIntern(
+        HistoryStudentCourseCln item,
+        FillHistoryStudentCourseExtended? fillExtended = null
+    )
+    {
+        try
+        {
+            await using var ctx = _factory.CreateDbContext();
+
+            var newEntity = HistoryStudentCourse.ToServer(item, ctx, createNew: true);
+            var element = await ctx.HistoryStudentCourses.AddAsync(newEntity);
+            await ctx.SaveChangesAsync();
+
+            var historyStud =
+                await ctx.HistoryStudentCourses.FindAsync(element.Entity.Id)
+                ?? throw new Exception("Nepodařilo se přidat do databáze");
+
+            return await historyStud.ToClient(ctx, null, this, fillExtended);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Nepodařilo se přidat historii žáka do databáze {ex.Message}");
+            notificationService.Notify(
+                "Nepodařilo se přidat historii žáka do databáze",
+                Severity.Error
+            );
+            return item;
+        }
+    }
+
+    public Task<HistoryStudentCourseCln> AddHistoryStudentCourseAsync(
+        HistoryStudentCourseCln item,
+        bool reThrowError,
+        FillHistoryStudentCourseExtended? fillExtended = null
+    )
+    {
+        return historyStudentAddIntern(item, fillExtended);
+    }
+
+    private async Task historyStudentDeleteIntern(int Id)
+    {
+        try
+        {
+            await using var ctx = _factory.CreateDbContext();
+            var entityToDelete = ctx.OrderCourses.Find(Id);
+            if (entityToDelete != null)
+            {
+                ctx.OrderCourses.Remove(entityToDelete);
+                await ctx.SaveChangesAsync();
+            }
+            else
+            {
+                throw new Exception("Nepodařilo se najít historii žáka v databázi");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Nepodařilo se odebrat historii žáka z databáze {Id} - {ex.Message}");
+            notificationService.Notify(
+                "Nepodařilo se odebrat historii žáka z databáze",
+                Severity.Error
+            );
+            return;
+        }
+    }
+
+    public Task DeleteHistoryStudentCourseAsync(int Id, bool reThrowError)
+    {
+        return historyStudentDeleteIntern(Id);
+    }
+
+    private async Task historyStudentUpdateIntern(HistoryStudentCourseCln item)
+    {
+        try
+        {
+            await using var ctx = _factory.CreateDbContext();
+            var entityToUpdate = HistoryStudentCourse.ToServer(item, ctx);
+            ctx.HistoryStudentCourses.Update(entityToUpdate);
+            await ctx.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                $"Nepodařilo se aktualizovat historii žáků v databázi {JsonSerializer.Serialize(item)} - {ex.Message}"
+            );
+            notificationService.Notify(
+                "Nepodařilo se aktualizovat historii žáků v databázi",
+                Severity.Error
+            );
+            return;
+        }
+    }
+
+    public Task UpdateHistoryStudentCourseAsync(HistoryStudentCourseCln item, bool reThrowError)
+    {
+        return historyStudentUpdateIntern(item);
+    }
+
+    public async Task<HistoryStudentCourseCln?> GetHistoryStudentCourseByIdAsync(
+        int id,
+        bool reThrowError,
+        FillHistoryStudentCourseExtended? fillExtended = null
+    )
+    {
+        try
+        {
+            await using var ctx = _factory.CreateDbContext();
+            var orderCourse = ctx.HistoryStudentCourses.Find(id);
+            if (orderCourse == null)
+            {
+                return null;
+            }
+            return await orderCourse.ToClient(ctx, null, this, fillExtended);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                $"Nepodařilo se získat historii žáků z databáze Id: {id} - {ex.Message}"
+            );
+            notificationService.Notify(
+                "Nepodařilo se získat historii žáků z databáze",
+                Severity.Error
+            );
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
+            return null;
+        }
+    }
+
+    public async IAsyncEnumerable<HistoryStudentCourseCln> GetAllHistoryStudentCourseAsync(
+        bool reThrowError,
+        FillHistoryStudentCourseExtended? fillExtended = null
+    )
+    {
+        await using var ctx = _factory.CreateDbContext();
+
+        await foreach (
+            var historyStudent in ctx
+                .HistoryStudentCourses.Include(oc => oc.Course)
+                .Include(oc => oc.Student)
+                .AsAsyncEnumerable()
+        )
+        {
+            HistoryStudentCourseCln? resultItem = null;
+
+            try
+            {
+                resultItem = await historyStudent.ToClient(ctx, null, this, fillExtended);
+            }
+            catch (Exception ex)
+            {
+                HandleError(ex, reThrowError);
+                yield break;
+            }
+
+            if (resultItem != null)
+            {
+                yield return resultItem;
+            }
+        }
+
+        void HandleError(Exception ex, bool shouldThrow)
+        {
+            logger.LogError($"Nepodařilo se získat historii žáků z databáze - {ex.Message}");
+            notificationService.Notify(
+                "Nepodařilo se získat historii žáků z databáze",
+                Severity.Error
+            );
+
+            if (shouldThrow)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+    }
+
+    public async Task<uint?> GetAllHistoryStudentCourseCountAsync(bool reThrowError)
+    {
+        try
+        {
+            await using var ctx = _factory.CreateDbContext();
+            var count = ctx.HistoryStudentCourses.Count();
+            return (uint)Math.Abs(count);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Nepodařilo se získat historii žáků z databáze - {ex.Message}");
+            notificationService.Notify(
+                "Nepodařilo se získat historii žáků z databáze",
+                Severity.Error
+            );
+            if (reThrowError)
+            {
+                throw new Exception(ex.Message);
+            }
+            return null;
+        }
+    }
 }

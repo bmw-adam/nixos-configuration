@@ -1,6 +1,8 @@
 ﻿@inherits LayoutComponentBase
 @inject IAdminService adminService
 @inject NavigationManager navigationManager
+@inject IJSRuntime jSRuntime
+@inject IUpdateService updateService
 @implements IDisposable
 
 <MudThemeProvider @ref="provider" Theme="@_theme" IsDarkMode="_isDarkMode" />
@@ -51,12 +53,18 @@
     private MudThemeProvider? provider;
     LoggingEndingCln? LoggingEndingCln;
     private CancellationTokenSource? _cts;
+    private DotNetObjectReference<MainLayout>? selfRef;
+    private EventHandler<EventArgs>? _updateHandler;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
         _ = LoadDarkMode();
         _ = LoadLoggingEnding();
+        selfRef = DotNetObjectReference.Create(this);
+        _updateHandler = (sender, e) => UpdateHandler();
+        _ = InitUpdateService();
+
 
         _theme = new()
         {
@@ -64,6 +72,25 @@
             PaletteDark = _darkPalette,
             LayoutProperties = new LayoutProperties()
         };
+    }
+
+    private async Task InitUpdateService()
+    {
+        await updateService.InitializeAsync();
+        if (_updateHandler != null)
+        {
+            updateService.RegisterFunction(_updateHandler);
+        }
+
+        StateHasChanged();
+    }
+
+    private void UpdateHandler()
+    {
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
     }
 
     private Task LoadLoggingEnding()
@@ -173,5 +200,9 @@
     {
         _cts?.Cancel();
         _cts?.Dispose();
+        if (_updateHandler != null)
+        {
+            updateService.UnregisterFunction(_updateHandler);
+        }
     }
 }

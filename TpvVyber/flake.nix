@@ -53,7 +53,7 @@
           rm -rf ./.nuget-packages
 
           echo "Restoring Server..."
-          dotnet restore ./TpvVyber/TpvVyber/TpvVyber.csproj --packages ./.nuget-packages
+          dotnet restore ./TpvVyber/TpvVyber.Tests/TpvVyber.Tests.csproj --packages ./.nuget-packages
           nuget-to-json ./.nuget-packages > ./TpvVyber/TpvVyber/deps.server.json
           rm -rf ./.nuget-packages
 
@@ -198,6 +198,7 @@
             pkgs.nuget-to-json
             genDeps
             pkgs.playwright
+            pkgs.dotnetCorePackages.sdk_10_0-bin
           ];
           shellHook = ''
             export DOTNET_ROOT=${pkgs.dotnet-sdk-wasm}

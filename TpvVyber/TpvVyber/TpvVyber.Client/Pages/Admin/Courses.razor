@@ -4,6 +4,8 @@
 @inject PersistentComponentState ApplicationState
 @inject IAdminService AdminService
 @implements IDisposable
+@inject IJSRuntime jSRuntime
+@inject IUpdateService updateService
 
 @if (CoursesData is null)
 {
@@ -104,10 +106,26 @@ else
             <MudDataGridPager T="CourseCln" />
         </PagerContent>
     </MudDataGrid>
+
+    <MudButtonGroup Color="Color.Info" Variant="Variant.Outlined">
+        <MudFileUpload T="IBrowserFile" Accept=".csv" FilesChanged="UploadCsv" MaximumFileCount="100">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled"
+                        Color="Color.Info"
+                        StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Nahrát csv
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+        <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown" Style="align-self: auto;">
+            <MudMenuItem OnClick="DownloadCsv">Stáhnout vzorové csv</MudMenuItem>
+        </MudMenu>
+    </MudButtonGroup>
 }
 
 @code {
     private List<CourseCln>? CoursesData;
+    private EventHandler<EventArgs>? _updateHandler;
     private MudDataGrid<CourseCln> courseGrid = default!;
     private PersistingComponentStateSubscription? _subscription;
     [CascadingParameter]
@@ -116,17 +134,24 @@ else
     protected override void OnInitialized()
     {
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
-        _ = LoadData();
+        _ = LoadData(false);
+        _updateHandler = (sender, e) => InvokeAsync(() => LoadData(true));
+
+        if (_updateHandler is not null)
+        {
+            updateService.RegisterFunction(_updateHandler);
+        }
     }
 
-    private async Task LoadData()
+    private async Task LoadData(bool reloadData)
     {
-        if (ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(CoursesData), out var cached))
+        @* Console.WriteLine("Loading Data"); *@
+        if (!reloadData && ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(CoursesData), out var cached))
         {
             CoursesData = cached?.ToList();
         }
-        if (CoursesData == null || CoursesData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(CoursesData), out var
-        _))
+        if (reloadData || (CoursesData == null || CoursesData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(CoursesData), out var
+        _)))
         {
             CoursesData = new List<CourseCln>();
             _ = InvokeAsync(StateHasChanged);
@@ -165,21 +190,31 @@ else
         return Task.CompletedTask;
     }
 
-    public void Dispose() => _subscription?.Dispose();
+    public void Dispose()
+    {
+        if (_updateHandler is not null)
+        {
+            updateService.UnregisterFunction(_updateHandler);
+        }
+        _subscription?.Dispose();
+    }
 
     private async Task NewItemAsync()
     {
         var newCourse = await AdminService.AddCourseAsync(new CourseCln(), ReThrowError);
-        if (newCourse is not null)
+        @* if (newCourse is not null)
         {
             CoursesData?.Insert(0, newCourse);
-        }
+        } *@
+
+        @* await LoadData(true); *@
     }
 
     private async Task DeleteItemAsync(CourseCln item)
     {
         await AdminService.DeleteCourseAsync(item.Id, ReThrowError);
-        CoursesData?.Remove(item);
+        @* CoursesData?.Remove(item); *@
+        @* await LoadData(true); *@
     }
 
     private void CommittedItemChanges(CourseCln item)
@@ -195,5 +230,67 @@ else
     private void ExpandRow(CourseCln item)
     {
         _ = courseGrid.ToggleHierarchyVisibilityAsync(item);
+    }
+
+    private async Task UploadCsv(IBrowserFile file)
+    {
+        var courses = new List<CourseCln>();
+        using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream);
+
+        bool isHeader = true;
+
+        var line = string.Empty;
+        while ((line = await reader.ReadLineAsync()) != null)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            if (isHeader)
+            {
+                isHeader = false;
+                continue;
+            }
+
+            var columns = line.Split(";");
+
+            if (columns.Length != 8)
+            {
+                continue;
+            }
+
+            courses.Add
+            (
+                new CourseCln 
+                {
+                    Name = columns[0].Trim(),
+                    Description = columns[1].Trim(),
+                    PdfUrl = columns[2].Trim(),
+                    ForClasses = columns[3].Trim().Replace("-", ";"),
+                    MinPrice = int.Parse(columns[4].Trim()),
+                    MaxPrice = int.Parse(columns[5].Trim()),
+                    Capacity = uint.Parse(columns[6].Trim()),
+                    MinCapacity = uint.Parse(columns[7].Trim()),
+                }
+            );
+        }
+
+        foreach (var course in courses)
+        {
+            var newCse = AdminService.AddCourseAsync(course, ReThrowError);
+        }
+
+        await LoadData(true);
+        StateHasChanged();
+        _ = InvokeAsync(StateHasChanged);
+        Thread.Sleep(1);
+
+    }
+    
+    private async Task DownloadCsv()
+    {
+        await jSRuntime.InvokeVoidAsync("downloadFile", "Example-Courses.csv");
     }
 }

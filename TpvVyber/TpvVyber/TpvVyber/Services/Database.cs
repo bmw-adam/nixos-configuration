@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using TpvVyber.Data;
+using TpvVyber.Hubs;
 
 namespace TpvVyber.Services;
 
@@ -27,15 +30,25 @@ public static class Database
             throw new NullReferenceException("Connection String Was Null");
         }
 
-        builder.Services.AddDbContextFactory<TpvVyberContext>(options =>
-            options.UseNpgsql(
-                connectionString,
-                o =>
-                {
-                    // Explicitly place the history table in your schema
-                    o.MigrationsHistoryTable("__EFMigrationsHistory", "tpv_schema");
-                }
-            )
+        builder.Services.AddSingleton<DatabaseUpdateInterceptor>();
+
+        builder.Services.AddDbContextFactory<TpvVyberContext>(
+            (sp, options) =>
+            {
+                var interceptor = sp.GetRequiredService<DatabaseUpdateInterceptor>();
+
+                options
+                    .UseNpgsql(
+                        connectionString,
+                        o =>
+                        {
+                            o.MigrationsHistoryTable("__EFMigrationsHistory", "tpv_schema");
+                        }
+                    )
+                    .AddInterceptors(interceptor)
+                    .ReplaceService<IHistoryRepository, YugabyteHistoryRepository>();
+            }
+            // lifetime: ServiceLifetime.Scoped
         );
     }
 }

@@ -22,6 +22,7 @@ public class Student : IClientConvertible<StudentCln, Student, FillStudentExtend
     }
 
     public List<OrderCourse> OrderCourses { get; } = [];
+    public List<HistoryStudentCourse> HistoryStudentCourses { get; } = [];
 
     public async Task<StudentCln> ToClient(
         TpvVyberContext context,
@@ -91,7 +92,7 @@ public class Student : IClientConvertible<StudentCln, Student, FillStudentExtend
         // Apply potentional changes
         if (entity == null)
         {
-            throw new Exception("Nepodařilo se najít kurz v databázi");
+            throw new Exception("Nepodařilo se najít studenta v databázi");
         }
 
         entity.Name = clientObject.Name;

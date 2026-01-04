@@ -11,6 +11,11 @@
     <PackageReference Include="Keycloak.AuthServices.Authorization" Version="2.7.0" />
     <PackageReference Include="Keycloak.AuthServices.Sdk" Version="2.7.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.3.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.11">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.11" />
     <ProjectReference Include="..\TpvVyber.Client\TpvVyber.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.*" />
 
@@ -24,8 +29,8 @@
     <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
 
     <!-- Database -->
-    <PackageReference Include="NpgsqlYB.EntityFrameworkCore.YugabyteDB" Version="8.0.4.1" />
-
+    <!-- <PackageReference Include="NpgsqlYB.EntityFrameworkCore.YugabyteDB" Version="8.0.4.1" /> -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <!-- Auth -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.*" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OAuth" Version="2.3.0" />

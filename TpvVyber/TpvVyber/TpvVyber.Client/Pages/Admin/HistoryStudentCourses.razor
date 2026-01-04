@@ -1,0 +1,391 @@
+@page "/admin/history_students"
+@using System.Runtime.InteropServices
+@attribute [Authorize(Roles = "Admin")]
+@inject NavigationManager NavigationManager
+@inject PersistentComponentState ApplicationState
+@inject IAdminService AdminService
+@inject IDialogService DialogService
+@inject NotificationService NotificationService
+@implements IDisposable
+@inject IJSRuntime jSRuntime
+
+@if (HistoryStudentCourseData is null)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" Class="my-6" />
+}
+else
+{
+    <MudDataGrid @ref="HistoryStudentGrid" T="HistoryStudentCourseCln" Items="@HistoryStudentCourseData" ReadOnly="false"
+                 EditMode="DataGridEditMode.Cell" CommittedItemChanges="@CommittedItemChanges"
+                 Bordered="true" Dense="true" EditTrigger="DataGridEditTrigger.OnRowClick">
+        <ToolBarContent>
+            <MudText aria-label="admin-history_students-table-header" Typo="Typo.h6">Historie účastí kurzů studenty</MudText>
+            <MudSpacer />
+            <MudButtonGroup Class="ma-0 pa-0" Color="Color.Success" Variant="Variant.Outlined">
+                <MudButton aria-label="admin-history_students-table-header-btn-add" OnClick="NewItemAsync">Přidat minulou účast</MudButton>
+            </MudButtonGroup>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn aria-label="admin-history_students-table-value-id" Property="x => x.Id" Title="Id" Editable="false" />
+            <PropertyColumn aria-label="admin-history_students-table-value-courseid" Editable="false" Property="x => x.CourseId" Title="Course Id" />
+
+            <TemplateColumn Title="Kurz" CellClass="d-flex">
+                <CellTemplate>
+                    <MudText aria-label="admin-history_students-table-value-kurz">@context.Item.Extended?.Course?.Name</MudText>
+                </CellTemplate>
+                <EditTemplate>
+                    @if (context.Item.Extended != null)
+                    {
+                        <MudSelect aria-label="admin-history_students-table-value-kurz" Style="display: block;" T="CourseCln" Value="context.Item.Extended.Course" 
+                                   ValueChanged="(value) => ChangeValueCourse(context.Item, value)" 
+                                   ToStringFunc="s => s.Name" Required="true"
+                                   RequiredError="Kurz je povinný!" HelperText="Vyberte kurz">
+                        @foreach (var course in AvailableCourses)
+                        {
+                            <MudSelectItem aria-label="@($"admin-history_students-table-value-kurz-select-item-{course.Name}")" T="CourseCln" Value="course">@course.Name</MudSelectItem>
+                        }
+                        </MudSelect>
+                    }
+                    else 
+                    {
+                        <MudText>Error - nenalezen žák</MudText>
+                    }
+                </EditTemplate>
+
+            </TemplateColumn>
+            
+            <PropertyColumn aria-label="admin-history_students-table-value-studentid" Editable="false" Property="x => x.StudentId" Title="Žák Id" />
+            
+            <TemplateColumn Title="Žák">
+                <CellTemplate>
+                    <MudText aria-label="admin-history_students-table-value-student">@context.Item.Extended?.Student?.Name</MudText>
+                </CellTemplate>
+                <EditTemplate>
+                    @if (context.Item.Extended != null)
+                    {
+                        <MudSelect aria-label="admin-history_students-table-value-student" Style="display: block;" T="StudentCln" Value="context.Item.Extended.Student" 
+                                   ValueChanged="(value) => ChangeValueStudent(context.Item, value)" 
+                                   ToStringFunc="s => s.Name" Required="true"
+                                   RequiredError="Žák je povinný!" HelperText="Vyberte žáka">
+                        @foreach (var student in AvailableStudents)
+                        {
+                            <MudSelectItem aria-label="@($"admin-history_students-table-value-student-select-value-{student.Name}")" T="StudentCln" Value="student">@student.Name</MudSelectItem>
+                        }
+                        </MudSelect>
+                    }
+                    else 
+                    {
+                        <MudText>Error - nenalezen žák</MudText>
+                    }
+                </EditTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn>
+                <CellTemplate>
+                    <MudIconButton aria-label="admin-history_students-table-delete-btn" Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
+                                   OnClick="@(() => DeleteItemAsync(context.Item))" />
+                </CellTemplate>
+                <EditTemplate>
+                    <MudIconButton aria-label="admin-history_students-table-delete-btn" Size="Size.Small" Icon="@Icons.Material.Outlined.Delete"
+                                   OnClick="@(() => DeleteItemAsync(context.Item))" />
+                </EditTemplate>
+            </TemplateColumn>
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="HistoryStudentCourseCln" />
+        </PagerContent>
+    </MudDataGrid>
+
+    <MudButtonGroup Color="Color.Info" Variant="Variant.Outlined">
+        <MudFileUpload T="IBrowserFile" Accept=".csv" FilesChanged="UploadCsv" MaximumFileCount="100">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled"
+                        Color="Color.Info"
+                        StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Nahrát csv
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+        <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown" Style="align-self: auto;">
+            <MudMenuItem OnClick="DownloadCsv">Stáhnout vzorové csv</MudMenuItem>
+        </MudMenu>
+    </MudButtonGroup>
+}
+
+@code {
+    private List<HistoryStudentCourseCln>? HistoryStudentCourseData;
+    private MudDataGrid<HistoryStudentCourseCln> HistoryStudentGrid = default!;
+
+    private List<CourseCln> AvailableCourses = new();
+    private List<StudentCln> AvailableStudents = new();
+    IList<IBrowserFile> files = new List<IBrowserFile>();
+    private PersistingComponentStateSubscription? _subscription;
+    [CascadingParameter]
+    public bool ReThrowError { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _subscription = ApplicationState.RegisterOnPersisting(Persist);
+        _ = LoadData();
+    }
+
+    private async Task LoadData() {
+        // Load dependencies first
+        await LoadCoursesAsync();
+        await LoadStudentsAsync();
+        
+        // Then load the main grid data
+        await LoadOrdersAsync();
+    }
+
+    private Task Persist()
+    {
+        if (HistoryStudentCourseData is not null)
+            ApplicationState.PersistAsJson(nameof(HistoryStudentCourseData), HistoryStudentCourseData);
+
+        if (AvailableCourses.Any())
+            ApplicationState.PersistAsJson(nameof(AvailableCourses), AvailableCourses);
+
+        if (AvailableStudents.Any())
+            ApplicationState.PersistAsJson(nameof(AvailableStudents), AvailableStudents);
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _subscription?.Dispose();
+
+    private async Task LoadCoursesAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(AvailableCourses), out var cached))
+        {
+            AvailableCourses = cached?.ToList() ?? new();
+        }
+        if(AvailableCourses == null || AvailableCourses.Count == 0)
+        {
+            var tempList = new List<CourseCln>();
+            await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError))
+            {
+                tempList.Add(course);
+            }
+            AvailableCourses = tempList;
+        }
+    }
+
+    private async Task LoadStudentsAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<IEnumerable<StudentCln>>(nameof(AvailableStudents), out var cached))
+        {
+            AvailableStudents = cached?.ToList() ?? new();
+        }
+        if (AvailableStudents == null || AvailableStudents.Count == 0)
+        {
+            var tempList = new List<StudentCln>();
+            await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError))
+            {
+                tempList.Add(student);
+            }
+            AvailableStudents = tempList;
+        }
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        if (ApplicationState.TryTakeFromJson<IEnumerable<HistoryStudentCourseCln>>(nameof(HistoryStudentCourseData), out var cached))
+        {
+            HistoryStudentCourseData = cached?.ToList();
+        }
+        if (HistoryStudentCourseData == null || HistoryStudentCourseData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(HistoryStudentCourseData), out var _))
+        {
+            HistoryStudentCourseData = new();
+            _ = InvokeAsync(StateHasChanged);
+
+            var history_studentsStream = AdminService.GetAllHistoryStudentCourseAsync(ReThrowError, FillHistoryStudentCourseExtended.Student | FillHistoryStudentCourseExtended.Course);
+            
+            if (history_studentsStream != null)
+            {
+                await foreach (var item in history_studentsStream)
+                {
+                    if (RendererInfo.Name == "WebAssembly")
+                    {
+                        HistoryStudentCourseData.Add(item);
+                        var maxIndex = HistoryStudentGrid.CurrentPage * HistoryStudentGrid.RowsPerPage;
+                        var minIndex = (HistoryStudentGrid.CurrentPage == 0 ? 0 : HistoryStudentGrid.CurrentPage - 1) * HistoryStudentGrid.RowsPerPage;
+
+                        if ((HistoryStudentCourseData.Count <= maxIndex && HistoryStudentCourseData.Count >= minIndex) || (HistoryStudentGrid.CurrentPage == 0 && HistoryStudentCourseData.Count <= HistoryStudentGrid.RowsPerPage))
+                        {
+                            StateHasChanged();
+                            await Task.Delay(1);
+                        }
+                    }
+                    else
+                    {
+                        HistoryStudentCourseData.Add(item);
+                        _ = InvokeAsync(StateHasChanged);
+                    }
+                }
+            }
+
+        }
+        StateHasChanged(); 
+    }
+
+    private async Task NewItemAsync()
+    {
+        var options = new DialogOptions { CloseButton = true, CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<AddStudentHistoryDialog>
+        {
+            { x => x.AvailableCourses, AvailableCourses },
+            { x => x.AvailableStudents, AvailableStudents }
+        };
+        var dialog = await DialogService.ShowAsync<AddStudentHistoryDialog>("Přidat účast kurzu", parameters, options);
+
+        var result = await dialog.Result;
+        
+        if (result != null && !result.Canceled && result.Data is HistoryStudentCourseCln HistoryStudent)
+        {
+            var newHistoryStudent = await AdminService.AddHistoryStudentCourseAsync(HistoryStudent, ReThrowError, FillHistoryStudentCourseExtended.Student | FillHistoryStudentCourseExtended.Course);
+            if (newHistoryStudent is not null)
+            {
+                if (HistoryStudentCourseData == null) HistoryStudentCourseData = new List<HistoryStudentCourseCln>();
+                
+                HistoryStudentCourseData.Insert(0, newHistoryStudent);
+                StateHasChanged(); 
+            }
+        }
+    }
+
+    private async Task DeleteItemAsync(HistoryStudentCourseCln item)
+    {
+        await AdminService.DeleteHistoryStudentCourseAsync(item.Id, ReThrowError);
+        HistoryStudentCourseData?.Remove(item);
+        StateHasChanged(); 
+    }
+
+    private void CommittedItemChanges(HistoryStudentCourseCln item)
+    {
+        _ = CommitDataAsync(item);
+    }
+
+    private async Task CommitDataAsync(HistoryStudentCourseCln HistoryStudent)
+    {
+        await AdminService.UpdateHistoryStudentCourseAsync(HistoryStudent, ReThrowError);
+    }
+
+    private void ChangeValueCourse(HistoryStudentCourseCln item, CourseCln value)
+    {
+        if (item.Extended == null) return;
+        item.Extended.Course = value;
+        item.CourseId = value.Id;
+        CommittedItemChanges(item);
+    }
+
+    private void ChangeValueStudent(HistoryStudentCourseCln item, StudentCln value)
+    {
+        if (item.Extended == null) return;
+        item.Extended.Student = value;
+        item.StudentId = value.Id;
+        CommittedItemChanges(item);
+    }
+
+    private async Task UploadCsv(IBrowserFile file)
+    {
+        files.Add(file);
+
+        var enrollments = new List<CourseEnrollmentCsv>();
+        using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream);
+
+        bool isHeader = true;
+
+        var line = string.Empty;
+        while ((line = await reader.ReadLineAsync()) != null)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            if (isHeader)
+            {
+                isHeader = false;
+                continue;
+            }
+
+            var columns = line.Split(";");
+
+            if (columns.Length < 2)
+            {
+                continue;
+            }
+
+            enrollments.Add
+            (
+                new CourseEnrollmentCsv 
+                {
+                    CourseName = columns[0].Trim(),
+                    Email = columns[1].Trim()
+                }
+            );
+        }
+
+        if (AvailableStudents == null || AvailableStudents.Count == 0)
+        {
+            AvailableStudents = [];
+            await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError))
+            {
+                AvailableStudents.Add(student);
+            }
+        }
+
+        if (AvailableCourses == null || AvailableCourses.Count == 0)
+        {
+            AvailableCourses = [];
+            await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError))
+            {
+                AvailableCourses.Add(course);
+            }
+        }
+
+        foreach (var enrollment in enrollments)
+        {
+            var crse = AvailableCourses.FirstOrDefault(a => a.Name == enrollment.CourseName);
+
+            if (crse == null)
+            {
+                NotificationService.Notify($"Nenašel jsem kurz {enrollment.CourseName} - přeskakuji", Severity.Error);
+                continue;
+            }
+
+            var stud = AvailableStudents.FirstOrDefault(a => a.Email == enrollment.Email);
+            if (stud == null)
+            {
+                NotificationService.Notify($"Nenašel jsem studenta {enrollment.Email} - přeskakuji", Severity.Error);
+                continue;
+            }
+
+            var studHistory = new HistoryStudentCourseCln 
+            {
+                CourseId = crse.Id,
+                StudentId = stud.Id,
+            };
+
+            var newStudHist = AdminService.AddHistoryStudentCourseAsync(studHistory, ReThrowError);
+        }
+
+        await LoadData();
+        StateHasChanged();
+        _ = InvokeAsync(StateHasChanged);
+        Thread.Sleep(1);
+    }
+    
+    private async Task DownloadCsv()
+    {
+        await jSRuntime.InvokeVoidAsync("downloadFile", "Example.csv");
+    }
+
+    public class CourseEnrollmentCsv
+    {
+        public string Email { get; set; } = string.Empty;
+        public string CourseName { get; set; } = string.Empty;
+    }
+}

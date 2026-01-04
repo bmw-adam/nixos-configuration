@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
+using TpvVyber.Client.Classes;
+using TpvVyber.Client.Layout;
 using TpvVyber.Client.Services;
 using TpvVyber.Client.Services.Admin;
 using TpvVyber.Client.Services.Select;
@@ -26,7 +28,10 @@ builder.Services.AddScoped(sp => new HttpClient()
 builder.Services.AddScoped<IAdminService, ClientAdminService>();
 builder.Services.AddScoped<ISelectService, ClientSelectService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddSingleton<ClientUpdateService>();
+builder.Services.AddSingleton<IUpdateService>(sp => sp.GetRequiredService<ClientUpdateService>());
 
 builder.Services.AddBlazorBootstrap();
 
-await builder.Build().RunAsync();
+var app = builder.Build();
+await app.RunAsync();

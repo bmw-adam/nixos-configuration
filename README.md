@@ -16,6 +16,13 @@ Checkout the [flake.nix](flake.nix) for examples tested on different hosters.
 Error from server (BadRequest): container "nginx" in pod "example" is waiting to start: trying and failing to pull image
 
 [root@server1:~]# kubectl  --kubeconfig=/var/lib/rancher/k3s/server/cred/admin.kubeconfig get pods
+
+
+➜  TpvVyber git:(main) ✗ nix shell nixpkgs#powershell --command pwsh \
+  TpvVyber.Tests/bin/Debug/net9.0/playwright.ps1 \
+  codegen --ignore-https-errors https://tpvselect.gasos.cz
+
+
 NAME      READY   STATUS             RESTARTS   AGE
 example   0/1     ImagePullBackOff   0          2m59s
 

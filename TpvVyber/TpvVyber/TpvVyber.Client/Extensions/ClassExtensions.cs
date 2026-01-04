@@ -17,6 +17,38 @@ public static class ClassExtensions
         return value;
     }
 
+    public static string[] GetAllClasses()
+    {
+        return
+        [
+            "oktáva",
+            "4. aj",
+            "4. b",
+            "4. c",
+            "4. l",
+            "septima",
+            "3. aj",
+            "3. b",
+            "3. c",
+            "3. l",
+            "sexta",
+            "2. aj",
+            "2. b",
+            "2. c",
+            "2. l",
+            "1. i",
+            "kvinta",
+            "1. aj",
+            "1. b",
+            "1. c",
+            "1. l",
+            "kvarta",
+            "tercie",
+            "sekunda",
+            "prima",
+        ];
+    }
+
     public static int CalculateClaimStrenght(string claimRole)
     {
         switch (claimRole.ToLower())

@@ -10,13 +10,13 @@
 @implements IDisposable
 
 <PageTitle>Výsledky</PageTitle>
-<MudText Typo="Typo.h4">Výsledky</MudText>
+<MudText aria-label="vysledky-header" Typo="Typo.h4">Výsledky</MudText>
 
-<MudText Typo="Typo.h6">Konec:</MudText>
+<MudText aria-label="vysledky-header-konec" Typo="Typo.h6">Konec:</MudText>
 <MudStack Row>
-    <MudDatePicker Label="Datum" @bind-Date="LoggingEndTime"></MudDatePicker>
-    <MudTimePicker Label="čas" @bind-Time="LoggingEndTimeSpan"></MudTimePicker>
-    <MudButton OnClick="SubmitDateTime">Ok</MudButton>
+    <MudDatePicker aria-label="vysledky-konec-datum" Label="Datum" @bind-Date="LoggingEndTime"></MudDatePicker>
+    <MudTimePicker aria-label="vysledky-konec-cas" Label="čas" @bind-Time="LoggingEndTimeSpan"></MudTimePicker>
+    <MudButton aria-label="vysledky-konec-sumbit" OnClick="SubmitDateTime">Ok</MudButton>
 </MudStack>
 <div style="height: 20px;"></div>
 <MudPaper Class="doc-section-component-container">
@@ -30,27 +30,27 @@
         <MudText Align="Align.Center" Class="pa-4">Načítám graf...</MudText>
     }
 </MudPaper>
-<MudText Typo="Typo.caption"><i>Kolik lidí si dalo kurz na kolikáté pořadí?</i></MudText>
+<MudText aria-label="vysledky-konec-caption" Typo="Typo.caption"><i>Kolik lidí si dalo kurz na kolikáté pořadí?</i></MudText>
 
 <div style="height: 10px"></div>
-<MudText Typo="Typo.h4">Pořadí - Výsledky</MudText>
-<MudTable Items="@(Students ?? [])" Hover="true" Breakpoint="Breakpoint.Sm"
+<MudText aria-label="vysledky-vysledky-header" Typo="Typo.h4">Pořadí - Výsledky</MudText>
+<MudTable aria-label="vysledky-vysledky-table" Items="@(Students ?? [])" Hover="true" Breakpoint="Breakpoint.Sm"
     Loading="@(StudentCourses == null || Students == null)" LoadingProgressColor="Color.Info">
     <HeaderContent>
-        <MudTh>Třída</MudTh>
-        <MudTh>Jméno žáka</MudTh>
-        <MudTh>E-Mail</MudTh>
-        <MudTh>Název kurzu</MudTh>
+        <MudTh aria-label="vysledky-vysledky-table-header-trida">Třída</MudTh>
+        <MudTh aria-label="vysledky-vysledky-table-header-jmeno-zaka">Jméno žáka</MudTh>
+        <MudTh aria-label="vysledky-vysledky-table-header-email">E-Mail</MudTh>
+        <MudTh aria-label="vysledky-vysledky-table-header-nazev-kurzu">Název kurzu</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Třída">@GetClassName(context.Class)</MudTd>
-        <MudTd DataLabel="Jméno žáka">@context.Name</MudTd>
-        <MudTd DataLabel="E-Mail">@context.Email</MudTd>
-        <MudTd DataLabel="Název kurzu">@GetCourseNameForStudent(context)</MudTd>
+        <MudTd aria-label="@($"vysledky-vysledky-table-values-{context.Email}-trida")" DataLabel="Třída">@GetClassName(context.Class)</MudTd>
+        <MudTd aria-label="@($"vysledky-vysledky-table-values-{context.Email}-jmeno-zaka")" DataLabel="Jméno žáka">@context.Name</MudTd>
+        <MudTd aria-label="@($"vysledky-vysledky-table-values-{context.Email}-email")" DataLabel="E-Mail">@context.Email</MudTd>
+        <MudTd aria-label="@($"vysledky-vysledky-table-values-{context.Email}-vybrany-kurz")" DataLabel="Název kurzu">@GetCourseNameForStudent(context)</MudTd>
     </RowTemplate>
 </MudTable>
 
-<MudButton StartIcon="@Icons.Material.Outlined.ImportExport" OnClick="ExportCsv" Variant="Variant.Filled"
+<MudButton aria-label="vysledky-vysledky-export" StartIcon="@Icons.Material.Outlined.ImportExport" OnClick="ExportCsv" Variant="Variant.Filled"
     Color="Color.Primary" Disabled="@(Students == null)">
     Export CSV
 </MudButton>
@@ -182,7 +182,7 @@
     {
         if (StudentCourses == null || Students == null || Courses == null) return;
 
-        _xAxisLabels = (StudentCourses.Select(e => e.Key.Name).ToArray() ?? []).Order().ToArray();
+        _xAxisLabels = Courses.Select(e => e.Name).Order().ToArray();// (StudentCourses.Select(e => e.Key.Name).ToArray() ?? []).Order().ToArray();
         _series.Clear();
 
         var distinctOrders = Students

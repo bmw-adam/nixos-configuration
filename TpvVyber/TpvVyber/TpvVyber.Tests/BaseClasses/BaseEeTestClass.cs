@@ -1,10 +1,12 @@
 using System;
 using System.Threading.Tasks;
 using Bunit;
-using Microsoft.Data.Sqlite;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
@@ -16,26 +18,29 @@ using TpvVyber.Client.Services.Select;
 using TpvVyber.Data;
 using TpvVyber.Endpoints.Admin;
 using TpvVyber.Endpoints.Select;
-using TpvVyber.Tests.Constants;
+using TpvVyber.Services;
 
 namespace TpvVyber.Tests;
 
 [TestClass]
 public abstract class EeTestClass : PageTest
 {
-    protected SqliteConnection _connection = null!;
     protected TpvVyberContext _context = null!;
+    protected IAdminService adminService = null!;
+    protected ISelectService selectService = null!;
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
-        // 1. Create a connection to SQLite (In-Memory)
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-
-        // reuse these options for both the _context and the _factory
         var options = new DbContextOptionsBuilder<TpvVyberContext>()
-            .UseSqlite(_connection) // Critical: Use the shared connection!
+            .UseNpgsql(
+                Environment.GetEnvironmentVariable("ConnectionStrings__TpvVyberDbUnlocked")
+                    ?? throw new Exception("Nenašel jsem ConnectionStrings__TpvVyberDbUnlocked"),
+                o =>
+                {
+                    o.MigrationsHistoryTable("__EFMigrationsHistory", "tpv_schema");
+                }
+            )
             .LogTo(message => NUnit.Framework.TestContext.WriteLine(message), LogLevel.Information)
             .EnableSensitiveDataLogging()
             .Options;
@@ -52,6 +57,21 @@ public abstract class EeTestClass : PageTest
         });
 
         var logger = loggerFactory.CreateLogger("Notification service");
+
+        var handler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback =
+                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+        };
+
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri(Settings.WebUrl) };
+
+        var notificationService = new NotificationService();
+        notificationService.OnNotify += (UiNotification uiNotification) =>
+            logger.LogInformation(uiNotification.Message);
+
+        adminService = new ClientAdminService(httpClient, notificationService);
+        selectService = new ClientSelectService(httpClient, notificationService);
     }
 
     public override BrowserNewContextOptions ContextOptions()
@@ -60,22 +80,15 @@ public abstract class EeTestClass : PageTest
         {
             ColorScheme = ColorScheme.Light,
             ViewportSize = new() { Width = 1920, Height = 1080 },
-            BaseURL = Settings.WebUrl,
+            IgnoreHTTPSErrors = true,
+            BaseURL = "https://localhost:1234",
         };
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
         // 1. Dispose the context first
         _context?.Dispose();
-
-        // 2. Safely disconnect and dispose the database connection
-        // This will also wipe the in-memory database
-        if (_connection != null)
-        {
-            _connection.Close();
-            _connection.Dispose();
-        }
     }
 }

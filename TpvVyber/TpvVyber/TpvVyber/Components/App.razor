@@ -1,4 +1,5 @@
-﻿@inject NavigationManager Navigation
+﻿@using TpvVyber.Client.Classes
+@inject NavigationManager Navigation
 
 <!DOCTYPE html>
 <html lang="en">
@@ -35,6 +36,15 @@
             anchorElement.remove();
             URL.revokeObjectURL(url);
         }
+
+        window.downloadFile = function (url) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = '';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
     </script>
 
     <TpvVyber.Client.Routes @rendermode="InteractiveAuto" />
@@ -50,6 +60,9 @@
     <!-- Add sortable.js reference if SortableList component is used in your application. -->
     <script src="src/Sortable.min.js"></script>
     <script src="_content/Blazor.Bootstrap/blazor.bootstrap.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    @* <script src="src/update-service.js"></script> *@
 </body>
 
 </html>

@@ -22,6 +22,7 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
     public uint MinCapacity { get; set; } = 0;
 
     public List<OrderCourse> OrderCourses { get; } = [];
+    public List<HistoryStudentCourse> HistoryStudentCourses { get; } = [];
 
     public async Task<CourseCln> ToClient(
         TpvVyberContext context,
@@ -85,15 +86,13 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
 
                 var courseContainers = await adminService.ShowFillCourses(false, false, null, null);
 
-                // 1. First, check if the key exists
+                // Check if the key exists
                 if (!courseContainers.ContainsKey(this.Id))
                 {
-                    // REQUIRED LOGIC: If not in containers, set to NotHappening
                     extended.Availability = Availability.NotHappening;
                 }
                 else
                 {
-                    // 2. Safe to access the dictionary now
                     var currentEnrollments = courseContainers[this.Id];
 
                     if (

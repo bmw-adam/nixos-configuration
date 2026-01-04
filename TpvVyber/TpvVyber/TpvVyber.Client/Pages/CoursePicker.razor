@@ -5,6 +5,7 @@
 @inject NavigationManager navigationManager
 @inject PersistentComponentState ApplicationState
 @implements IDisposable
+@inject IJSRuntime JS
 
 <PageTitle>Výběr TPV</PageTitle>
 
@@ -12,17 +13,24 @@
 
 @if (SortableCourses != null)
 {
-    <SortableList EmptyText="Nejsou k dispozici žádné kurzy" aria-label="SortableList-CoursePicker" Style="width: 100%" Handle=".drag-handle" TItem="CourseCln" @ref="SortableListRef" Data="SortableCourses"
-        Context="item" AllowSorting OnUpdate="@OnListUpdate">
+    <SortableList EmptyText="Nejsou k dispozici žádné kurzy" aria-label="SortableList-CoursePicker" Style="width: 100%"
+        Handle=".drag-handle" TItem="CourseCln" @ref="SortableListRef" Data="SortableCourses" Context="item" AllowSorting
+        OnUpdate="@OnListUpdate">
         <ItemTemplate>
             <MudStack aria-label="@($"SortableList-CoursePicker-{item.Name}")" StretchItems="StretchItems.Middle" Row>
-                <MudIconButton aria-label="@($"SortableList-CoursePicker-{item.Name}-drag")" Icon="@Icons.Material.Outlined.DragIndicator" class="drag-handle"></MudIconButton>
-                <MudButton aria-label="@($"SortableList-CoursePicker-{item.Name}-btn")" OnClick="@(() => navigationManager.NavigateTo($"/course_info/{item.Id}"))"
+                <MudIconButton aria-label="@($"SortableList-CoursePicker-{item.Name}-drag")"
+                    Icon="@Icons.Material.Outlined.DragIndicator" class="drag-handle"></MudIconButton>
+                <MudButton aria-label="@($"SortableList-CoursePicker-{item.Name}-btn")"
+                    OnClick="@(() => navigationManager.NavigateTo($"/course_info/{item.Id}"))"
                     EndIcon="@Icons.Material.Outlined.Info">
-                    <MudLink aria-label="@($"SortableList-CoursePicker-{item.Name}-link")" Href="@($"/course_info/{item.Id}")">@item.Name</MudLink>
+                    <MudLink aria-label="@($"SortableList-CoursePicker-{item.Name}-link")"
+                        Href="@($"/course_info/{item.Id}")">@item.Name</MudLink>
                 </MudButton>
-                <MudChip aria-label="@($"SortableList-CoursePicker-{item.Name}-avail")" T="string" Variant="Variant.Outlined" Color="AvailabilityBadge(item.Extended?.Availability)">
-                    @item.Extended?.Availability?.GetTooltip()</MudChip>
+                <MudTooltip aria-label="@($"SortableList-CoursePicker-{item.Name}-tooltip")" Text="@item.Extended?.Availability?.GetDescription()">
+                    <MudChip aria-label="@($"SortableList-CoursePicker-{item.Name}-avail")" T="string"
+                        Variant="Variant.Outlined" Color="AvailabilityBadge(item.Extended?.Availability)">
+                        @item.Extended?.Availability?.GetTooltip()</MudChip>
+                </MudTooltip>
             </MudStack>
         </ItemTemplate>
     </SortableList>
@@ -46,7 +54,6 @@ else
     private PersistingComponentStateSubscription? _subscription;
     [CascadingParameter]
     public bool ReThrowError { get; set; }
-
 
     protected override async Task OnInitializedAsync()
     {

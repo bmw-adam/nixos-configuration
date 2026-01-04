@@ -73,4 +73,23 @@ public interface IAdminService
         FillStudentExtended? fillStudent = null
     );
     #endregion
+    #region HistoryStudents
+    public Task<HistoryStudentCourseCln> AddHistoryStudentCourseAsync(
+        HistoryStudentCourseCln item,
+        bool reThrowError,
+        FillHistoryStudentCourseExtended? fillExtended = null
+    );
+    public Task DeleteHistoryStudentCourseAsync(int Id, bool reThrowError);
+    public Task UpdateHistoryStudentCourseAsync(HistoryStudentCourseCln item, bool reThrowError);
+    public Task<HistoryStudentCourseCln?> GetHistoryStudentCourseByIdAsync(
+        int id,
+        bool reThrowError,
+        FillHistoryStudentCourseExtended? fillExtended = null
+    );
+    public IAsyncEnumerable<HistoryStudentCourseCln> GetAllHistoryStudentCourseAsync(
+        bool reThrowError,
+        FillHistoryStudentCourseExtended? fillExtended = null
+    );
+    public Task<uint?> GetAllHistoryStudentCourseCountAsync(bool reThrowError);
+    #endregion
 }

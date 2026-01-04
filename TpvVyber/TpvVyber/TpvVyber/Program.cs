@@ -1,16 +1,21 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using BlazorBootstrap;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.SignalR;
 using MudBlazor.Services;
 using Serilog;
+using TpvVyber.Client.Classes;
+using TpvVyber.Client.Layout;
 using TpvVyber.Client.Services.Admin;
 using TpvVyber.Client.Services.Select;
 using TpvVyber.Components;
 using TpvVyber.Data;
 using TpvVyber.Endpoints.Admin;
 using TpvVyber.Endpoints.Select;
+using TpvVyber.Hubs;
 using TpvVyber.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +45,15 @@ builder.Services.AddControllers();
 
 builder.Services.AddAntiforgery();
 
+builder.Services.AddSignalR();
+
+// builder.Services.AddScoped<IHubContext<UpdateHub>>(sp =>
+// {
+//     return sp.GetRequiredService<IHubContext<UpdateHub>>();
+// });
+
+builder.Services.AddSingleton<ServerUpdateService>();
+
 builder.ConfigureTls();
 builder.AddLoggingService();
 builder.AddDatabaseService();
@@ -47,9 +61,9 @@ builder.AddDatabaseService();
 builder.AddAuthService();
 
 builder.Services.AddMemoryCache();
-
 builder.Services.AddScoped<IAdminService, ServerAdminService>();
 builder.Services.AddScoped<ISelectService, ServerSelectService>();
+builder.Services.AddScoped<IUpdateService>(sp => sp.GetRequiredService<ServerUpdateService>());
 
 builder.Services.AddBlazorBootstrap();
 
@@ -66,7 +80,7 @@ forwardedHeaderOptions.KnownProxies.Clear();
 
 app.UseForwardedHeaders(forwardedHeaderOptions);
 
-app.UseBlazorFrameworkFiles();
+// app.UseBlazorFrameworkFiles();
 
 app.UseSerilogRequestLogging();
 
@@ -107,6 +121,29 @@ await app.UseDatabaseService();
 
 app.UseLoginService();
 
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+if (app.Configuration.GetValue<bool?>("Testing") ?? false)
+{
+    logger.LogWarning("Running as Testing project.");
+
+    app.Use(
+        async (ctx, next) =>
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, "Admin"),
+                new Claim(ClaimTypes.Email, "Tester"),
+                new Claim(ClaimTypes.Role, "Admin"),
+            };
+
+            ctx.User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
+
+            await next();
+        }
+    );
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -116,22 +153,12 @@ app.MapControllers();
 CoursesAdminEndpoints.MapAdminEndpoints(app);
 StudentsAdminEndpoints.MapAdminEndpoints(app);
 OrderCourseAdminEndpoints.MapAdminEndpoints(app);
-
-// Select
+StudentHistoryAdminEndpoints.MapAdminEndpoints(app);
 SelectEndpoints.MapSelectEndpoints(app);
 
-var logger = app.Services.GetRequiredService<ILogger<Program>>();
+// app.MapBlazorHub();
+app.MapHub<UpdateHub>("/update");
 
-// app.Use(
-//     async (ctx, next) =>
-//     {
-//         Console.WriteLine($"Scheme: {ctx.Request.Scheme}");
-//         Console.WriteLine($"Host: {ctx.Request.Host}");
-//         Console.WriteLine($"XF-Proto: {ctx.Request.Headers["X-Forwarded-Proto"]}");
-//         Console.WriteLine($"XF-Host: {ctx.Request.Headers["X-Forwarded-Host"]}");
-//         await next();
-//     }
-// );
 logger.LogInformation("Running.");
 
 app.Run();
