@@ -48,7 +48,6 @@ public static class Database
                     .AddInterceptors(interceptor)
                     .ReplaceService<IHistoryRepository, YugabyteHistoryRepository>();
             }
-            // lifetime: ServiceLifetime.Scoped
         );
     }
 }
