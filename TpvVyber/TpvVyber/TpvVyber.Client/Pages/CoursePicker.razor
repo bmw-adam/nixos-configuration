@@ -64,9 +64,9 @@ else
         await base.OnInitializedAsync();
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
 
-        _ = InitialLoadSort();
+        _ = InitialLoadSort(true);
         _updateHandler = ((IClientUpdateHandler)this).FactoryUpdateHandler(
-        [TableNames.Students, TableNames.OrderCourses],
+        [TableNames.Students, TableNames.OrderCourses, TableNames.Courses],
         InitialLoadSort
         );
         if (_updateHandler is not null)
@@ -88,26 +88,33 @@ else
         return lst?.ToList();
     }
 
-    private Task InitialLoadSort(bool forceReload = false)
+    private async Task InitialLoadSort(bool forceReload = false)
     {
-        _ = InvokeAsync(async () =>
+        if (forceReload)
         {
-            if (forceReload)
-            {
-                SortableCourses = await ApiCallCourses();
-            }
-            else
-            {
-                SortableCourses = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(SortableCourses), out var cached)
-        ? cached?.ToList()
-        : (await ApiCallCourses());
-            }
-
-            StateHasChanged();
+            SortableCourses = await ApiCallCourses();
         }
-        );
+        else
+        {
+            SortableCourses = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(SortableCourses), out var cached)
+            ? cached?.ToList()
+            : (await ApiCallCourses());
+        }
 
-        return Task.CompletedTask;
+        if (ReThrowError)
+        {
+            _ = InvokeAsync(async () =>
+            {
+                StateHasChanged();
+                await Task.Delay(1);
+            });
+        }
+        else
+        {
+#pragma warning disable CS1998
+            _ = InvokeAsync(async () => StateHasChanged());
+#pragma warning restore CS1998
+        }
     }
 
     private void OnListUpdate(SortableListEventArgs args)
