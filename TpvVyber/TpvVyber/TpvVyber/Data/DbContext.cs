@@ -44,14 +44,14 @@ public class TpvVyberContext : DbContext
                 .WithMany(c => c.OrderCourses)
                 .HasForeignKey(oc => oc.StudentId)
                 .IsRequired()
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity
                 .HasOne(oc => oc.Course)
                 .WithMany(c => c.OrderCourses)
                 .HasForeignKey(oc => oc.CourseId)
                 .IsRequired()
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<HistoryStudentCourse>(entity =>
@@ -63,14 +63,14 @@ public class TpvVyberContext : DbContext
                 .WithMany(c => c.HistoryStudentCourses)
                 .HasForeignKey(oc => oc.StudentId)
                 .IsRequired()
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity
                 .HasOne(oc => oc.Course)
                 .WithMany(c => c.HistoryStudentCourses)
                 .HasForeignKey(oc => oc.CourseId)
                 .IsRequired()
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         base.OnModelCreating(modelBuilder);

@@ -135,6 +135,9 @@ if (app.Configuration.GetValue<bool?>("Testing") ?? false)
                 new Claim(ClaimTypes.Name, "Admin"),
                 new Claim(ClaimTypes.Email, "Tester"),
                 new Claim(ClaimTypes.Role, "Admin"),
+                new Claim("description", "Admin"),
+                new Claim("email", "tester-tpvselect@gasos-ro.cz"),
+                new Claim("name", "Admin Tester"),
             };
 
             ctx.User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));

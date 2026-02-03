@@ -1,6 +1,6 @@
 namespace TpvVyber.Client.Classes;
 
-public class OrderCourseCln
+public class OrderCourseCln : IEntityId
 {
     public int Id { get; set; }
     public int Order { get; set; }

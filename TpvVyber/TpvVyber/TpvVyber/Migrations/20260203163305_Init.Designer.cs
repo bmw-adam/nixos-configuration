@@ -12,7 +12,7 @@ using TpvVyber.Data;
 namespace TpvVyber.Migrations
 {
     [DbContext(typeof(TpvVyberContext))]
-    [Migration("20260104171110_Init")]
+    [Migration("20260203163305_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -164,13 +164,13 @@ namespace TpvVyber.Migrations
                     b.HasOne("TpvVyber.Classes.Course", "Course")
                         .WithMany("HistoryStudentCourses")
                         .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("TpvVyber.Classes.Student", "Student")
                         .WithMany("HistoryStudentCourses")
                         .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Course");
@@ -183,13 +183,13 @@ namespace TpvVyber.Migrations
                     b.HasOne("TpvVyber.Classes.Course", "Course")
                         .WithMany("OrderCourses")
                         .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("TpvVyber.Classes.Student", "Student")
                         .WithMany("OrderCourses")
                         .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Course");

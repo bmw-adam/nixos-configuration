@@ -3,7 +3,7 @@ using TpvVyber.Client.Classes.Attributes;
 
 namespace TpvVyber.Client.Classes;
 
-public class CourseCln
+public class CourseCln : IEntityId
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;

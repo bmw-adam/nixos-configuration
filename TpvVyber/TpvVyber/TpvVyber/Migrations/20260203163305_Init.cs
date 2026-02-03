@@ -86,14 +86,14 @@ namespace TpvVyber.Migrations
                         principalSchema: "tpv_schema",
                         principalTable: "Courses",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_HistoryStudentCourses_Students_StudentId",
                         column: x => x.StudentId,
                         principalSchema: "tpv_schema",
                         principalTable: "Students",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -116,14 +116,14 @@ namespace TpvVyber.Migrations
                         principalSchema: "tpv_schema",
                         principalTable: "Courses",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_OrderCourses_Students_StudentId",
                         column: x => x.StudentId,
                         principalSchema: "tpv_schema",
                         principalTable: "Students",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(

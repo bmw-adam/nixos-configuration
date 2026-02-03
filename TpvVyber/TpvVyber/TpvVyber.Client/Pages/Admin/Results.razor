@@ -7,7 +7,9 @@
 @inject IAdminService AdminService
 @inject PersistentComponentState ApplicationState
 @inject IJSRuntime JS
+@inject IUpdateService updateService
 @implements IDisposable
+@implements IClientUpdateHandler
 
 <PageTitle>Výsledky</PageTitle>
 <MudText aria-label="vysledky-header" Typo="Typo.h4">Výsledky</MudText>
@@ -63,9 +65,11 @@
     private Dictionary<CourseCln, List<StudentCln>>? StudentCourses;
     private List<StudentCln>? Students { get; set; }
     private List<CourseCln>? Courses { get; set; }
+    
     private DateTime? LoggingEndTime;
     private TimeSpan? LoggingEndTimeSpan;
     private LoggingEndingCln? loggingEndingCln;
+    private EventHandler<TpvUpdateEventArgs>? _updateHandler;
 
     private int _index = -1;
     private AxisChartOptions _axisChartOptions = new AxisChartOptions() { XAxisLabelRotation = 90, MatchBoundsToSize = true};
@@ -77,14 +81,24 @@
     {
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
         _ = AsyncLoad();
+        _updateHandler = ((IClientUpdateHandler)this).FactoryUpdateHandler(
+            [TableNames.Students, TableNames.Courses, TableNames.LoggingEndings],
+            AsyncLoad
+        );
+
+        if (_updateHandler is not null)
+        {
+            updateService.RegisterFunction(_updateHandler);
+        }
+
     }
 
-    private async Task AsyncLoad()
+    private async Task AsyncLoad(bool forceReload = false)
     {
         // 1. Start loading independent data streams in parallel
-        var t1 = LoadStudentsAsync();
-        var t2 = LoadCoursesAsync();
-        var t3 = LoadLoggingEndAsync();
+        var t1 = LoadStudentsAsync(forceReload);
+        var t2 = LoadCoursesAsync(forceReload);
+        var t3 = LoadLoggingEndAsync(forceReload);
 
         // Wait for basic data to arrive
         await Task.WhenAll(t1, t2, t3);
@@ -92,7 +106,7 @@
         // 2. Build the Dictionary
         // We do this AFTER courses are loaded so we can look up Course objects in memory
         // instead of calling the API N times.
-        await LoadStudentCoursesDictionaryAsync();
+        await LoadStudentCoursesDictionaryAsync(forceReload);
 
         // 3. Prepare Chart Data
         PrepareChartData();
@@ -100,13 +114,13 @@
         StateHasChanged();
     }
 
-    private async Task LoadStudentsAsync()
+    private async Task LoadStudentsAsync(bool forceReload)
     {
         if (ApplicationState.TryTakeFromJson<List<StudentCln>>(nameof(Students), out var cached))
         {
             Students = cached;
         }
-        if (Students == null || Students.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(Students), out var _))
+        if (Students == null || Students.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(Students), out var _) || forceReload)
         {
             Students = new List<StudentCln>();
             await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses |
@@ -117,13 +131,13 @@
         }
     }
 
-    private async Task LoadCoursesAsync()
+    private async Task LoadCoursesAsync(bool forceReload)
     {
         if (ApplicationState.TryTakeFromJson<List<CourseCln>>(nameof(Courses), out var cached))
         {
             Courses = cached;
         }
-        if (Courses == null || Courses.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(Courses), out var _))
+        if (Courses == null || Courses.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(Courses), out var _) || forceReload)
         {
             Courses = new List<CourseCln>();
             await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.OrderCourses |
@@ -134,7 +148,7 @@
         }
     }
 
-    private async Task LoadLoggingEndAsync()
+    private async Task LoadLoggingEndAsync(bool forceReload)
     {
         var loggingEnd = await AdminService.GetLoggingEndings(ReThrowError);
         if (loggingEnd?.TimeEnding != null)
@@ -145,9 +159,9 @@
         loggingEndingCln = loggingEnd;
     }
 
-    private async Task LoadStudentCoursesDictionaryAsync()
+    private async Task LoadStudentCoursesDictionaryAsync(bool forceReload)
     {
-        if (ApplicationState.TryTakeFromJson<Dictionary<CourseCln, List<StudentCln>>>(nameof(StudentCourses), out var cached))
+        if (ApplicationState.TryTakeFromJson<Dictionary<CourseCln, List<StudentCln>>>(nameof(StudentCourses), out var cached) || forceReload)
         {
             StudentCourses = cached;
         }
@@ -206,7 +220,14 @@
         }
     }
 
-    public void Dispose() => _subscription?.Dispose();
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+        if (_updateHandler is not null)
+        {
+            updateService.UnregisterFunction(_updateHandler);
+        }
+    }
 
     private Task Persist()
     {
@@ -237,7 +258,7 @@
         }
         loggingEndingCln.TimeEnding = LoggingEndTime.Value.Add(LoggingEndTimeSpan.Value);
         await AdminService.UpdateLoggingEnding(loggingEndingCln, ReThrowError);
-        await AsyncLoad(); // Reloads data to confirm update
+        @* await AsyncLoad(); // Reloads data to confirm update *@
     }
 
     private string GetCourseNameForStudent(StudentCln student)
@@ -279,5 +300,15 @@
 
         using var streamRef = new DotNetStreamReference(stream);
         await JS.InvokeVoidAsync("downloadFileFromStream", "Vysledky.csv", streamRef);
+    }
+
+    void IClientUpdateHandler.StateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    Task IClientUpdateHandler.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
     }
 }

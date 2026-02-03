@@ -161,13 +161,13 @@ namespace TpvVyber.Migrations
                     b.HasOne("TpvVyber.Classes.Course", "Course")
                         .WithMany("HistoryStudentCourses")
                         .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("TpvVyber.Classes.Student", "Student")
                         .WithMany("HistoryStudentCourses")
                         .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Course");
@@ -180,13 +180,13 @@ namespace TpvVyber.Migrations
                     b.HasOne("TpvVyber.Classes.Course", "Course")
                         .WithMany("OrderCourses")
                         .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("TpvVyber.Classes.Student", "Student")
                         .WithMany("OrderCourses")
                         .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Course");

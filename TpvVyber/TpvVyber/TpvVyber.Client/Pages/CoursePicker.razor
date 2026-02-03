@@ -6,6 +6,8 @@
 @inject PersistentComponentState ApplicationState
 @implements IDisposable
 @inject IJSRuntime JS
+@inject IUpdateService updateService
+@implements IClientUpdateHandler
 
 <PageTitle>Výběr TPV</PageTitle>
 
@@ -26,7 +28,8 @@
                     <MudLink aria-label="@($"SortableList-CoursePicker-{item.Name}-link")"
                         Href="@($"/course_info/{item.Id}")">@item.Name</MudLink>
                 </MudButton>
-                <MudTooltip aria-label="@($"SortableList-CoursePicker-{item.Name}-tooltip")" Text="@item.Extended?.Availability?.GetDescription()">
+                <MudTooltip aria-label="@($"SortableList-CoursePicker-{item.Name}-tooltip")"
+                    Text="@item.Extended?.Availability?.GetDescription()">
                     <MudChip aria-label="@($"SortableList-CoursePicker-{item.Name}-avail")" T="string"
                         Variant="Variant.Outlined" Color="AvailabilityBadge(item.Extended?.Availability)">
                         @item.Extended?.Availability?.GetTooltip()</MudChip>
@@ -41,8 +44,8 @@ else
 }
 
 <MudStack Justify="Justify.FlexEnd" Row Spacing="5">
-    <MudButton aria-label="cancelBtn" OnClick="InitialLoadSort" Color="Color.Secondary" Variant="Variant.Outlined"
-        StartIcon="@Icons.Material.Outlined.Cancel">Zrušit
+    <MudButton aria-label="cancelBtn" OnClick="async () => await InitialLoadSort()" Color="Color.Secondary"
+        Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Cancel">Zrušit
     </MudButton>
     <MudButton aria-label="okBtn" OnClick="AsyncUpdate" Color="Color.Info" Variant="Variant.Outlined"
         StartIcon="@Icons.Material.Outlined.Save">Ok</MudButton>
@@ -54,6 +57,7 @@ else
     private PersistingComponentStateSubscription? _subscription;
     [CascadingParameter]
     public bool ReThrowError { get; set; }
+    private EventHandler<TpvUpdateEventArgs>? _updateHandler;
 
     protected override async Task OnInitializedAsync()
     {
@@ -61,6 +65,14 @@ else
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
 
         _ = InitialLoadSort();
+        _updateHandler = ((IClientUpdateHandler)this).FactoryUpdateHandler(
+        [TableNames.Students, TableNames.OrderCourses],
+        InitialLoadSort
+        );
+        if (_updateHandler is not null)
+        {
+            updateService.RegisterFunction(_updateHandler);
+        }
     }
 
     private async Task<List<CourseCln>?> ApiCallCourses()
@@ -76,13 +88,26 @@ else
         return lst?.ToList();
     }
 
-    private async Task InitialLoadSort()
+    private Task InitialLoadSort(bool forceReload = false)
     {
-        SortableCourses = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(SortableCourses), out var cached)
+        _ = InvokeAsync(async () =>
+        {
+            if (forceReload)
+            {
+                SortableCourses = await ApiCallCourses();
+            }
+            else
+            {
+                SortableCourses = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(SortableCourses), out var cached)
         ? cached?.ToList()
         : (await ApiCallCourses());
+            }
 
-        StateHasChanged();
+            StateHasChanged();
+        }
+        );
+
+        return Task.CompletedTask;
     }
 
     private void OnListUpdate(SortableListEventArgs args)
@@ -144,5 +169,22 @@ else
         return Task.CompletedTask;
     }
 
-    public void Dispose() => _subscription?.Dispose();
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+        if (_updateHandler is not null)
+        {
+            updateService.UnregisterFunction(_updateHandler);
+        }
+    }
+
+    void IClientUpdateHandler.StateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    Task IClientUpdateHandler.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
+    }
 }

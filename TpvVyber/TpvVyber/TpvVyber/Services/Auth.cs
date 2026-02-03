@@ -202,6 +202,12 @@ public static class Auth
                                     );
                                 }
                             }
+                            else
+                            {
+                                user.Class = string.Join(";", userInfo.UserRoles).ToLower();
+                                db.Students.Update(user);
+                                await db.SaveChangesAsync();
+                            }
                             return;
                         },
                     };

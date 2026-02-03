@@ -3,7 +3,7 @@ using TpvVyber.Client.Classes.Attributes;
 
 namespace TpvVyber.Client.Classes;
 
-public class HistoryStudentCourseCln
+public class HistoryStudentCourseCln : IEntityId
 {
     public int Id { get; set; }
     public int StudentId { get; set; }

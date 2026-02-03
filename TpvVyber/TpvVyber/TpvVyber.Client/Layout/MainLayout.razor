@@ -4,6 +4,7 @@
 @inject IJSRuntime jSRuntime
 @inject IUpdateService updateService
 @implements IDisposable
+@implements IClientUpdateHandler
 
 <MudThemeProvider @ref="provider" Theme="@_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
@@ -52,17 +53,18 @@
     private MudTheme? _theme = null;
     private MudThemeProvider? provider;
     LoggingEndingCln? LoggingEndingCln;
-    private CancellationTokenSource? _cts;
     private DotNetObjectReference<MainLayout>? selfRef;
-    private EventHandler<EventArgs>? _updateHandler;
+    private EventHandler<TpvUpdateEventArgs>? _updateHandler;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
         _ = LoadDarkMode();
-        _ = LoadLoggingEnding();
         selfRef = DotNetObjectReference.Create(this);
-        _updateHandler = (sender, e) => UpdateHandler();
+        _updateHandler = ((IClientUpdateHandler)this).FactoryUpdateHandler(
+            [TableNames.LoggingEndings],
+            UpdateHandler
+        );
         _ = InitUpdateService();
 
 
@@ -85,42 +87,17 @@
         StateHasChanged();
     }
 
-    private void UpdateHandler()
+    public async Task UpdateHandler()
     {
-        InvokeAsync(() =>
-        {
-            StateHasChanged();
-        });
+        Console.WriteLine("UpdateHandler called");
+        await LoadAsync();
+        _ = InvokeAsync(StateHasChanged);
     }
 
-    private Task LoadLoggingEnding()
-    {
-        _cts = new CancellationTokenSource();
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                while (!_cts.Token.IsCancellationRequested)
-                {
-                    await Task.Delay(3000, _cts.Token);
-                    await LoadAsync();
-                    await InvokeAsync(StateHasChanged);
-                }
-            }
-            catch (TaskCanceledException)
-            {
-                // Expected when disposing
-            }
-        });
-
-        return Task.CompletedTask;
-    }
-
-    async Task LoadAsync()
+    public async Task LoadAsync()
     {
         LoggingEndingCln = await adminService.GetLoggingEndings(RendererInfo.Name == "WebAssembly");
-        StateHasChanged();
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadDarkMode()
@@ -198,11 +175,19 @@
 
     public void Dispose()
     {
-        _cts?.Cancel();
-        _cts?.Dispose();
         if (_updateHandler != null)
         {
             updateService.UnregisterFunction(_updateHandler);
         }
+    }
+
+    void IClientUpdateHandler.StateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    Task IClientUpdateHandler.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
     }
 }

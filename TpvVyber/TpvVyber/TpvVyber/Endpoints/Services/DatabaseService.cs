@@ -23,8 +23,12 @@ public static class DatabaseService
             {
                 try
                 {
-                    db.Database.EnsureCreated();
-                    await db.SaveChangesAsync();
+                    // try
+                    // {
+                    //     db.Database.EnsureCreated();
+                    //     await db.SaveChangesAsync();
+                    // }
+                    // catch { }
                     db.Database.Migrate();
                     await db.SaveChangesAsync();
 

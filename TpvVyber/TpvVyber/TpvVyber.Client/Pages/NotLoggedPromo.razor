@@ -1,7 +1,9 @@
 @inject ISelectService selectService
 @inject NavigationManager navigationManager
 @inject PersistentComponentState ApplicationState
+@inject IUpdateService updateService
 @implements IDisposable
+@implements IClientUpdateHandler
 
 @if (Courses != null)
 {
@@ -44,14 +46,15 @@ else
 @code {
     private PersistingComponentStateSubscription? _subscription;
     private List<CourseCln>? Courses;
+    private EventHandler<TpvUpdateEventArgs>? _updateHandler;
     [CascadingParameter]
     public bool ReThrowError { get; set; }
 
 
-    async Task InitialLoad()
+    async Task InitialLoad(bool forceReload = false)
     {
         Courses = ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(Courses), out var cached)
-            ? cached?.ToList()
+            ? !forceReload ? cached?.ToList() : (await selectService.GetAllCourses(ReThrowError, FillCourseExtended.Availability | FillCourseExtended.Occupied))?.ToList()
             : (await selectService.GetAllCourses(ReThrowError, FillCourseExtended.Availability | FillCourseExtended.Occupied))?.ToList();
 
         StateHasChanged();
@@ -62,6 +65,29 @@ else
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
 
         _ = InitialLoad();
+        _updateHandler = ((IClientUpdateHandler)this).FactoryUpdateHandler(
+            [TableNames.Courses, TableNames.OrderCourses],
+            UpdateHandler
+        );
+
+        _ = InitUpdateService();
+    }
+
+    public async Task UpdateHandler(bool forceLoad)
+    {
+        await InitialLoad(forceLoad);
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task InitUpdateService()
+    {
+        await updateService.InitializeAsync();
+        if (_updateHandler != null)
+        {
+            updateService.RegisterFunction(_updateHandler);
+        }
+
+        StateHasChanged();
     }
 
     private Task Persist()
@@ -72,5 +98,22 @@ else
         return Task.CompletedTask;
     }
 
-    public void Dispose() => _subscription?.Dispose();
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+        if (_updateHandler != null)
+        {
+            updateService.UnregisterFunction(_updateHandler);
+        }
+    }
+
+    void IClientUpdateHandler.StateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    Task IClientUpdateHandler.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
+    }
 }

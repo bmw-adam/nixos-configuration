@@ -1,10 +1,14 @@
 @page "/admin/students"
+@using System.Runtime.InteropServices
 @attribute [Authorize(Roles = "Admin")]
 @inject NavigationManager NavigationManager
 @inject PersistentComponentState ApplicationState
 @inject IAdminService AdminService
 @implements IDisposable
 @inject IJSRuntime jSRuntime
+@inject IUpdateService updateService
+@implements IClientUpdateHandler
+@implements IInteractiveGrid
 
 @if (StudentsData is null)
 {
@@ -110,6 +114,7 @@ else
     private List<StudentCln>? StudentsData;
     private MudDataGrid<StudentCln> StudentGrid = default!;
     private PersistingComponentStateSubscription? _subscription;
+    private EventHandler<TpvUpdateEventArgs>? _updateHandler;
     [CascadingParameter]
     public bool ReThrowError { get; set; }
 
@@ -117,27 +122,44 @@ else
     protected override void OnInitialized()
     {
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
-        _ = LoadData();
+        _ = LoadData(true);
+
+        _updateHandler = ((IClientUpdateHandler)this).FactoryUpdateHandler(
+            [TableNames.Students, TableNames.OrderCourses, TableNames.Courses],
+            LoadData
+        );
+
+        if (_updateHandler is not null)
+        {
+            updateService.RegisterFunction(_updateHandler);
+        }
     }
 
-    private async Task LoadData()
+    private async Task LoadData(bool forceLoad = false)
     {
-        await LoadStudentsAsync();
+        await LoadStudentsAsync(forceLoad);
         StateHasChanged();
     }
 
-    private async Task LoadStudentsAsync()
+    private async Task LoadStudentsAsync(bool forceLoad)
     {
         if (ApplicationState.TryTakeFromJson<IEnumerable<StudentCln>>(nameof(StudentsData), out var cached))
         {
             StudentsData = cached?.ToList();
         }
-        if (StudentsData == null || StudentsData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(StudentsData), out
-        var _))
+        if (forceLoad || (StudentsData == null || StudentsData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(StudentsData), out var _)))
         {
-            // Initialize immediately to remove spinner
-            StudentsData = new List<StudentCln>();
-            _ = InvokeAsync(StateHasChanged);
+            if (StudentsData == null)
+            {
+                StudentsData = new List<StudentCln>();
+            }
+
+            int currentPage = StudentGrid is null ? 0 : StudentGrid.CurrentPage;
+            int rowsPerPage = StudentGrid is null ? 10 : StudentGrid.RowsPerPage;
+
+            await ((IInteractiveGrid)this).ReloadDataAsync(AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses | FillStudentExtended.OrderCourses), StudentsData, currentPage, rowsPerPage);
+
+            @* _ = InvokeAsync(StateHasChanged);
 
             await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses |
             FillStudentExtended.OrderCourses))
@@ -160,7 +182,7 @@ else
                     StudentsData.Add(student);
                     _ = InvokeAsync(StateHasChanged);
                 }
-            }
+            } *@
         }
     }
 
@@ -172,7 +194,14 @@ else
         return Task.CompletedTask;
     }
 
-    public void Dispose() => _subscription?.Dispose();
+    public void Dispose() 
+    {
+        _subscription?.Dispose();
+        if (_updateHandler is not null)
+        {
+            updateService.UnregisterFunction(_updateHandler);
+        }
+    }
 
     private async Task NewItemAsync()
     {
@@ -256,4 +285,26 @@ else
     {
         await jSRuntime.InvokeVoidAsync("downloadFile", "Example-Students.csv");
     }
+
+    void IClientUpdateHandler.StateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    Task IClientUpdateHandler.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
+    }
+
+    void IInteractiveGrid.StateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    Task IInteractiveGrid.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
+    }
+
+    IAdminService IInteractiveGrid.AdminService => AdminService;
 }

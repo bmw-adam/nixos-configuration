@@ -6,6 +6,9 @@
 @inject IAdminService AdminService
 @inject IDialogService DialogService
 @implements IDisposable
+@inject IUpdateService updateService
+@implements IClientUpdateHandler
+@implements IInteractiveGrid
 
 @if (OrderCourseData is null)
 {
@@ -103,22 +106,34 @@ else
     private List<CourseCln> AvailableCourses = new();
     private List<StudentCln> AvailableStudents = new();
     private PersistingComponentStateSubscription? _subscription;
+    private EventHandler<TpvUpdateEventArgs>? _updateHandler;
+
     [CascadingParameter]
     public bool ReThrowError { get; set; }
 
     protected override void OnInitialized()
     {
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
-        _ = LoadData();
+        _ = LoadData(true);
+        _updateHandler = ((IClientUpdateHandler)this).FactoryUpdateHandler(
+            [TableNames.OrderCourses, TableNames.Courses, TableNames.Students],
+            LoadData
+        );
+
+        if (_updateHandler is not null)
+        {
+            updateService.RegisterFunction(_updateHandler);
+        }
     }
 
-    private async Task LoadData() {
+    private async Task LoadData(bool forceLoad = false)
+    {
         // Load dependencies first
-        await LoadCoursesAsync();
-        await LoadStudentsAsync();
+        await LoadCoursesAsync(forceLoad);
+        await LoadStudentsAsync(forceLoad);
         
         // Then load the main grid data
-        await LoadOrdersAsync();
+        await LoadOrdersAsync(forceLoad);
     }
 
     private Task Persist()
@@ -135,15 +150,22 @@ else
         return Task.CompletedTask;
     }
 
-    public void Dispose() => _subscription?.Dispose();
+    public void Dispose() 
+    {
+        _subscription?.Dispose();
+        if (_updateHandler is not null)
+        {
+            updateService.UnregisterFunction(_updateHandler);
+        }
+    }
 
-    private async Task LoadCoursesAsync()
+    private async Task LoadCoursesAsync(bool forceLoad)
     {
         if (ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(AvailableCourses), out var cached))
         {
             AvailableCourses = cached?.ToList() ?? new();
         }
-        if(AvailableCourses == null || AvailableCourses.Count == 0)
+        if(forceLoad || AvailableCourses == null || AvailableCourses.Count == 0)
         {
             var tempList = new List<CourseCln>();
             await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError))
@@ -154,13 +176,13 @@ else
         }
     }
 
-    private async Task LoadStudentsAsync()
+    private async Task LoadStudentsAsync(bool forceLoad)
     {
         if (ApplicationState.TryTakeFromJson<IEnumerable<StudentCln>>(nameof(AvailableStudents), out var cached))
         {
             AvailableStudents = cached?.ToList() ?? new();
         }
-        if (AvailableStudents == null || AvailableStudents.Count == 0)
+        if (forceLoad || AvailableStudents == null || AvailableStudents.Count == 0)
         {
             var tempList = new List<StudentCln>();
             await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError))
@@ -171,15 +193,25 @@ else
         }
     }
 
-    private async Task LoadOrdersAsync()
+    private async Task LoadOrdersAsync(bool forceLoad)
     {
         if (ApplicationState.TryTakeFromJson<IEnumerable<OrderCourseCln>>(nameof(OrderCourseData), out var cached))
         {
             OrderCourseData = cached?.ToList();
         }
-        if (OrderCourseData == null || OrderCourseData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(OrderCourseData), out var _))
+        @* if (forceLoad || (OrderCourseData == null || OrderCourseData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(OrderCourseData), out var _))) *@
         {
-            OrderCourseData = new();
+            if (OrderCourseData == null)
+            {
+                OrderCourseData = new List<OrderCourseCln>();
+            }
+
+            int currentPage = OrderCourseGrid is null ? 0 : OrderCourseGrid.CurrentPage;
+            int rowsPerPage = OrderCourseGrid is null ? 10 : OrderCourseGrid.RowsPerPage;
+
+            await ((IInteractiveGrid)this).ReloadDataAsync(AdminService.GetAllOrderCourseAsync(ReThrowError, FillOrderCourseExtended.Student | FillOrderCourseExtended.Course), OrderCourseData, currentPage, rowsPerPage);
+
+            @* OrderCourseData = new();
             _ = InvokeAsync(StateHasChanged);
 
             var orderCoursesStream = AdminService.GetAllOrderCourseAsync(ReThrowError, FillOrderCourseExtended.Student | FillOrderCourseExtended.Course);
@@ -206,7 +238,7 @@ else
                         _ = InvokeAsync(StateHasChanged);
                     }
                 }
-            }
+            } *@
 
         }
         StateHasChanged(); 
@@ -240,8 +272,8 @@ else
     private async Task DeleteItemAsync(OrderCourseCln item)
     {
         await AdminService.DeleteOrderCourseAsync(item.Id, ReThrowError);
-        OrderCourseData?.Remove(item);
-        StateHasChanged(); 
+        @* OrderCourseData?.Remove(item); *@
+        @* StateHasChanged();  *@
     }
 
     private void CommittedItemChanges(OrderCourseCln item)
@@ -269,4 +301,25 @@ else
         item.StudentId = value.Id;
         CommittedItemChanges(item);
     }
+
+    void IClientUpdateHandler.StateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    Task IClientUpdateHandler.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
+    }
+    void IInteractiveGrid.StateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    Task IInteractiveGrid.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
+    }
+
+    IAdminService IInteractiveGrid.AdminService => AdminService;
 }

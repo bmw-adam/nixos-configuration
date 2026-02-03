@@ -1,4 +1,5 @@
 @page "/admin/courses"
+@using System.Runtime.InteropServices
 @attribute [Authorize(Roles = "Admin")]
 @inject NavigationManager NavigationManager
 @inject PersistentComponentState ApplicationState
@@ -6,6 +7,8 @@
 @implements IDisposable
 @inject IJSRuntime jSRuntime
 @inject IUpdateService updateService
+@implements IClientUpdateHandler
+@implements IInteractiveGrid
 
 @if (CoursesData is null)
 {
@@ -87,8 +90,7 @@ else
                                     <CellTemplate Context="student">
                                         <MudText>
                                             @string.Join(", ", context.Item.Extended.OrderCourses?.Where(oc => oc.StudentId ==
-                                            student.Item.Id)
-                                                                        .Select(oc => oc.Order) ?? [])
+                                            student.Item.Id).Select(oc => oc.Order) ?? [])
                                 </MudText>
                             </CellTemplate>
                         </TemplateColumn>
@@ -110,9 +112,7 @@ else
     <MudButtonGroup Color="Color.Info" Variant="Variant.Outlined">
         <MudFileUpload T="IBrowserFile" Accept=".csv" FilesChanged="UploadCsv" MaximumFileCount="100">
             <ActivatorContent>
-                <MudButton Variant="Variant.Filled"
-                        Color="Color.Info"
-                        StartIcon="@Icons.Material.Filled.CloudUpload">
+                <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.CloudUpload">
                     Nahrát csv
                 </MudButton>
             </ActivatorContent>
@@ -125,7 +125,7 @@ else
 
 @code {
     private List<CourseCln>? CoursesData;
-    private EventHandler<EventArgs>? _updateHandler;
+    private EventHandler<TpvUpdateEventArgs>? _updateHandler;
     private MudDataGrid<CourseCln> courseGrid = default!;
     private PersistingComponentStateSubscription? _subscription;
     [CascadingParameter]
@@ -134,50 +134,34 @@ else
     protected override void OnInitialized()
     {
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
-        _ = LoadData(false);
-        _updateHandler = (sender, e) => InvokeAsync(() => LoadData(true));
 
+        _ = LoadData(true);
+
+        _updateHandler = ((IClientUpdateHandler)this).FactoryUpdateHandler([TableNames.Courses, TableNames.OrderCourses, TableNames.Students], LoadData);
         if (_updateHandler is not null)
         {
             updateService.RegisterFunction(_updateHandler);
         }
     }
 
-    private async Task LoadData(bool reloadData)
+    private async Task LoadData(bool forceLoad)
     {
-        @* Console.WriteLine("Loading Data"); *@
-        if (!reloadData && ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(CoursesData), out var cached))
+        if (!forceLoad && ApplicationState.TryTakeFromJson<IEnumerable<CourseCln>>(nameof(CoursesData), out var cached))
         {
             CoursesData = cached?.ToList();
         }
-        if (reloadData || (CoursesData == null || CoursesData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(CoursesData), out var
-        _)))
+
+        int currentPage = courseGrid is null ? 0 : courseGrid.CurrentPage;
+        int rowsPerPage = courseGrid is null ? 10 : courseGrid.RowsPerPage;
+
+        if (forceLoad || (CoursesData == null || CoursesData.Count == 0 || !ApplicationState.TryTakeFromJson<int>(nameof(CoursesData), out var _)))
         {
-            CoursesData = new List<CourseCln>();
-            _ = InvokeAsync(StateHasChanged);
-
-            // Stream items one by one
-            await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.Students |
-            FillCourseExtended.OrderCourses))
+            if (CoursesData == null)
             {
-                if (RendererInfo.Name == "WebAssembly")
-                {
-                    CoursesData.Add(course);
-                    var maxIndex = courseGrid.CurrentPage * courseGrid.RowsPerPage;
-                    var minIndex = (courseGrid.CurrentPage == 0 ? 0 : courseGrid.CurrentPage - 1) * courseGrid.RowsPerPage;
-
-                    if ((CoursesData.Count <= maxIndex && CoursesData.Count >= minIndex) || (courseGrid.CurrentPage == 0 && CoursesData.Count <= courseGrid.RowsPerPage))
-                    {
-                        StateHasChanged();
-                        await Task.Delay(1);
-                    }
-                }
-                else
-                {
-                    CoursesData.Add(course);
-                    _ = InvokeAsync(StateHasChanged);
-                }
+                CoursesData = new List<CourseCln>();
             }
+
+            await ((IInteractiveGrid)this).ReloadDataAsync(AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.Students | FillCourseExtended.OrderCourses), CoursesData, currentPage, rowsPerPage);
         }
         StateHasChanged();
     }
@@ -202,19 +186,11 @@ else
     private async Task NewItemAsync()
     {
         var newCourse = await AdminService.AddCourseAsync(new CourseCln(), ReThrowError);
-        @* if (newCourse is not null)
-        {
-            CoursesData?.Insert(0, newCourse);
-        } *@
-
-        @* await LoadData(true); *@
     }
 
     private async Task DeleteItemAsync(CourseCln item)
     {
         await AdminService.DeleteCourseAsync(item.Id, ReThrowError);
-        @* CoursesData?.Remove(item); *@
-        @* await LoadData(true); *@
     }
 
     private void CommittedItemChanges(CourseCln item)
@@ -263,17 +239,17 @@ else
 
             courses.Add
             (
-                new CourseCln 
-                {
-                    Name = columns[0].Trim(),
-                    Description = columns[1].Trim(),
-                    PdfUrl = columns[2].Trim(),
-                    ForClasses = columns[3].Trim().Replace("-", ";"),
-                    MinPrice = int.Parse(columns[4].Trim()),
-                    MaxPrice = int.Parse(columns[5].Trim()),
-                    Capacity = uint.Parse(columns[6].Trim()),
-                    MinCapacity = uint.Parse(columns[7].Trim()),
-                }
+            new CourseCln
+            {
+                Name = columns[0].Trim(),
+                Description = columns[1].Trim(),
+                PdfUrl = columns[2].Trim(),
+                ForClasses = columns[3].Trim().Replace("-", ";"),
+                MinPrice = int.Parse(columns[4].Trim()),
+                MaxPrice = int.Parse(columns[5].Trim()),
+                Capacity = uint.Parse(columns[6].Trim()),
+                MinCapacity = uint.Parse(columns[7].Trim()),
+            }
             );
         }
 
@@ -286,11 +262,32 @@ else
         StateHasChanged();
         _ = InvokeAsync(StateHasChanged);
         Thread.Sleep(1);
-
     }
-    
+
     private async Task DownloadCsv()
     {
         await jSRuntime.InvokeVoidAsync("downloadFile", "Example-Courses.csv");
     }
+
+    void IClientUpdateHandler.StateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    Task IClientUpdateHandler.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
+    }
+
+    void IInteractiveGrid.StateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    Task IInteractiveGrid.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
+    }
+
+    IAdminService IInteractiveGrid.AdminService => AdminService;
 }

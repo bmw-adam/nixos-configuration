@@ -5,6 +5,8 @@
 @inject IAdminService AdminService
 @inject PersistentComponentState ApplicationState
 @implements IDisposable
+@inject IUpdateService updateService
+@implements IClientUpdateHandler
 
 <PageTitle>Admin</PageTitle>
 <MudText aria-label="admin-rozhrani" Typo="Typo.h4" Class="my-4">Administrační rozhraní</MudText>
@@ -50,6 +52,8 @@
     private uint? studentsCount;
     private uint? orderCoursesCount;
 
+    private EventHandler<TpvUpdateEventArgs>? _updateHandler;
+
     private PersistingComponentStateSubscription? _subscription;
 
     [CascadingParameter]
@@ -60,51 +64,61 @@
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
 
         _ = AsyncLoad();
+
+        _updateHandler = ((IClientUpdateHandler)this).FactoryUpdateHandler(
+            [TableNames.OrderCourses, TableNames.Courses, TableNames.Students],
+            AsyncLoad
+        );
+
+        if (_updateHandler is not null)
+        {
+            updateService.RegisterFunction(_updateHandler);
+        }
     }
 
-    private async Task AsyncLoad()
+    private async Task AsyncLoad(bool forceReload = false)
     {
-        var loadCoursesTask = LoadCoursesCountAsync();
-        var loadStudentsTask = LoadStudentsCountAsync();
-        var loadOrdersTask = LoadOrdersCountAsync();
+        var loadCoursesTask = LoadCoursesCountAsync(forceReload);
+        var loadStudentsTask = LoadStudentsCountAsync(forceReload);
+        var loadOrdersTask = LoadOrdersCountAsync(forceReload);
 
         await Task.WhenAll(loadCoursesTask, loadStudentsTask, loadOrdersTask);
         StateHasChanged();
     }
 
-    private async Task LoadCoursesCountAsync()
+    private async Task LoadCoursesCountAsync(bool forceReload)
     {
         if (ApplicationState.TryTakeFromJson<uint>(nameof(coursesCount), out var cached))
         {
             coursesCount = cached;
         }
-        if (coursesCount == null || coursesCount == 0 || !ApplicationState.TryTakeFromJson<uint>(nameof(coursesCount), out var _))
+        if (coursesCount == null || coursesCount == 0 || !ApplicationState.TryTakeFromJson<uint>(nameof(coursesCount), out var _) || forceReload)
         {
             coursesCount = await AdminService.GetAllCoursesCountAsync(ReThrowError);
         }
         StateHasChanged();
     }
 
-    private async Task LoadStudentsCountAsync()
+    private async Task LoadStudentsCountAsync(bool forceReload)
     {
         if (ApplicationState.TryTakeFromJson<uint>(nameof(studentsCount), out var cached))
         {
             studentsCount = cached;
         }
-        if (studentsCount == null || studentsCount == 0 || !ApplicationState.TryTakeFromJson<uint>(nameof(studentsCount), out var _))
+        if (studentsCount == null || studentsCount == 0 || !ApplicationState.TryTakeFromJson<uint>(nameof(studentsCount), out var _) || forceReload)
         {
             studentsCount = await AdminService.GetAllStudentsCountAsync(ReThrowError);
         }
         StateHasChanged();
     }
 
-    private async Task LoadOrdersCountAsync()
+    private async Task LoadOrdersCountAsync(bool forceReload)
     {
         if (ApplicationState.TryTakeFromJson<uint>(nameof(orderCoursesCount), out var cached))
         {
             orderCoursesCount = cached;
         }
-        if (orderCoursesCount == null || orderCoursesCount == 0 || !ApplicationState.TryTakeFromJson<uint>(nameof(orderCoursesCount), out var _))
+        if (orderCoursesCount == null || orderCoursesCount == 0 || !ApplicationState.TryTakeFromJson<uint>(nameof(orderCoursesCount), out var _) || forceReload)
         {
             orderCoursesCount = await AdminService.GetAllOrderCourseCountAsync(ReThrowError);
         }
@@ -125,7 +139,14 @@
         return Task.CompletedTask;
     }
 
-    public void Dispose() => _subscription?.Dispose();
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+        if (_updateHandler is not null)
+        {
+            updateService.UnregisterFunction(_updateHandler);
+        }
+    }
 
     private async Task DeleteAllData()
     {
@@ -134,21 +155,21 @@
             await AdminService.DeleteOrderCourseAsync(ordering.Id, ReThrowError);
         }
 
-        await AsyncLoad();
+        @* await AsyncLoad(); *@
 
         await foreach (var course in AdminService.GetAllCoursesAsync(ReThrowError))
         {
             await AdminService.DeleteCourseAsync(course.Id, ReThrowError);
         }
 
-        await AsyncLoad();
+        @* await AsyncLoad(); *@
 
         await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError))
         {
             await AdminService.DeleteStudentAsync(student.Id, ReThrowError);
         }
 
-        await AsyncLoad();
+        @* await AsyncLoad(); *@
 
         Console.WriteLine("Finished deleting!");
     }
@@ -183,7 +204,7 @@
         var course = await AdminService.AddCourseAsync(newCourse, ReThrowError);
 
         // 5. Refresh UI
-        await AsyncLoad();
+        @* await AsyncLoad(); *@
         Console.WriteLine("Finished Adding Course!");
     }
 
@@ -239,7 +260,17 @@
             await AdminService.AddOrderCourseAsync(newOrderCourse, ReThrowError);
         }
 
-        await AsyncLoad();
+        @* await AsyncLoad(); *@
         Console.WriteLine("Finished Adding Student!");
+    }
+
+    void IClientUpdateHandler.StateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+    Task IClientUpdateHandler.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
     }
 }

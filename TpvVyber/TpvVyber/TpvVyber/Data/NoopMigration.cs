@@ -15,7 +15,6 @@ public class YugabyteHistoryRepository : NpgsqlHistoryRepository
     {
     }
 
-    // UPDATED: Now returns IMigrationsDatabaseLock instead of void
     public override IMigrationsDatabaseLock AcquireDatabaseLock()
     {
         // Return a "fake" lock that does nothing

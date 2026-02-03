@@ -1,6 +1,6 @@
 namespace TpvVyber.Client.Classes;
 
-public class StudentCln
+public class StudentCln : IEntityId
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;

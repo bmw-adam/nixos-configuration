@@ -6,7 +6,7 @@ namespace TpvVyber.Client.Classes;
 
 public class ClientUpdateService : IUpdateService, IAsyncDisposable
 {
-    public event EventHandler<EventArgs>? UpdateReceived;
+    public event EventHandler<TpvUpdateEventArgs>? UpdateReceived;
     private readonly NavigationManager _navigationManager;
     private HubConnection? _hub;
 
@@ -15,14 +15,14 @@ public class ClientUpdateService : IUpdateService, IAsyncDisposable
         _navigationManager = navigationManager;
     }
 
-    public void RegisterFunction(EventHandler<EventArgs> handler)
+    public void RegisterFunction(EventHandler<TpvUpdateEventArgs> handler)
     {
         if (handler is null)
             return;
         UpdateReceived += handler;
     }
 
-    public void UnregisterFunction(EventHandler<EventArgs> handler)
+    public void UnregisterFunction(EventHandler<TpvUpdateEventArgs> handler)
     {
         if (handler is null)
             return;
@@ -39,11 +39,14 @@ public class ClientUpdateService : IUpdateService, IAsyncDisposable
             .WithAutomaticReconnect()
             .Build();
 
-        _hub.On(
+        _hub.On<string>(
             "ReceiveUpdate",
-            () =>
+            (string scopes) =>
             {
-                UpdateReceived?.Invoke(this, EventArgs.Empty);
+                UpdateReceived?.Invoke(
+                    this,
+                    new TpvUpdateEventArgs { Scopes = scopes.Split(';').ToList() }
+                );
             }
         );
 
@@ -59,11 +62,11 @@ public class ClientUpdateService : IUpdateService, IAsyncDisposable
         }
     }
 
-    public async Task UpdateAsync()
+    public async Task UpdateAsync(string scopes)
     {
         if (_hub is not null)
         {
-            await _hub.SendAsync("SendUpdate");
+            await _hub.SendAsync("SendUpdate", scopes);
         }
     }
 }

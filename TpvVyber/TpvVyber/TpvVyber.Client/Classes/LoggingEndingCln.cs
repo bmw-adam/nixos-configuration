@@ -1,6 +1,6 @@
 namespace TpvVyber.Client.Classes;
 
-public class LoggingEndingCln
+public class LoggingEndingCln : IEntityId
 {
     public int Id { get; set; }
     public DateTime TimeEnding { get; set; }
