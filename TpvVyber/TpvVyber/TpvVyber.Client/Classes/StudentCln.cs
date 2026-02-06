@@ -14,10 +14,12 @@ public class StudentClnExtended
 {
     public List<CourseCln>? Courses { get; set; }
     public List<OrderCourseCln>? OrderCourses { get; set; }
+    public int? ClaimStrength { get; set; }
 }
 
 public enum FillStudentExtended
 {
     Courses = 1,
     OrderCourses = 2,
+    ClaimStrength = 4,
 }

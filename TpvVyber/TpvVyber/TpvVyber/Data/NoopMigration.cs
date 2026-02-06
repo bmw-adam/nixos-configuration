@@ -1,7 +1,7 @@
-using Microsoft.EntityFrameworkCore.Migrations;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal;
 using System;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Internal;
 
 // Suppress warning about using internal EF Core APIs
 #pragma warning disable EF1001
@@ -10,10 +10,8 @@ namespace TpvVyber.Data;
 
 public class YugabyteHistoryRepository : NpgsqlHistoryRepository
 {
-    public YugabyteHistoryRepository(HistoryRepositoryDependencies dependencies) 
-        : base(dependencies)
-    {
-    }
+    public YugabyteHistoryRepository(HistoryRepositoryDependencies dependencies)
+        : base(dependencies) { }
 
     public override IMigrationsDatabaseLock AcquireDatabaseLock()
     {
@@ -27,11 +25,9 @@ public class YugabyteHistoryRepository : NpgsqlHistoryRepository
         // The interface requires a HistoryRepository property
         public IHistoryRepository HistoryRepository => null!;
 
-        // Dispose is called when the lock should be released. 
+        // Dispose is called when the lock should be released.
         // We do nothing because we never took a lock.
-        public void Dispose()
-        {
-        }
+        public void Dispose() { }
 
         public ValueTask DisposeAsync()
         {

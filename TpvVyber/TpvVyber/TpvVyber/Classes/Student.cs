@@ -66,6 +66,11 @@ public class Student : IClientConvertible<StudentCln, Student, FillStudentExtend
                 }
             }
 
+            if (fillExtended.Value.HasFlag(FillStudentExtended.ClaimStrength))
+            {
+                extended.ClaimStrength = ClaimStrength;
+            }
+
             clientObject.Extended = extended;
         }
 
