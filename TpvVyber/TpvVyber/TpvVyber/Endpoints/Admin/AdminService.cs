@@ -428,7 +428,8 @@ public class ServerAdminService(
         await using var ctx = _factory.CreateDbContext();
 
         var studentsQuery = ctx
-            .Students.Include(t => t.HistoryStudentCourses).Include(s => s.OrderCourses)
+            .Students.Include(t => t.HistoryStudentCourses)
+            .Include(s => s.OrderCourses)
                 .ThenInclude(oc => oc.Course)
             .AsAsyncEnumerable();
 

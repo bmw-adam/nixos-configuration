@@ -97,6 +97,28 @@ public class ApiTestUpdateOrder : BaseApiTest
         }
         catch (Exception ex) { }
 
+        // Try an impossible update
+        var usersOrdersCourses2 = OrderCourses.Where(e => e.StudentId == TestStudent.Id);
+
+        var usersCourse = usersOrdersCourses2.First();
+        var newHistory = AdminService.AddHistoryStudentCourseAsync(
+            new HistoryStudentCourseCln { StudentId = TestStudent.Id, CourseId = usersCourse.Id },
+            true
+        );
+        try
+        {
+            await SelectService.UpdateOrderAsync(
+                usersOrdersCourses2
+                    .Select(t => (t.Order, allCourses.First(y => y.Id == t.CourseId)))
+                    .ToDictionary(),
+                true
+            );
+
+            Assert.Fail();
+        }
+        catch (Exception ex) { }
+        await AdminService.DeleteHistoryStudentCourseAsync(newHistory.Id, true);
+
         // Try a possible update
         var usersOrdersCourses = OrderCourses.Where(e => e.StudentId == TestStudent.Id).ToList();
         Assert.That(usersOrdersCourses.Count > 1, Is.True);
@@ -153,9 +175,7 @@ public class ApiTestUpdateOrder : BaseApiTest
 
         while (
             GenerateCourses
-                .Where(c =>
-                    c.ForClasses.Split(";").Any(d => TestStudent.Class.Contains(d))
-                )
+                .Where(c => c.ForClasses.Split(";").Any(d => TestStudent.Class.Contains(d)))
                 .Count() < 2
         )
         {

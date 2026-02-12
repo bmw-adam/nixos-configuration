@@ -11,6 +11,7 @@ using TpvVyber.Client.Services.Select;
 using TpvVyber.Data;
 using TpvVyber.Endpoints.Admin;
 using TpvVyber.Endpoints.Select;
+using TpvVyber.Services;
 
 namespace TpvVyber.Tests.BaseTest;
 
@@ -33,7 +34,8 @@ public class BaseApiTest
             dbFactory,
             new Logger<ServerAdminService>(new SerilogLoggerFactory()),
             new NotificationService(),
-            cache: new MemoryCache(new MemoryCacheOptions())
+            cache: new MemoryCache(new MemoryCacheOptions()),
+            new RerunFillCoursesService()
         );
 
         SelectService = new ServerSelectService(
