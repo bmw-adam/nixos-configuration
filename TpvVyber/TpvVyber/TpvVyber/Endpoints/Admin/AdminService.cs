@@ -18,7 +18,8 @@ public class ServerAdminService(
     IDbContextFactory<TpvVyberContext> _factory,
     ILogger<ServerAdminService> logger,
     NotificationService notificationService,
-    IMemoryCache cache
+    IMemoryCache cache,
+    RerunFillCoursesService rerunFillCoursesService
 ) : IAdminService
 {
     public async Task<LoggingEndingCln?> GetLoggingEndings(bool reThrowError)
@@ -197,7 +198,10 @@ public class ServerAdminService(
         try
         {
             await using var ctx = _factory.CreateDbContext();
-            var course = ctx.Courses.Include(r => r.OrderCourses).First(a => a.Id == id);
+            var course = ctx
+                .Courses.Include(r => r.OrderCourses)
+                .Include(t => t.HistoryStudentCourses)
+                .First(a => a.Id == id);
             if (course == null)
             {
                 return null;
@@ -227,6 +231,7 @@ public class ServerAdminService(
         var coursesQuery = ctx
             .Courses.Include(r => r.OrderCourses)
                 .ThenInclude(oc => oc.Student)
+            .Include(t => t.HistoryStudentCourses)
             .AsAsyncEnumerable();
 
         // 2. Use manual enumeration to allow error handling around DB calls
@@ -423,7 +428,7 @@ public class ServerAdminService(
         await using var ctx = _factory.CreateDbContext();
 
         var studentsQuery = ctx
-            .Students.Include(s => s.OrderCourses)
+            .Students.Include(t => t.HistoryStudentCourses).Include(s => s.OrderCourses)
                 .ThenInclude(oc => oc.Course)
             .AsAsyncEnumerable();
 
@@ -692,29 +697,29 @@ public class ServerAdminService(
         FillStudentExtended? fillStudent
     )
     {
-        // 1. Single Database Context for the entire operation
         await using var ctx = _factory.CreateDbContext();
 
         // Check Cache
         if (
             forceRedo != true
             && cache.TryGetValue(CacheKey, out Dictionary<int, List<StudentCln>>? cached)
+            && !rerunFillCoursesService.Rerun
         )
         {
-            if (cached != null && false) // FIXME caching value
+            if (cached != null)
             {
                 return cached;
             }
         }
 
-        // 2. Fetch all data ONCE (Reduce I/O)
-        // Create a Dictionary for O(1) lookup of Course metadata (Capacity, MinCapacity)
+        // Fetch all data ONCE (Reduce I/O)
         var allCoursesDict = await ctx.Courses.AsNoTracking().ToDictionaryAsync(c => c.Id);
 
         // Fetch students with included orders
         var allStudents = await ctx
             .Students.AsNoTracking() // Faster if we aren't modifying them
             .Include(r => r.OrderCourses)
+            .Include(t => t.HistoryStudentCourses)
             .ToListAsync();
 
         // 3. Pre-process Students
@@ -725,11 +730,7 @@ public class ServerAdminService(
             .OrderByDescending(r => r.Key)
             .Select(g =>
             {
-                // Shuffle once per request, or re-shuffle every retry?
-                // Usually, standard algorithm behavior dictates re-shuffling only if inputs change,
-                // but to match your original logic exactly, we can shuffle inside the loop.
-                // For performance, let's keep the group object ready.
-                return g.ToList();
+                return g.OrderBy(a => Guid.NewGuid()).ToList();
             })
             .ToList();
 
@@ -808,7 +809,9 @@ public class ServerAdminService(
             }
         }
 
+        // cache.Set(CacheKey, resultDict);
         cache.Set(CacheKey, resultDict, TimeSpan.FromSeconds(30));
+        rerunFillCoursesService.Rerun = false;
         return resultDict;
     }
 
@@ -861,7 +864,6 @@ public class ServerAdminService(
                         if (container.Count < capacity)
                         {
                             // Optimization: .Add is O(1).
-                            // Your previous .Append(..).ToList() was O(N).
                             container.Add(student);
                             break; // Student placed, move to next student
                         }

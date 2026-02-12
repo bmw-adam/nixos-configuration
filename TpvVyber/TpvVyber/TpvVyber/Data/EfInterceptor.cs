@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using TpvVyber.Client.Extensions;
 using TpvVyber.Hubs;
 using TpvVyber.Services;
 
@@ -11,6 +12,7 @@ public class DatabaseUpdateInterceptor : SaveChangesInterceptor
 {
     private readonly IHubContext<UpdateHub> _hubContext;
     private readonly ServerUpdateService _serverUpdateService;
+    private readonly RerunFillCoursesService _rerunFillCoursesService;
 
     // Thread-safe storage to map a specific DbContext instance to its modified tables.
     // This ensures safety even if the Interceptor is registered as a Singleton.
@@ -18,11 +20,13 @@ public class DatabaseUpdateInterceptor : SaveChangesInterceptor
 
     public DatabaseUpdateInterceptor(
         IHubContext<UpdateHub> hubContext,
-        ServerUpdateService serverUpdateService
+        ServerUpdateService serverUpdateService,
+        RerunFillCoursesService rerunFillCoursesService
     )
     {
         _hubContext = hubContext;
         _serverUpdateService = serverUpdateService;
+        _rerunFillCoursesService = rerunFillCoursesService;
     }
 
     // Capture the modified tables BEFORE the save occurs (so we can see Deleted entities)
@@ -69,9 +73,18 @@ public class DatabaseUpdateInterceptor : SaveChangesInterceptor
             && _affectedTables.TryGetValue(eventData.Context, out var tableNames)
         )
         {
-            System.Console.WriteLine(
-                "Changes detected in tables: " + string.Join(", ", tableNames)
-            );
+            // System.Console.WriteLine(
+            //     "Changes detected in tables: " + string.Join(", ", tableNames)
+            // );
+            if (
+                tableNames.Contains(TableNames.Students)
+                || tableNames.Contains(TableNames.Courses)
+                || tableNames.Contains(TableNames.OrderCourses)
+            )
+            {
+                _rerunFillCoursesService.Rerun = true;
+            }
+
             await _hubContext.Clients.All.SendAsync(
                 "ReceiveUpdate",
                 string.Join(";", tableNames.Distinct()),

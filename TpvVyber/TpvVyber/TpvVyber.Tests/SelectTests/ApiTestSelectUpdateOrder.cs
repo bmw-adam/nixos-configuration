@@ -29,15 +29,6 @@ public class ApiTestUpdateOrder : BaseApiTest
     public async Task TestApiTestGetSortedCourses()
     {
         await TestInsert();
-        while (
-            GenerateCourses.All(e =>
-                e.ForClasses.Split(";").Any(d => TestStudent.Class.Contains(d))
-            )
-        )
-        {
-            await TestDelete();
-            await TestInsert();
-        }
 
         await TestUpdateOrder();
 
@@ -75,18 +66,34 @@ public class ApiTestUpdateOrder : BaseApiTest
         try
         {
             // Try an impossible update
-            var usersOrdersCourses = OrderCourses.Where(e => e.StudentId == TestStudent.Id);
-            var newOrdersCourses = usersOrdersCourses.Append(new OrderCourseCln {
-                Order = usersOrdersCourses.Select(t => t.Order).Max + 1;
-                CourseId = GenerateCourses.First(e => e.ForClasses.Split(";").All(d => !TestStudent.Class.Contains(d))).Id,
-                StudentId = TestStudent.Id,
-                Extended = new OrderCourseClnExtended()
+            var usersOrdersCoursesTry = OrderCourses.Where(e => e.StudentId == TestStudent.Id);
+            var newOrdersCourses = usersOrdersCoursesTry.Append(
+                new OrderCourseCln
                 {
-                    Course = GenerateCourses.First(e => e.ForClasses.Split(";").All(d => !TestStudent.Class.Contains(d)));
+                    Order = usersOrdersCoursesTry.Select(t => t.Order).Max() + 1,
+                    CourseId = GenerateCourses
+                        .First(e =>
+                            e.ForClasses.Split(";").All(d => !TestStudent.Class.Contains(d))
+                        )
+                        .Id,
+                    StudentId = TestStudent.Id,
+                    Extended = new OrderCourseClnExtended()
+                    {
+                        Course = GenerateCourses.First(e =>
+                            e.ForClasses.Split(";").All(d => !TestStudent.Class.Contains(d))
+                        ),
+                    },
                 }
-            });
+            );
 
-            await SelectService.UpdateOrderAsync(newOrdersCourses.Select(t => (t.Order, allCourses.First(y => y.Id == t.CourseId))).ToDictionary(), true);
+            await SelectService.UpdateOrderAsync(
+                newOrdersCourses
+                    .Select(t => (t.Order, allCourses.First(y => y.Id == t.CourseId)))
+                    .ToDictionary(),
+                true
+            );
+
+            Assert.Fail();
         }
         catch (Exception ex) { }
 
@@ -95,13 +102,39 @@ public class ApiTestUpdateOrder : BaseApiTest
         Assert.That(usersOrdersCourses.Count > 1, Is.True);
 
         var tmpFrst = usersOrdersCourses[0].Order;
-        usersOrdersCourses[0].Order = usersOrdersCourses.Last().Order();
+        usersOrdersCourses[0].Order = usersOrdersCourses.Last().Order;
         usersOrdersCourses[usersOrdersCourses.Count - 1].Order = tmpFrst;
 
-        await SelectService.UpdateOrderAsync(newOrdersCourses.Select(t => (t.Order, allCourses.First(y => y.Id == t.CourseId))).ToDictionary(), true);
+        await SelectService.UpdateOrderAsync(
+            usersOrdersCourses
+                .Select(t => (t.Order, allCourses.First(y => y.Id == t.CourseId)))
+                .ToDictionary(),
+            true
+        );
 
         // Chect if it worked?
-        
+        var afterUpdate = await SelectService.GetSortedCoursesAsync(
+            reThrowError: true,
+            FillCourseExtended.Students
+                | FillCourseExtended.Availability
+                | FillCourseExtended.Occupied
+                | FillCourseExtended.OrderCourses
+        );
+
+        Assert.IsNotNull(afterUpdate);
+        Assert.That(afterUpdate.Count() == usersOrdersCourses.Count(), Is.True);
+
+        foreach (var pair in afterUpdate)
+        {
+            Assert.That(usersOrdersCourses.Count(a => a.Order == pair.Key) == 1, Is.True);
+
+            Assert.Pass();
+
+            Assert.That(
+                pair.Value.Id == usersOrdersCourses.First(r => r.Order == pair.Key).Id,
+                Is.True
+            );
+        }
     }
 
     public List<CourseCln> GenerateCourses = (Enumerable.Range(1, 5))
@@ -117,6 +150,17 @@ public class ApiTestUpdateOrder : BaseApiTest
     private async Task TestInsert()
     {
         await CreateTestUserAsync();
+
+        while (
+            GenerateCourses
+                .Where(c =>
+                    c.ForClasses.Split(";").Any(d => TestStudent.Class.Contains(d))
+                )
+                .Count() < 2
+        )
+        {
+            GenerateCourses = (Enumerable.Range(1, 5)).Select(_ => GenerateCourse(2)).ToList();
+        }
 
         var i = 0;
         foreach (var course in GenerateCourses)
@@ -144,7 +188,10 @@ public class ApiTestUpdateOrder : BaseApiTest
         var allStudents = await AdminService.GetAllStudentsCountAsync(reThrowError: true);
         Assert.That(allStudents, Is.EqualTo(GenerateStudents.Count + 1)); // +1 for test user
 
-        var orderCourses = GenerateOrderCourses(GenerateCourses, GenerateStudents);
+        var orderCourses = GenerateOrderCourses(
+            GenerateCourses,
+            GenerateStudents.Append(TestStudent).ToList()
+        );
         foreach (var orderCourse in orderCourses)
         {
             var addedOrderCourse = await AdminService.AddOrderCourseAsync(

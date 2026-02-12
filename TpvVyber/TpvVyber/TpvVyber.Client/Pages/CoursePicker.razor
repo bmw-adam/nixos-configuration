@@ -13,6 +13,20 @@
 
 <MudText Typo="Typo.h5" GutterBottom="true">Seřadit kurzy</MudText>
 
+<AuthorizeView>
+    <Authorized>
+        @if((SortableCourses ?? []).Where(e => ((e.Extended?.OrderCourses?.Select(y => y.StudentId.ToString())) ?? []).Contains(context.User.Claims.FirstOrDefault(e => e.Type == "ID_CLAIM")?.Value ?? "-1")).Count() == 0)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Ještě nejsi přihlášen na žádný kurz</MudAlert>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <p>Uživatel není přihlášen.</p>
+    </NotAuthorized>
+</AuthorizeView>
+<MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Klikni na OK pro uložení výběru</MudAlert>
+
+
 @if (SortableCourses != null)
 {
     <SortableList EmptyText="Nejsou k dispozici žádné kurzy" aria-label="SortableList-CoursePicker" Style="width: 100%"
@@ -77,7 +91,7 @@ else
 
     private async Task<List<CourseCln>?> ApiCallCourses()
     {
-        var dict = await SelectService.GetSortedCoursesAsync(ReThrowError, FillCourseExtended.Availability);
+        var dict = await SelectService.GetSortedCoursesAsync(ReThrowError, FillCourseExtended.Availability | FillCourseExtended.OrderCourses);
         var lst = dict?.OrderBy(d => d.Key)?.Select(r => r.Value) ?? [];
 
         if (dict == null || lst == null)

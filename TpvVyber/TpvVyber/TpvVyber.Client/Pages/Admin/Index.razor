@@ -29,6 +29,10 @@
         Href="/admin/ordercourses">Pořadí
         kurzů</MudLink>
 </MudText>
+
+<MudText aria-label="Pořadí kurzů" Typo="Typo.h6">Historie účastí (@(historyCount?.ToString() ?? "Načítání")) <MudLink
+        Href="/admin/history_students">Historie účastí</MudLink>
+</MudText>
 <br />
 <br />
 <MudAlert aria-label="DebugAlert" Severity="Severity.Warning">Pozor - debug sekce (může docela pokazit pátek večer)
@@ -51,6 +55,7 @@
     private uint? coursesCount;
     private uint? studentsCount;
     private uint? orderCoursesCount;
+    private uint? historyCount;
 
     private EventHandler<TpvUpdateEventArgs>? _updateHandler;
 
@@ -81,8 +86,9 @@
         var loadCoursesTask = LoadCoursesCountAsync(forceReload);
         var loadStudentsTask = LoadStudentsCountAsync(forceReload);
         var loadOrdersTask = LoadOrdersCountAsync(forceReload);
+        var loadHistoryTask = LoadHistoryCount(forceReload);
 
-        await Task.WhenAll(loadCoursesTask, loadStudentsTask, loadOrdersTask);
+        await Task.WhenAll(loadCoursesTask, loadStudentsTask, loadOrdersTask, loadHistoryTask);
         StateHasChanged();
     }
 
@@ -125,6 +131,19 @@
         StateHasChanged();
     }
 
+    private async Task LoadHistoryCount(bool forceReload)
+    {
+        if (ApplicationState.TryTakeFromJson<uint>(nameof(historyCount), out var cached))
+        {
+            historyCount = cached;
+        }
+        if (historyCount == null || historyCount == 0 || !ApplicationState.TryTakeFromJson<uint>(nameof(historyCount), out var _) || forceReload)
+        {
+            historyCount = await AdminService.GetAllHistoryStudentCourseCountAsync(ReThrowError);
+        }
+        StateHasChanged();
+    }
+
     private Task Persist()
     {
         if (coursesCount is not null)
@@ -135,6 +154,9 @@
 
         if (orderCoursesCount is not null)
             ApplicationState.PersistAsJson(nameof(orderCoursesCount), orderCoursesCount);
+
+        if (historyCount is not null)
+            ApplicationState.PersistAsJson(nameof(historyCount), historyCount);
 
         return Task.CompletedTask;
     }

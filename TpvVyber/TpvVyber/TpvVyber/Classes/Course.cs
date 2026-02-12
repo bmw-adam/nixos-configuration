@@ -130,6 +130,20 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
                 extended.Occupied = possible ? list?.Count() : null;
             }
 
+            if (fillExtended.Value.HasFlag(FillCourseExtended.AttendanceHistory))
+            {
+                extended.AttendanceHistory = new List<StudentCln>();
+
+                foreach (var oc in HistoryStudentCourses)
+                {
+                    var student = await adminService.GetStudentByIdAsync(oc.StudentId, false, null);
+                    if (student != null)
+                    {
+                        extended.AttendanceHistory.Add(student);
+                    }
+                }
+            }
+
             clientObject.Extended = extended;
         }
 
@@ -172,21 +186,6 @@ public class Course : IClientConvertible<CourseCln, Course, FillCourseExtended>
         entity.MaxPrice = clientObject.MaxPrice;
         entity.MinCapacity = clientObject.MinCapacity;
         entity.Capacity = clientObject.Capacity;
-
-        // FIXME check if it breaks things
-        // if (clientObject.Extended?.OrderCourses != null)
-        // {
-        //     // Update OrderCourses if Extended data is provided
-        //     entity.OrderCourses.Clear();
-        //     foreach (var orderCourseCln in clientObject.Extended.OrderCourses)
-        //     {
-        //         var orderCourseEntity = context.OrderCourses.Find(orderCourseCln.Id);
-        //         if (orderCourseEntity != null)
-        //         {
-        //             entity.OrderCourses.Add(orderCourseEntity);
-        //         }
-        //     }
-        // }
 
         return entity;
     }

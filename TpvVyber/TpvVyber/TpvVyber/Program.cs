@@ -21,6 +21,7 @@ using TpvVyber.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // builder.Services.AddHttpClient();
+builder.Services.AddSingleton<RerunFillCoursesService>();
 
 // Add MudBlazor services
 builder.Services.AddMudServices();

@@ -440,5 +440,11 @@ else
         return InvokeAsync(work);
     }
 
+    Task IInteractiveGrid.InvokeAsync(Action work)
+    {
+        return InvokeAsync(work);
+    }
+
+
     IAdminService IInteractiveGrid.AdminService => AdminService;
 }

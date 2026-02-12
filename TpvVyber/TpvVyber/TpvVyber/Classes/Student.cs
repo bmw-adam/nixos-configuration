@@ -71,6 +71,20 @@ public class Student : IClientConvertible<StudentCln, Student, FillStudentExtend
                 extended.ClaimStrength = ClaimStrength;
             }
 
+            if (fillExtended.Value.HasFlag(FillStudentExtended.AttendanceHistory))
+            {
+                extended.AttendanceHistory = new List<CourseCln>();
+
+                foreach (var oc in HistoryStudentCourses)
+                {
+                    var course = await adminService.GetCourseByIdAsync(oc.CourseId, false, null);
+                    if (course != null)
+                    {
+                        extended.AttendanceHistory.Add(course);
+                    }
+                }
+            }
+
             clientObject.Extended = extended;
         }
 
@@ -103,8 +117,6 @@ public class Student : IClientConvertible<StudentCln, Student, FillStudentExtend
         entity.Name = clientObject.Name;
         entity.Email = clientObject.Email;
         entity.Class = clientObject.Class;
-
-        // FIXME check if it breaks things
 
         return entity;
     }

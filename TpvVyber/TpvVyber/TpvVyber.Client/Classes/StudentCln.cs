@@ -15,6 +15,7 @@ public class StudentClnExtended
     public List<CourseCln>? Courses { get; set; }
     public List<OrderCourseCln>? OrderCourses { get; set; }
     public int? ClaimStrength { get; set; }
+    public List<CourseCln>? AttendanceHistory { get; set; }
 }
 
 public enum FillStudentExtended
@@ -22,4 +23,5 @@ public enum FillStudentExtended
     Courses = 1,
     OrderCourses = 2,
     ClaimStrength = 4,
+    AttendanceHistory = 8,
 }

@@ -8,6 +8,7 @@ public interface IInteractiveGrid
 {
     void StateHasChanged();
     Task InvokeAsync(Func<Task> work);
+    Task InvokeAsync(Action work);
     bool ReThrowError { get; set; }
     IAdminService AdminService { get; }
     public async Task ReloadDataAsync<T>(
@@ -44,18 +45,15 @@ public interface IInteractiveGrid
                 }
 
                 // Rerender?
-                var maxIndex = currentPage * elementsPerPage;
-                var minIndex = (currentPage == 0 ? 0 : currentPage - 1) * elementsPerPage;
+                var maxIndex = elementsPerPage + (currentPage * elementsPerPage) + 1;
+                var minIndex = (currentPage * elementsPerPage) - 1;
 
-                if ((i <= maxIndex && i >= minIndex) || (currentPage == 0 && i <= elementsPerPage))
+                if (i <= maxIndex && i >= minIndex)
                 {
-                    if (ReThrowError)
+                    if (ReThrowError || true)
                     {
-                        _ = InvokeAsync(async () =>
-                        {
-                            StateHasChanged();
-                            await Task.Delay(1);
-                        });
+                        await InvokeAsync(() => StateHasChanged());
+                        await Task.Delay(1);
                     }
                     else
                     {

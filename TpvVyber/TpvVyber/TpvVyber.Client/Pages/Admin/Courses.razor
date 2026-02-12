@@ -46,11 +46,11 @@ else
             <TemplateColumn Title="Seznam kurzů">
                 <CellTemplate>
                     <MudButton aria-label="@($"grid-adm-courses-grid-StuList-val")" OnClick="() => ExpandRow(context.Item)"
-                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Seznam žáků</MudButton>
+                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Vnořené seznamy</MudButton>
                 </CellTemplate>
                 <EditTemplate>
                     <MudButton aria-label="@($"grid-adm-courses-grid-StuList-val")" OnClick="() => ExpandRow(context.Item)"
-                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Seznam žáků</MudButton>
+                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Vnořené seznamy</MudButton>
                 </EditTemplate>
             </TemplateColumn>
 
@@ -94,6 +94,34 @@ else
                                 </MudText>
                             </CellTemplate>
                         </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+                                }
+                    else
+                    {
+                        <MudText>Error - extended je null</MudText>
+                    }
+                </MudCardContent>
+            </MudCard>
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText aria-label="@($"grid-adm-courses-grid-StuList-val-nested-Name")" Typo="Typo.h6">Seznam Historie účastí
+                            - @context.Item.Name</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (context.Item?.Extended?.AttendanceHistory != null)
+                    {
+                        <MudDataGrid T="StudentCln" Items="context.Item.Extended.AttendanceHistory" ReadOnly="true" Bordered="true"
+                            Dense="true">
+                            <Columns>
+                                <PropertyColumn aria-label="@($"grid-adm-courses-grid-hislist-val-nested-Id")"
+                                    Property="x => x.Id" Title="Id" />
+                                <PropertyColumn aria-label="@($"grid-adm-courses-grid-hislist-val-nested-Jméno")"
+                                    Property="x => x.Name" Title="Jméno" />
+                                <PropertyColumn aria-label="@($"grid-adm-courses-grid-hislist-val-nested-Email")"
+                                    Property="x => x.Email" Title="Email" />
                     </Columns>
                 </MudDataGrid>
                                 }
@@ -161,7 +189,7 @@ else
                 CoursesData = new List<CourseCln>();
             }
 
-            await ((IInteractiveGrid)this).ReloadDataAsync(AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.Students | FillCourseExtended.OrderCourses), CoursesData, currentPage, rowsPerPage);
+            await ((IInteractiveGrid)this).ReloadDataAsync(AdminService.GetAllCoursesAsync(ReThrowError, FillCourseExtended.Students | FillCourseExtended.OrderCourses | FillCourseExtended.AttendanceHistory), CoursesData, currentPage, rowsPerPage);
         }
         StateHasChanged();
     }
@@ -285,6 +313,11 @@ else
     }
 
     Task IInteractiveGrid.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
+    }
+
+    Task IInteractiveGrid.InvokeAsync(Action work)
     {
         return InvokeAsync(work);
     }

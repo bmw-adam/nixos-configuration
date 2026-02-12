@@ -208,6 +208,23 @@ public static class Auth
                                 db.Students.Update(user);
                                 await db.SaveChangesAsync();
                             }
+
+                            try
+                            {
+                                var studentHopefulyInDb = db.Students.FirstOrDefault(u =>
+                                    u.Email == userEmail
+                                );
+                                if (studentHopefulyInDb != null)
+                                {
+                                    identity.AddClaim(
+                                        new Claim("ID_CLAIM", studentHopefulyInDb.Id.ToString())
+                                    );
+                                }
+                            }
+                            catch
+                            {
+                                System.Console.WriteLine("Error / Nenasel jsem uzivatele!");
+                            }
                             return;
                         },
                     };

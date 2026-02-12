@@ -63,20 +63,6 @@ public class ApiTestGetSortedCourses : BaseApiTest
         Assert.IsNotNull(allCourses);
         Assert.That(allCourses.Count, Is.EqualTo(GenerateCourses.Count));
 
-        // if (
-        //     filledCourses.SelectMany(r => r.Value).Count()
-        //     < await AdminService.GetAllStudentsCountAsync(true)
-        // )
-        // {
-        //     Assert.That(
-        //         filledCourses
-        //             .Select(r => r.Key)
-        //             .Select(e => allCourses.First(c => c.Id == e))
-        //             .All(c => c.Capacity == filledCourses[c.Id].Count()),
-        //         Is.True
-        //     );
-        // }
-
         foreach (var course in allCourses)
         {
             var courseDetail = await SelectService.GetCourseInfo(
@@ -106,10 +92,18 @@ public class ApiTestGetSortedCourses : BaseApiTest
 
             foreach (
                 var student in await AdminService
-                    .GetAllStudentsAsync(reThrowError: true, FillStudentExtended.ClaimStrength)
+                    .GetAllStudentsAsync(
+                        reThrowError: true,
+                        FillStudentExtended.ClaimStrength | FillStudentExtended.OrderCourses
+                    )
                     .ToListAsync()
             )
             {
+                Assert.IsNotNull(student.Extended);
+                Assert.IsNotNull(student.Extended.OrderCourses);
+                Assert.IsNotNull(student.Extended.ClaimStrength);
+
+                var hisOrderCourses = student.Extended.OrderCourses;
                 var isEnrolled = courseDetail.Extended.Students.Any(s => s.Id == student.Id);
                 var isInOrderCourses = courseDetail.Extended.OrderCourses.Any(oc =>
                     oc.StudentId == student.Id
@@ -150,14 +144,28 @@ public class ApiTestGetSortedCourses : BaseApiTest
                         if (isEnrolled)
                         {
                             Assert.That(isEnrolled, Is.True);
-                            var weakestCourseMember = filledCourses[course.Id]
-                                .Select(e => e.Extended.ClaimStrength)
-                                .Min();
 
-                            Assert.That(
-                                weakestCourseMember >= student.Extended.ClaimStrength,
-                                Is.True
-                            );
+                            var gotEnrolledSomewhere = filledCourses
+                                .Where(e => e.Value.Select(t => t.Id).Contains(student.Id))
+                                .Select(r => r.Key)
+                                .FirstOrDefault();
+                            var gotEnrolledSomewhereQ = gotEnrolledSomewhere != null;
+
+                            var gotEnrolledSomewhereElse =
+                                (gotEnrolledSomewhereQ) && (gotEnrolledSomewhere != course.Id); // Pokud se nedostal nikam jinam:
+                            Assert.That(gotEnrolledSomewhere != course.Id, Is.True);
+
+                            if (!gotEnrolledSomewhereElse)
+                            {
+                                var weakestCourseMember = filledCourses[course.Id]
+                                    .Select(e => e.Extended.ClaimStrength)
+                                    .Min();
+
+                                Assert.That(
+                                    weakestCourseMember >= student.Extended.ClaimStrength,
+                                    Is.True
+                                );
+                            }
                         }
                         else
                         {
@@ -172,6 +180,8 @@ public class ApiTestGetSortedCourses : BaseApiTest
                     //     course.MinCapacity,
                     //     Is.LessThanOrEqualTo(course.Extended!.Students.Count)
                     // );
+                    //                         /^\
+                    // Doesn't work that easily |
                 }
             }
         }

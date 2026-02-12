@@ -128,7 +128,8 @@ public class ServerSelectService(
 
             // dostupné kurzy podle role
             var availableCourses = ctx
-                .Courses.ToList()
+                .Courses.Include(t => t.HistoryStudentCourses)
+                .ToList()
                 .Where(c =>
                     c.ForClasses.Split(";")
                         .Any(r =>
@@ -137,7 +138,8 @@ public class ServerSelectService(
                                 .Where(q => !string.IsNullOrWhiteSpace(q))
                                 .Contains(r)
                         )
-                );
+                )
+                .Where(r => !r.HistoryStudentCourses.Select(y => y.StudentId).Contains(student.Id));
 
             var result = new Dictionary<int, CourseCln>();
             int index = 0;
@@ -199,10 +201,13 @@ public class ServerSelectService(
                 );
             }
 
-            // TODO zkontrolovat jesti uzivatel muze na kazdy z tehdle kurzu
+            // zkontrolovat jesti uzivatel muze na kazdy z tehdle kurzu
             foreach (var ordering in input)
             {
-                var dbCourse = ctx.Courses.Find(ordering.Value.Id);
+                var dbCourse = ctx
+                    .Courses.Include(t => t.HistoryStudentCourses)
+                    .Include(y => y.OrderCourses)
+                    .FirstOrDefault(a => a.Id == ordering.Value.Id);
                 if (dbCourse == null)
                 {
                     throw new Exception(
@@ -217,6 +222,15 @@ public class ServerSelectService(
                 )
                 {
                     throw new Exception("Minimálně na jeden kurz nemáte nárok");
+                }
+
+                if (
+                    dbCourse
+                        .HistoryStudentCourses.Select(y => y.StudentId)
+                        .Contains(actualStudent.Id)
+                )
+                {
+                    throw new Exception($"Na kurzu {dbCourse.Name} už jsi byl");
                 }
             }
 

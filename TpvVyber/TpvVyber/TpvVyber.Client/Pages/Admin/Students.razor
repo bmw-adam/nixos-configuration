@@ -35,11 +35,11 @@ else
             <TemplateColumn Title="Seznam kurzů">
                 <CellTemplate>
                     <MudButton aria-label="admin-students-table-value-list-expand" OnClick="() => ExpandRow(context.Item)"
-                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Seznam kurzů</MudButton>
+                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Vnořené seznamy</MudButton>
                 </CellTemplate>
                 <EditTemplate>
                     <MudButton aria-label="admin-students-table-value-list-expand" OnClick="() => ExpandRow(context.Item)"
-                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Seznam kurzů</MudButton>
+                        StartIcon="@Icons.Material.Outlined.List" Size="Size.Small">Vnořené seznamy</MudButton>
                 </EditTemplate>
             </TemplateColumn>
             <TemplateColumn>
@@ -65,6 +65,42 @@ else
                     @if (context.Item?.Extended?.Courses != null)
                     {
                         <MudDataGrid T="CourseCln" Items="context.Item.Extended.Courses" ReadOnly="true" Bordered="true"
+                            Dense="true">
+                            <Columns>
+                                <PropertyColumn aria-label="admin-students-table-value-lst-value-id" Property="x => x.Id"
+                                    Title="Id" />
+                                <PropertyColumn aria-label="admin-students-table-value-lst-value-name" Property="x => x.Name"
+                                    Title="Jméno" />
+                                <PropertyColumn aria-label="admin-students-table-value-lst-value-desc"
+                                    Property="x => x.Description" Title="Popis" />
+                                <TemplateColumn Title="Pořadí" Editable="false">
+                                    <CellTemplate Context="course">
+                                        <MudText aria-label="admin-students-table-value-lst-value-poradi">
+                                            @string.Join(", ", context.Item.Extended?.OrderCourses?.Where(oc => oc.CourseId ==
+                                            course.Item.Id).Select(oc => oc.Order) ?? [])
+                                </MudText>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+                                }
+                    else
+                    {
+                        <MudText>Error - extended je null</MudText>
+                    }
+                </MudCardContent>
+            </MudCard>
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText aria-label="admin-students-table-value-lst-header" Typo="Typo.h6">Historie účastí -
+                            @context.Item.Name</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (context.Item?.Extended?.AttendanceHistory != null)
+                    {
+                        <MudDataGrid T="CourseCln" Items="context.Item.Extended.AttendanceHistory" ReadOnly="true" Bordered="true"
                             Dense="true">
                             <Columns>
                                 <PropertyColumn aria-label="admin-students-table-value-lst-value-id" Property="x => x.Id"
@@ -157,32 +193,7 @@ else
             int currentPage = StudentGrid is null ? 0 : StudentGrid.CurrentPage;
             int rowsPerPage = StudentGrid is null ? 10 : StudentGrid.RowsPerPage;
 
-            await ((IInteractiveGrid)this).ReloadDataAsync(AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses | FillStudentExtended.OrderCourses), StudentsData, currentPage, rowsPerPage);
-
-            @* _ = InvokeAsync(StateHasChanged);
-
-            await foreach (var student in AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses |
-            FillStudentExtended.OrderCourses))
-            {
-                if (RendererInfo.Name == "WebAssembly")
-                {
-                    StudentsData.Add(student);
-                    var maxIndex = StudentGrid.CurrentPage * StudentGrid.RowsPerPage;
-                    var minIndex = (StudentGrid.CurrentPage == 0 ? 0 : StudentGrid.CurrentPage - 1) * StudentGrid.RowsPerPage;
-
-                    if ((StudentsData.Count <= maxIndex && StudentsData.Count >= minIndex) || (StudentGrid.CurrentPage == 0 &&
-                    StudentsData.Count <= StudentGrid.RowsPerPage))
-                    {
-                        StateHasChanged();
-                        await Task.Delay(1);
-                    }
-                }
-                else
-                {
-                    StudentsData.Add(student);
-                    _ = InvokeAsync(StateHasChanged);
-                }
-            } *@
+            await ((IInteractiveGrid)this).ReloadDataAsync(AdminService.GetAllStudentsAsync(ReThrowError, FillStudentExtended.Courses | FillStudentExtended.OrderCourses | FillStudentExtended.AttendanceHistory), StudentsData, currentPage, rowsPerPage);
         }
     }
 
@@ -302,6 +313,11 @@ else
     }
 
     Task IInteractiveGrid.InvokeAsync(Func<Task> work)
+    {
+        return InvokeAsync(work);
+    }
+
+    Task IInteractiveGrid.InvokeAsync(Action work)
     {
         return InvokeAsync(work);
     }
