@@ -82,7 +82,7 @@
         _subscription = ApplicationState.RegisterOnPersisting(Persist);
         _ = AsyncLoad();
         _updateHandler = ((IClientUpdateHandler)this).FactoryUpdateHandler(
-            [TableNames.Students, TableNames.Courses, TableNames.LoggingEndings],
+            [TableNames.Students, TableNames.Courses, TableNames.LoggingEndings, TableNames.OrderCourses],
             AsyncLoad
         );
 

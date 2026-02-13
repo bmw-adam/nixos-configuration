@@ -58,7 +58,7 @@ else
 }
 
 <MudStack Justify="Justify.FlexEnd" Row Spacing="5">
-    <MudButton aria-label="cancelBtn" OnClick="async () => await InitialLoadSort()" Color="Color.Secondary"
+    <MudButton aria-label="cancelBtn" OnClick="async () => {reorderAccordingToApi = true; await InitialLoadSort();}" Color="Color.Secondary"
         Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Cancel">Zrušit
     </MudButton>
     <MudButton aria-label="okBtn" OnClick="AsyncUpdate" Color="Color.Info" Variant="Variant.Outlined"
@@ -72,6 +72,7 @@ else
     [CascadingParameter]
     public bool ReThrowError { get; set; }
     private EventHandler<TpvUpdateEventArgs>? _updateHandler;
+    private bool reorderAccordingToApi = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,7 +107,28 @@ else
     {
         if (forceReload)
         {
-            SortableCourses = await ApiCallCourses();
+            var courses = await ApiCallCourses();
+            if (courses != null)
+            {
+                if (reorderAccordingToApi || !(SortableCourses?.Select(y => y.Id)?.OrderBy(x => x)?.SequenceEqual(courses.Select(e => e.Id).OrderBy(x => x)) ?? false))
+                {
+                    SortableCourses = courses;
+                    reorderAccordingToApi = false;
+                }
+                else
+                {
+                    for (int i = 0; i < SortableCourses.Count; i++)
+                    {
+                        var oldElement = SortableCourses[i];
+                        var newElement = courses.First(e => e.Id == oldElement.Id);
+                        SortableCourses[i].Name = newElement.Name;
+                        if (SortableCourses[i]?.Extended?.Availability != null)
+                        {
+                            SortableCourses[i]!.Extended!.Availability = newElement.Extended?.Availability;
+                        }
+                    }
+                }
+            }
         }
         else
         {
@@ -156,6 +178,7 @@ else
             return;
         }
 
+        reorderAccordingToApi = true;
         await SelectService.UpdateOrderAsync(
         SortableCourses
         .Select((course, index) => new { index, course })

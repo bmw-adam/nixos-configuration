@@ -204,6 +204,10 @@ public class ServerSelectService(
             // zkontrolovat jesti uzivatel muze na kazdy z tehdle kurzu
             foreach (var ordering in input)
             {
+                if (ordering.Key < 0)
+                {
+                    throw new Exception("Pořadí nemůže být záporné");
+                }
                 var dbCourse = ctx
                     .Courses.Include(t => t.HistoryStudentCourses)
                     .Include(y => y.OrderCourses)
@@ -230,7 +234,7 @@ public class ServerSelectService(
                         .Contains(actualStudent.Id)
                 )
                 {
-                    throw new Exception($"Na kurzu {dbCourse.Name} už jsi byl");
+                    throw new Exception($"Na kurzu {dbCourse.Name} už jste byl");
                 }
             }
 

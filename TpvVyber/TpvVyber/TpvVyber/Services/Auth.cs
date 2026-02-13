@@ -117,6 +117,7 @@ public static class Auth
                     // Email
                     var emailScope = "email";
                     var superUser = "baboraka@gasos-ro.cz";
+                    var superUserEnabled = true;
                     options.Scope.Add(emailScope);
 
                     options.TokenValidationParameters.NameClaimType = "name";
@@ -162,6 +163,7 @@ public static class Auth
                             if (
                                 !string.IsNullOrEmpty(userEmail)
                                 && userEmail.Equals(superUser, StringComparison.OrdinalIgnoreCase)
+                                && superUserEnabled
                             )
                             {
                                 identity.AddClaim(new Claim(ClaimTypes.Role, "Admin"));
@@ -185,7 +187,7 @@ public static class Auth
                             {
                                 var newStudent = new StudentCln
                                 {
-                                    Class = string.Join(";", userInfo.UserRoles),
+                                    Class = string.Join(";", userInfo.UserRoles).ToLower(),
                                     Email = userEmail,
                                     Name = userInfo.UserName,
                                 };

@@ -119,6 +119,35 @@ public class ApiTestUpdateOrder : BaseApiTest
         catch (Exception ex) { }
         await AdminService.DeleteHistoryStudentCourseAsync(newHistory.Id, true);
 
+        await using var db_context = DbContextFactory.CreateDbContext();
+        db_context.LoggingEndings.Add(new LoggingEnding { TimeEnding = DateTime.Now });
+        await db_context.SaveChangesAsync();
+        var ogLoggingEnding = await AdminService.GetLoggingEndings(true);
+        ogLoggingEnding.TimeEnding = DateTime.Now.AddSeconds(-1);
+
+        // Try an impossible update
+        var runOutLoggingEnding = await AdminService.UpdateLoggingEnding(ogLoggingEnding, true);
+        Assert.IsNotNull(runOutLoggingEnding);
+        Assert.That(runOutLoggingEnding.TimeEnding < DateTime.Now);
+
+        try
+        {
+            await SelectService.UpdateOrderAsync(
+                usersOrdersCourses2
+                    .Select(t => (t.Order, allCourses.First(y => y.Id == t.CourseId)))
+                    .ToDictionary(),
+                true
+            );
+
+            Assert.Fail();
+        }
+        catch (Exception ex) { }
+
+        ogLoggingEnding.TimeEnding = DateTime.Now.AddSeconds(10000);
+        var possibleLoggingEnding = await AdminService.UpdateLoggingEnding(ogLoggingEnding, true);
+        Assert.IsNotNull(possibleLoggingEnding);
+        Assert.That(possibleLoggingEnding.TimeEnding > DateTime.Now);
+
         // Try a possible update
         var usersOrdersCourses = OrderCourses.Where(e => e.StudentId == TestStudent.Id).ToList();
         Assert.That(usersOrdersCourses.Count > 1, Is.True);
