@@ -37,7 +37,7 @@
 </CascadingValue>
 
 
-<MudOverlay ZIndex="9999" Visible="@(!RendererInfo.IsInteractive)" DarkBackground="true" Absolute="true">
+<MudOverlay ZIndex="9999" Visible="@showOverlay" DarkBackground="true" Absolute="true">
     <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 </MudOverlay>
 
@@ -55,6 +55,7 @@
     LoggingEndingCln? LoggingEndingCln;
     private DotNetObjectReference<MainLayout>? selfRef;
     private EventHandler<TpvUpdateEventArgs>? _updateHandler;
+    private bool showOverlay = true;
 
     protected override void OnInitialized()
     {
@@ -74,6 +75,8 @@
             PaletteDark = _darkPalette,
             LayoutProperties = new LayoutProperties()
         };
+        showOverlay = false;
+        StateHasChanged();
     }
 
     private async Task InitUpdateService()

@@ -22,7 +22,17 @@
         <tbody>
             @foreach (var course in Courses)
             {
-                <MudTr aria-label="@($"mudtable-notloggedpromo-row-{course.Name}")">
+                @* <MudTr aria-label="@($"mudtable-notloggedpromo-row-{course.Name}")">
+                    <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Name")">@course.Name</MudTd>
+                    <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Description")">@course.Description</MudTd>
+                    <MudTd>
+                        <MudLink aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Url")" Href="@course.PdfUrl">Url</MudLink>
+                    </MudTd>
+                    <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Price")">@course.MaxPrice - @course.MinPrice</MudTd>
+                    <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Capacity")">@course.Capacity</MudTd>
+                    <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Occupied")">@course.Extended?.Occupied</MudTd>
+                </MudTr> *@
+                <MudTr @key="course.Id" aria-label="@($"mudtable-notloggedpromo-row-{course.Name}")">
                     <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Name")">@course.Name</MudTd>
                     <MudTd aria-label="@($"mudtable-notloggedpromo-row-{course.Name}-Description")">@course.Description</MudTd>
                     <MudTd>

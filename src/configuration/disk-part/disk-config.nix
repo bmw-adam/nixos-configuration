@@ -46,28 +46,28 @@
         };
       };
     };
-    disk.disk2 = {
-      device = lib.mkDefault "/dev/sdb";
-      type = "disk";
-      content = {
-        type = "gpt";
-        partitions = {
-          db = {
-            name = "db";
-            size = "100%";
-            type = "8300";
-            content = {
-              type = "filesystem";
-              mountpoint = "/db";
-              mountOptions = [
-                "defaults"
-              ];
-              format = "ext4";
-            };
-          };
-        };
-      };
-    };
+    #disk.disk2 = {
+      #device = lib.mkDefault "/dev/sdb";
+      #type = "disk";
+      #content = {
+        #type = "gpt";
+        #partitions = {
+          #db = {
+            #name = "db";
+            #size = "100%";
+            #type = "8300";
+            #content = {
+              #type = "filesystem";
+              #mountpoint = "/db";
+              #mountOptions = [
+                #"defaults"
+              #];
+              #format = "ext4";
+            #};
+          #};
+        #};
+      #};
+    #};
 
     lvm_vg = {
       pool = {

@@ -124,7 +124,7 @@ public static class Auth
 
                     options.Events = new OpenIdConnectEvents
                     {
-                        OnTokenValidated = async context => // TODO create a student there
+                        OnTokenValidated = async context =>
                         {
                             var identity = (ClaimsIdentity)context.Principal!.Identity!;
 
@@ -133,7 +133,7 @@ public static class Auth
 
                             foreach (var claim in descriptionClaims)
                             {
-                                string roleValue = claim.Value;
+                                string roleValue = claim.Value.ToLower();
                                 bool wasTranslated = false;
 
                                 // Check for "Správce" and standardize to "Admin"
